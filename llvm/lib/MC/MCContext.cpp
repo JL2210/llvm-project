@@ -33,6 +33,7 @@
 #include "llvm/MC/MCSectionSPIRV.h"
 #include "llvm/MC/MCSectionWasm.h"
 #include "llvm/MC/MCSectionXCOFF.h"
+#include "llvm/MC/MCSectionRGB9.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCSymbol.h"
@@ -109,6 +110,9 @@ MCContext::MCContext(const Triple &TheTriple, const MCAsmInfo *mai,
   case Triple::SPIRV:
     Env = IsSPIRV;
     break;
+  case Triple::RGB9:
+    Env = IsRGB9;
+    break;
   case Triple::UnknownObjectFormat:
     report_fatal_error("Cannot initialize MC for unknown object file format.");
     break;
@@ -143,6 +147,7 @@ void MCContext::reset() {
   DXCAllocator.DestroyAll();
   ELFAllocator.DestroyAll();
   GOFFAllocator.DestroyAll();
+  RGB9Allocator.DestroyAll();
   MachOAllocator.DestroyAll();
   WasmAllocator.DestroyAll();
   XCOFFAllocator.DestroyAll();
@@ -173,6 +178,7 @@ void MCContext::reset() {
   WasmUniquingMap.clear();
   XCOFFUniquingMap.clear();
   DXCUniquingMap.clear();
+  RGB9UniquingMap.clear();
 
   ELFEntrySizeMap.clear();
   ELFSeenGenericMergeableSections.clear();
@@ -249,6 +255,8 @@ MCSymbol *MCContext::createSymbolImpl(const StringMapEntry<bool> *Name,
     return new (Name, *this) MCSymbolGOFF(Name, IsTemporary);
   case MCContext::IsMachO:
     return new (Name, *this) MCSymbolMachO(Name, IsTemporary);
+  case MCContext::IsRGB9: // generic case
+    break;
   case MCContext::IsWasm:
     return new (Name, *this) MCSymbolWasm(Name, IsTemporary);
   case MCContext::IsXCOFF:
@@ -652,6 +660,26 @@ MCSectionGOFF *MCContext::getGOFFSection(StringRef Section, SectionKind Kind,
         MCSectionGOFF(Section, Kind, Parent, SubsectionId);
 
   return GOFFSection;
+}
+
+MCSectionRGB9 *MCContext::getRGB9Section(StringRef Section, SectionKind Kind,
+                                         const char *BeginSymName) {
+  // Do the lookup. If we have a hit, return it.
+  RGB9SectionKey T{Section};
+  auto IterBool = RGB9UniquingMap.insert(std::make_pair(T, nullptr));
+  auto Iter = IterBool.first;
+  if (!IterBool.second)
+    return Iter->second;
+
+  StringRef CachedName = Iter->first.SectionName;
+
+  MCSymbol *Begin = nullptr;
+  if (BeginSymName)
+    Begin = createTempSymbol(BeginSymName, false);
+
+  MCSectionRGB9 *Result = new (RGB9Allocator.Allocate()) MCSectionRGB9(CachedName, Kind, Begin);
+  Iter->second = Result;
+  return Result;
 }
 
 MCSectionCOFF *MCContext::getCOFFSection(StringRef Section,

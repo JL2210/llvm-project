@@ -52,6 +52,7 @@ class MCSectionCOFF;
 class MCSectionDXContainer;
 class MCSectionELF;
 class MCSectionGOFF;
+class MCSectionRGB9;
 class MCSectionMachO;
 class MCSectionSPIRV;
 class MCSectionWasm;
@@ -87,7 +88,8 @@ public:
     IsSPIRV,
     IsWasm,
     IsXCOFF,
-    IsDXContainer
+    IsDXContainer,
+    IsRGB9,
   };
 
 private:
@@ -137,6 +139,7 @@ private:
   SpecificBumpPtrAllocator<MCSectionSPIRV> SPIRVAllocator;
   SpecificBumpPtrAllocator<MCSectionWasm> WasmAllocator;
   SpecificBumpPtrAllocator<MCSectionXCOFF> XCOFFAllocator;
+  SpecificBumpPtrAllocator<MCSectionRGB9> RGB9Allocator;
   SpecificBumpPtrAllocator<MCInst> MCInstAllocator;
 
   /// Bindings of names to symbols.
@@ -311,6 +314,19 @@ private:
     }
   };
 
+  struct RGB9SectionKey {
+    // exists for the sole purpose of caching the section name
+    std::string SectionName;
+
+    RGB9SectionKey(StringRef SectionName)
+        : SectionName(SectionName) {
+    }
+
+    bool operator<(const RGB9SectionKey &Other) const {
+      return SectionName < Other.SectionName;
+    }
+  };
+
   struct XCOFFSectionKey {
     // Section name.
     std::string SectionName;
@@ -350,6 +366,7 @@ private:
   std::map<WasmSectionKey, MCSectionWasm *> WasmUniquingMap;
   std::map<XCOFFSectionKey, MCSectionXCOFF *> XCOFFUniquingMap;
   StringMap<MCSectionDXContainer *> DXCUniquingMap;
+  std::map<RGB9SectionKey, MCSectionRGB9 *> RGB9UniquingMap;
   StringMap<bool> RelSecNames;
 
   SpecificBumpPtrAllocator<MCSubtargetInfo> MCSubtargetAllocator;
@@ -677,6 +694,9 @@ public:
       Optional<XCOFF::CsectProperties> CsectProp = None,
       bool MultiSymbolsAllowed = false, const char *BeginSymName = nullptr,
       Optional<XCOFF::DwarfSectionSubtypeFlags> DwarfSubtypeFlags = None);
+
+  MCSectionRGB9 *getRGB9Section(StringRef Section, SectionKind Kind,
+                                const char *BeginSymName = nullptr);
 
   // Create and save a copy of STI and return a reference to the copy.
   MCSubtargetInfo &getSubtargetCopy(const MCSubtargetInfo &STI);

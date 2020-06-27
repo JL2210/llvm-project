@@ -105,7 +105,8 @@ public:
     renderscript32, // 32-bit RenderScript
     renderscript64, // 64-bit RenderScript
     ve,             // NEC SX-Aurora Vector Engine
-    LastArchType = ve
+    sm83,           // Sharp SM83
+    LastArchType = sm83
   };
   enum SubArchType {
     NoSubArch,
@@ -282,6 +283,7 @@ public:
     GOFF,
     MachO,
     SPIRV,
+    RGB9,
     Wasm,
     XCOFF,
   };

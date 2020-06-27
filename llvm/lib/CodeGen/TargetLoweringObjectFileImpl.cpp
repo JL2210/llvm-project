@@ -50,6 +50,7 @@
 #include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/MCSectionGOFF.h"
 #include "llvm/MC/MCSectionMachO.h"
+#include "llvm/MC/MCSectionRGB9.h"
 #include "llvm/MC/MCSectionWasm.h"
 #include "llvm/MC/MCSectionXCOFF.h"
 #include "llvm/MC/MCStreamer.h"
@@ -2651,4 +2652,51 @@ MCSection *TargetLoweringObjectFileGOFF::SelectSectionForGlobal(
                                        nullptr, nullptr);
 
   return getContext().getObjectFileInfo()->getTextSection();
+}
+
+//===----------------------------------------------------------------------===//
+//                                  RGB9
+//===----------------------------------------------------------------------===//
+TargetLoweringObjectFileRGB9::TargetLoweringObjectFileRGB9()
+    : TargetLoweringObjectFile() {}
+
+MCSection *TargetLoweringObjectFileRGB9::getExplicitSectionGlobal(
+    const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {
+  report_fatal_error("explicit section globals not supported in RGB9 yet");
+}
+
+MCSection *TargetLoweringObjectFileRGB9::SelectSectionForGlobal(
+    const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {
+  bool UniqueSectionName = false;
+  if (Kind.isText()) {
+    UniqueSectionName = TM.getFunctionSections();
+    if (!TM.getFunctionSections()) {
+      report_fatal_error("-ffunction-sections required for RGB9");
+    }
+  } else {
+    UniqueSectionName = TM.getDataSections();
+  }
+
+  SmallString<128> Name = getSectionPrefixForGlobal(Kind);
+
+   bool HasPrefix = false;
+   if (const auto *F = dyn_cast<Function>(GO)) {
+     if (Optional<StringRef> Prefix = F->getSectionPrefix()) {
+       raw_svector_ostream(Name) << '.' << *Prefix;
+       HasPrefix = true;
+     }
+   }
+
+   if (UniqueSectionName) {
+     Name.push_back('.');
+     TM.getNameWithPrefix(Name, GO, getMangler(), /*MayAlwaysUsePrivate*/true);
+   } else if (HasPrefix) {
+     // For distinguishing between .text.${text-section-prefix}. (with trailing
+     // dot) and .text.${function-name}
+     Name.push_back('.');
+   }
+  return getContext().getRGB9Section(Name, Kind);
+
+  report_fatal_error("Section kind unsupported!");
+  return nullptr;
 }

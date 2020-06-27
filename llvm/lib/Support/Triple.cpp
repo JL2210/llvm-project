@@ -64,6 +64,7 @@ StringRef Triple::getArchTypeName(ArchType Kind) {
   case riscv32:        return "riscv32";
   case riscv64:        return "riscv64";
   case shave:          return "shave";
+  case sm83:           return "sm83";
   case sparc:          return "sparc";
   case sparcel:        return "sparcel";
   case sparcv9:        return "sparcv9";
@@ -165,12 +166,15 @@ StringRef Triple::getArchTypePrefix(ArchType Kind) {
   case riscv64:     return "riscv";
 
   case ve:          return "ve";
+
   case csky:        return "csky";
 
   case loongarch32:
   case loongarch64: return "loongarch";
 
   case dxil:        return "dx";
+
+  case sm83:        return "sm83";
   }
 }
 
@@ -373,6 +377,7 @@ Triple::ArchType Triple::getArchTypeForLLVMName(StringRef Name) {
     .Case("loongarch32", loongarch32)
     .Case("loongarch64", loongarch64)
     .Case("dxil", dxil)
+    .Case("sm83", sm83)
     .Default(UnknownArch);
 }
 
@@ -514,6 +519,7 @@ static Triple::ArchType parseArch(StringRef ArchName) {
     .Case("loongarch32", Triple::loongarch32)
     .Case("loongarch64", Triple::loongarch64)
     .Case("dxil", Triple::dxil)
+    .Case("sm83", Triple::sm83)
     .Default(Triple::UnknownArch);
 
   // Some architectures require special parsing logic just to compute the
@@ -772,6 +778,8 @@ static StringRef getObjectFormatTypeName(Triple::ObjectFormatType Kind) {
     return "goff";
   case Triple::MachO:
     return "macho";
+  case Triple::RGB9:
+    return "rgb9";
   case Triple::Wasm:
     return "wasm";
   case Triple::XCOFF:
@@ -857,6 +865,9 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
       return Triple::GOFF;
     return Triple::ELF;
 
+  case Triple::sm83:
+    return Triple::RGB9;
+
   case Triple::wasm32:
   case Triple::wasm64:
     return Triple::Wasm;
@@ -867,6 +878,8 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
 
   case Triple::dxil:
     return Triple::DXContainer;
+
+    return Triple::UnknownObjectFormat;
   }
   llvm_unreachable("unknown architecture");
 }
@@ -1388,6 +1401,7 @@ static unsigned getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
 
   case llvm::Triple::avr:
   case llvm::Triple::msp430:
+  case llvm::Triple::sm83:
     return 16;
 
   case llvm::Triple::aarch64_32:
@@ -1475,6 +1489,7 @@ Triple Triple::get32BitArchVariant() const {
   case Triple::bpfeb:
   case Triple::bpfel:
   case Triple::msp430:
+  case Triple::sm83:
   case Triple::systemz:
   case Triple::ve:
     T.setArch(UnknownArch);
@@ -1560,6 +1575,7 @@ Triple Triple::get64BitArchVariant() const {
   case Triple::msp430:
   case Triple::r600:
   case Triple::shave:
+  case Triple::sm83:
   case Triple::sparcel:
   case Triple::tce:
   case Triple::tcele:
@@ -1760,6 +1776,7 @@ bool Triple::isLittleEndian() const {
   case Triple::riscv32:
   case Triple::riscv64:
   case Triple::shave:
+  case Triple::sm83:
   case Triple::sparcel:
   case Triple::spir64:
   case Triple::spir:
