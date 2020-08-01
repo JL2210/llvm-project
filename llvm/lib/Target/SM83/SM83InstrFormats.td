@@ -47,6 +47,7 @@ def LRdRs<dag outs, dag ins, string asmstr, list<dag> pattern>
 
   let Inst{0-2} = dst;
   let Inst{3-5} = src;
+  let Inst{6-7} = 0b01;
 }
 
 //===----------------------------------------------------------------------===//
@@ -60,12 +61,14 @@ def LRdI8<dag outs, dag ins, string asmstr, list<dag> pattern>
   bits<3> dst;
   bits<8> constant;
 
+  let Inst{0-2} = 0b110;
   let Inst{3-5} = dst;
+  let Inst{6-7} = 0b00; 
   let Inst{8-15} = constant;
 }
 
 //===----------------------------------------------------------------------===//
-// register/A arithmetic: <|10|opc|src|>
+// A/register arithmetic: <|10|opc|src|>
 // opc - type of operation - 3 bits
 // src - source register - 3 bits
 //===----------------------------------------------------------------------===//
@@ -76,4 +79,20 @@ def ARs<bits<3> opc, dag outs, dag ins, string asmstr, list<dag> pattern>
 
   let Inst{0-2} = src;
   let Inst{3-5} = opc;
+  let Inst{6-7} = 0b10;
 }
+
+//===----------------------------------------------------------------------===//
+// A/immediate8 arithmetic: <|11|opc|110|constant|>
+// opc - type of operation - 3 bits
+// constant - constant data - 8 bits
+//===----------------------------------------------------------------------===//
+def AI8<bits<3> opc, dag outs, dag ins, string asmstr, list<dag> pattern>
+  : SM83Inst8<outs, ins, asmstr, pattern>
+{
+  bits<8> constant;
+
+  let Inst{3-5} = opc;
+  let Inst{8-15} = constant;
+}
+
