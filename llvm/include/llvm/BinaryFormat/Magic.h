@@ -55,6 +55,7 @@ struct file_magic {
     cuda_fatbinary,      ///< CUDA Fatbinary object file
     offload_binary,      ///< LLVM offload object file
     dxcontainer_object,  ///< DirectX container file
+//  rgb9_object,         ///< SM83 RGBDS object file
   };
 
   bool is_object() const { return V != unknown; }
