@@ -311,7 +311,7 @@ public:
     ELF,
     GOFF,
     MachO,
-    RGB9,
+//  RGB9,
     SPIRV,
     Wasm,
     XCOFF,

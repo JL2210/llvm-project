@@ -24,8 +24,8 @@ class SM83Reg<string name,
 
 // Subregister indices.
 let Namespace = "SM83" in {
-  def sub_low	: SubRegIndex<8>;
-  def sub_high	: SubRegIndex<8, 8>;
+  def sub_low : SubRegIndex<8>;
+  def sub_high : SubRegIndex<8, 8>;
 }
 
 //===----------------------------------------------------------------------===//
@@ -39,11 +39,12 @@ def D : SM83Reg<"d", 2>;
 def E : SM83Reg<"e", 3>;
 def H : SM83Reg<"h", 4>;
 def L : SM83Reg<"l", 5>;
+// we don't want [hl] to be allocated
 def A : SM83Reg<"a", 7>;
 def FLAGS : SM83Reg<"f">;
 
 let SubRegIndices = [sub_high, sub_low],
-CoveredBySubRegs = 1 in
+    CoveredBySubRegs = 1 in
 {
   // 16-bit registers
   def AF : SM83RegWithSubRegs<"af", 3, [A, FLAGS]>;
