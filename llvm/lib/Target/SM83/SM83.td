@@ -24,5 +24,5 @@ include "SM83CallingConv.td"
 def SM83InstrInfo : InstrInfo;
 
 def SM83 final : public Target {
-	let InstructionSet = SM83InstrInfo;
+  let InstructionSet = SM83InstrInfo;
 }
