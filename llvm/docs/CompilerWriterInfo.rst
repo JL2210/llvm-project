@@ -112,6 +112,10 @@ LoongArch
 * `LoongArch Reference Manual - Volume 1: Basic Architecture <https://loongson.github.io/LoongArch-Documentation/LoongArch-Vol1-EN.html>`_
 * `LoongArch ELF ABI specification <https://loongson.github.io/LoongArch-Documentation/LoongArch-ELF-ABI-EN.html>`_
 
+SM83
+----
+* `SM83 datasheet <https://jp.sharp/ic/datasheet/micon/pdf/sm831x.pdf>`_
+
 SPARC
 -----
 
