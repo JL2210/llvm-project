@@ -986,7 +986,10 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
     return Triple::DXContainer;
 
   case Triple::sm83:
+/* FIXME: add RGB9 object file format
     return Triple::RGB9;
+*/
+    break;
   }
   llvm_unreachable("unknown architecture");
 }
@@ -1703,6 +1706,7 @@ Triple Triple::get32BitArchVariant() const {
   case Triple::bpfeb:
   case Triple::bpfel:
   case Triple::msp430:
+  case Triple::sm83:
   case Triple::systemz:
   case Triple::ve:
     T.setArch(UnknownArch);
@@ -1788,6 +1792,7 @@ Triple Triple::get64BitArchVariant() const {
   case Triple::msp430:
   case Triple::r600:
   case Triple::shave:
+  case Triple::sm83:
   case Triple::sparcel:
   case Triple::tce:
   case Triple::tcele:

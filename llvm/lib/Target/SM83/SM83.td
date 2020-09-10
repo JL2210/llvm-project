@@ -11,18 +11,20 @@
 //
 //===------------------------------------------------------------------------===//
 
-// Get the target-independent interfaces which we are implementing...
-//
 include "llvm/Target/Target.td"
 
-// Target-dependent interfaces
-//
+//===------------------------------------------------------------------------===//
+// Register file, instruction descriptions, and calling conventions
+//===------------------------------------------------------------------------===//
 include "SM83RegisterInfo.td"
 include "SM83InstrInfo.td"
-include "SM83CallingConv.td"
+// include "SM83CallingConv.td"
 
 def SM83InstrInfo : InstrInfo;
 
+//===------------------------------------------------------------------------===//
+// Define the target
+//===------------------------------------------------------------------------===//
 def SM83 final : public Target {
   let InstructionSet = SM83InstrInfo;
 }
