@@ -29,10 +29,6 @@ defm AND : ALU_ri<"and", 0b100, and>;
 defm XOR : ALU_ri<"xor", 0b101, xor>;
 defm OR  : ALU_ri<"or" , 0b110, or >;
 
-let Defs = [FLAGS] in {
-  defm CP : ALU_ri<"cp", 0b111, sub>;
-}
-
 def LDddnn : SM83Inst24<(outs AR16:$dst),
                         (ins i16:$src),
                         "ld $dst, $src",
