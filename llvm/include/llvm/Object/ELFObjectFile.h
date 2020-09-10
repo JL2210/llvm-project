@@ -1216,6 +1216,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
       return "elf32-amdgpu";
     case ELF::EM_LOONGARCH:
       return "elf32-loongarch";
+    case ELF::EM_SM83:
+      return "elf32-sm83";
     default:
       return "elf32-unknown";
     }
@@ -1321,6 +1323,8 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
 
     return Triple::UnknownArch;
   }
+  case ELF::EM_SM83:
+    return Triple::sm83;
 
   case ELF::EM_BPF:
     return IsLittleEndian ? Triple::bpfel : Triple::bpfeb;
