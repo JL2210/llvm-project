@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-include "llvm/Target/Target.td"
+include "SM83InstrFormats.td"
 
 multiclass ALU_ri<string opstr, SM83ALU opc, SDPatternOperator op> {
   def r : ALU_r<opc,
