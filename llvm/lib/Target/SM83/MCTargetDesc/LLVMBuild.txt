@@ -14,17 +14,9 @@
 ;
 ;===------------------------------------------------------------------------===;
 
-[common]
-subdirectories = TargetInfo MCTargetDesc
-
 [component_0]
-type = TargetGroup
-name = SM83
-parent = Target
-
-[component_1]
 type = Library
-name = SM83CodeGen
+name = SM83Desc
 parent = SM83
-required_libraries = Core CodeGen SM83Info Support Target
+required_libraries = MC SM83Info Support
 add_to_library_groups = SM83
