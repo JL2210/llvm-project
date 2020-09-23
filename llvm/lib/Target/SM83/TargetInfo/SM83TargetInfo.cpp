@@ -23,8 +23,3 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83TargetInfo() {
   llvm::RegisterTarget<llvm::Triple::sm83> X(llvm::getTheSM83Target(), "sm83",
                                             "Sharp SM83 Microcomputer", "SM83");
 }
-
-// FIXME: Temporary stub - this function must be defined for linking
-// to succeed and will be called unconditionally by llc, so must be a no-op.
-// Remove once this function is properly implemented.
-extern "C" void LLVMInitializeSM83TargetMC() {}
