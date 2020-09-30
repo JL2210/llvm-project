@@ -10,14 +10,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "SM83VMCAsmInfo.h"
+#include "SM83MCAsmInfo.h"
 #include "llvm/ADT/Triple.h"
 using namespace llvm;
 
 void SM83MCAsmInfo::anchor() {}
 
-SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT) {
-  CodePointerSize = CalleeSaveStackSlotSize = 2;
+SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT)
+{
+  CodePointerSize = 2;
+  CalleeSaveStackSlotSize = 2;
   AlignmentIsInBytes = false;
   IsLittleEndian = true;
   MaxInstLength = 3;
@@ -33,15 +35,12 @@ SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT) {
     ProtectedVisibilityAttr = MCSA_Invalid;
   GlobalDirective = "GLOBAL";
   WeakDirective = "";
-  Code16Directive =
-    Code32Directive =
-    Code64Directive = "";
   InlineAsmStart = "";
   InlineAsmEnd = "";
   ZeroDirective = "\tds\t";
   AsciiDirective = "\tdb\t";
   AscizDirective = nullptr;
-  Data8bitsDirective  = "\tdb\t";
+  Data8bitsDirective = "\tdb\t";
   Data16bitsDirective = "\tdw\t";
   Data32bitsDirective = "\tdl\t";
   Data64bitsDirective = nullptr;
