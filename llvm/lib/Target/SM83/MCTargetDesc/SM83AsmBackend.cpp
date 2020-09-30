@@ -1,4 +1,4 @@
-//===-- SM83AsmBackend.cpp - SM83 Assembler Backend ---------------------===//
+//===-- SM83AsmBackend.cpp - SM83 Assembler Backend -------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -22,62 +22,72 @@
 using namespace llvm;
 
 namespace {
+
 class SM83AsmBackend : public MCAsmBackend {
 
 public:
-  SM83AsmBackend() : MCAsmBackend() {}
+  SM83AsmBackend() : MCAsmBackend(support::little) {}
   ~SM83AsmBackend() override {}
 
   void applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
-                  const MCValue &Target, MutableArrayRef<char> Data,
-                  uint64_t Value, bool IsResolved) const override;
+                  const MCValue &Target,
+                  MutableArrayRef<char> Data, uint64_t Value,
+                  bool IsResolved, const MCSubtargetInfo *STI) const override;
 
-  std::unique_ptr<MCObjectWriter>
-  createObjectWriter(raw_pwrite_stream &OS) const override;
+  std::unique_ptr<MCObjectTargetWriter>
+  createObjectTargetWriter() const override;
 
   bool fixupNeedsRelaxation(const MCFixup &Fixup, uint64_t Value,
                             const MCRelaxableFragment *DF,
-                            const MCAsmLayout &Layout) const override {
+                            const MCAsmLayout &Layout) const override;
+
+  unsigned getNumFixupKinds() const override {
+    /* TODO */
+    return 1;
+  }
+
+  bool mayNeedRelaxation(const MCInst &Inst,
+                         const MCSubtargetInfo &STI) const override {
     return false;
   }
 
-  unsigned getNumFixupKinds() const override { return 1; }
-
-  bool mayNeedRelaxation(const MCInst &Inst) const override { return false; }
-
-  void relaxInstruction(const MCInst &Inst, const MCSubtargetInfo &STI,
-                        MCInst &Res) const override {
-
+  void relaxInstruction(MCInst &Inst,
+                        const MCSubtargetInfo &STI) const override {
     report_fatal_error("SM83AsmBackend::relaxInstruction() unimplemented");
   }
 
-  bool writeNopData(uint64_t Count, MCObjectWriter *OW) const override;
-};
+  bool writeNopData(raw_ostream &OS, uint64_t Count) const override;
+}; // class SM83AsmBackend
 
-bool SM83AsmBackend::writeNopData(uint64_t Count, MCObjectWriter *OW) const {
-  while (Count--)
-    OW->write8(0x0);
-
+bool SM83AsmBackend::writeNopData(raw_ostream &OS, uint64_t Count) const {
+  // nop is 0
+  OS.write_zeros(Count);
   return true;
 }
 
 void SM83AsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
-                                 const MCValue &Target,
-                                 MutableArrayRef<char> Data, uint64_t Value,
-                                 bool IsResolved) const {
+                                const MCValue &Target,
+                                MutableArrayRef<char> Data, uint64_t Value,
+                                bool IsResolved, const MCSubtargetInfo *STI) const {
   /* TODO */
 }
 
-std::unique_ptr<MCObjectWriter>
-SM83AsmBackend::createObjectWriter(raw_pwrite_stream &OS) const {
-  return createSM83ELFObjectWriter(OS);
+bool SM83AsmBackend::fixupNeedsRelaxation(const MCFixup &Fixup, uint64_t Value,
+                                          const MCRelaxableFragment *DF,
+                                          const MCAsmLayout &Layout) const {
+  return false;
+}
+
+std::unique_ptr<MCObjectTargetWriter>
+SM83AsmBackend::createObjectTargetWriter() const {
+  return createSM83ELFObjectWriter();
 }
 
 } // end anonymous namespace
 
 MCAsmBackend *llvm::createSM83AsmBackend(const Target &T,
-                                          const MCSubtargetInfo &STI,
-                                          const MCRegisterInfo &MRI,
-                                          const MCTargetOptions &Options) {
+                                         const MCSubtargetInfo &STI,
+                                         const MCRegisterInfo &MRI,
+                                         const MCTargetOptions &Options) {
   return new SM83AsmBackend();
 }

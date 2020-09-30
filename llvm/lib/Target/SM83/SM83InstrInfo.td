@@ -12,13 +12,13 @@
 
 include "SM83InstrFormats.td"
 
-multiclass ALU_ri<string opstr, SM83ALU opc, SDPatternOperator op> {
+multiclass ALU_ri<string opstr, bits<3> opc, SDPatternOperator op> {
   def r : ALU_r<opc,
                 (outs), (ins GR8:$src),
 		opstr # " a, $src",
                 [(set A, (op A, GR8:$src))]>;
-  def r : ALU_i<opc,
-                (outs), (ins i8:$imm),
+  def i : ALU_i<opc,
+                (outs), (ins i8imm:$imm),
                 opstr # " a, $imm",
                 [(set A, (op A, i8imm:$imm))]>;
 }
@@ -30,12 +30,12 @@ defm XOR : ALU_ri<"xor", 0b101, xor>;
 defm OR  : ALU_ri<"or" , 0b110, or >;
 
 def LDddnn : SM83Inst24<(outs AR16:$dst),
-                        (ins i16:$src),
-                        "ld $dst, $src",
-                        [(set $dst, i16imm:$src)]>
+                        (ins i16imm:$imm),
+                        "ld $dst, $imm",
+                        [(set AR16:$dst, i16imm:$imm)]>
 {
   bits<2> dst;
-  bits<16> src;
+  bits<16> imm;
 
   let Inst{7-6} = 0b00;
   let Inst{5-4} = dst; // Destination
