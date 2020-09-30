@@ -26,5 +26,5 @@ parent = Target
 type = Library
 name = SM83CodeGen
 parent = SM83
-required_libraries = Core CodeGen SM83Info Support Target
+required_libraries = Core CodeGen MC SM83Desc SM83Info Support Target SelectionDAG
 add_to_library_groups = SM83

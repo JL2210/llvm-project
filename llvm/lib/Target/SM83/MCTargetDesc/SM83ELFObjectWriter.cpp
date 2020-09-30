@@ -17,23 +17,19 @@ using namespace llvm;
 namespace {
 class SM83ELFObjectWriter : public MCELFObjectTargetWriter {
 public:
-  SM83ELFObjectWriter();
+  SM83ELFObjectWriter()
+    : MCELFObjectTargetWriter(/*Is64Bit=*/false, /*OSABI=*/0, ELF::EM_SM83,
+                              /*HasRelocationAddend=*/true) {}
 
-  ~SM83ELFObjectWriter() override;
+  ~SM83ELFObjectWriter() override { }
 
 protected:
-  unsigned getRelocType(MCContext &Ctx, const MCValue &Target,
+  unsigned getRelocType(MCContext &CTX, const MCValue &Target,
                         const MCFixup &Fixup, bool IsPCRel) const override;
 };
 }
 
-SM83ELFObjectWriter::SM83ELFObjectWriter()
-    : MCELFObjectTargetWriter(ELF::EM_SM83,
-                              /*HasRelocationAddend*/ true) {}
-
-SM83ELFObjectWriter::~SM83ELFObjectWriter() {}
-
-unsigned SM83ELFObjectWriter::getRelocType(MCContext &Ctx,
+unsigned SM83ELFObjectWriter::getRelocType(MCContext &CTX,
                                             const MCValue &Target,
                                             const MCFixup &Fixup,
                                             bool IsPCRel) const {

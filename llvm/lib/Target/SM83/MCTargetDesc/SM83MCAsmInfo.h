@@ -13,12 +13,12 @@
 #ifndef LLVM_LIB_TARGET_SM83_MCTARGETDESC_SM83MCASMINFO_H
 #define LLVM_LIB_TARGET_SM83_MCTARGETDESC_SM83MCASMINFO_H
 
-#include "llvm/MC/MCAsmInfo.h"
+#include "llvm/MC/MCAsmInfoELF.h"
 
 namespace llvm {
 class Triple;
 
-class SM83MCAsmInfo : public MCAsmInfo {
+class SM83MCAsmInfo : public MCAsmInfoELF {
   virtual void anchor();
 
 public:

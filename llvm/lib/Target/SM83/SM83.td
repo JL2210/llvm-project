@@ -25,6 +25,6 @@ def SM83InstrInfo : InstrInfo;
 //===------------------------------------------------------------------------===//
 // Define the target
 //===------------------------------------------------------------------------===//
-def SM83 final : public Target {
+def SM83 : Target {
   let InstructionSet = SM83InstrInfo;
 }
