@@ -17,6 +17,8 @@
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstrDesc.h"
+#include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/Support/EndianStream.h"
@@ -32,10 +34,12 @@ namespace {
 class SM83MCCodeEmitter : public MCCodeEmitter {
   SM83MCCodeEmitter(const SM83MCCodeEmitter &) = delete;
   void operator=(const SM83MCCodeEmitter &) = delete;
-  MCContext &Ctx;
+  const MCInstrInfo &MCII;
+  MCContext &CTX;
 
 public:
-  SM83MCCodeEmitter(MCContext &ctx) : Ctx(ctx) {}
+  SM83MCCodeEmitter(const MCInstrInfo &mcii, MCContext &ctx)
+    : MCII(mcii), CTX(ctx) {}
 
   ~SM83MCCodeEmitter() override {}
 
@@ -58,14 +62,14 @@ public:
 } // end anonymous namespace
 
 MCCodeEmitter *llvm::createSM83MCCodeEmitter(const MCInstrInfo &MCII,
-                                              const MCRegisterInfo &MRI,
-                                              MCContext &Ctx) {
-  return new SM83MCCodeEmitter(Ctx);
+                                             const MCRegisterInfo &MRI,
+                                             MCContext &CTX) {
+  return new SM83MCCodeEmitter(MCII, CTX);
 }
 
 void SM83MCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
-                                           SmallVectorImpl<MCFixup> &Fixups,
-                                           const MCSubtargetInfo &STI) const {
+                                          SmallVectorImpl<MCFixup> &Fixups,
+                                          const MCSubtargetInfo &STI) const {
   uint32_t Encoding = getBinaryCodeForInstr(MI, Fixups, STI);
   // SM83 instructions have at most 3-byte length
   const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
@@ -84,7 +88,7 @@ SM83MCCodeEmitter::getMachineOpValue(const MCInst &MI, const MCOperand &MO,
                                       const MCSubtargetInfo &STI) const {
 
   if (MO.isReg())
-    return Ctx.getRegisterInfo()->getEncodingValue(MO.getReg());
+    return CTX.getRegisterInfo()->getEncodingValue(MO.getReg());
 
   if (MO.isImm())
     return static_cast<unsigned>(MO.getImm());

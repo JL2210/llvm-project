@@ -13,8 +13,6 @@
 #ifndef LLVM_LIB_TARGET_SM83_MCTARGETDESC_SM83MCTARGETDESC_H
 #define LLVM_LIB_TARGET_SM83_MCTARGETDESC_SM83MCTARGETDESC_H
 
-#include "TargetInfo/SM83TargetInfo.h"
-
 #include "llvm/Config/config.h"
 #include "llvm/MC/MCTargetOptions.h"
 #include "llvm/Support/DataTypes.h"
@@ -25,25 +23,21 @@ class MCAsmBackend;
 class MCCodeEmitter;
 class MCContext;
 class MCInstrInfo;
-class MCObjectWriter;
+class MCObjectTargetWriter;
 class MCRegisterInfo;
 class MCSubtargetInfo;
-class StringRef;
 class Target;
-class Triple;
-class raw_ostream;
-class raw_pwrite_stream;
 
 MCCodeEmitter *createSM83MCCodeEmitter(const MCInstrInfo &MCII,
-                                        const MCRegisterInfo &MRI,
-                                        MCContext &Ctx);
+                                       const MCRegisterInfo &MRI,
+                                       MCContext &Ctx);
 
 MCAsmBackend *createSM83AsmBackend(const Target &T, const MCSubtargetInfo &STI,
-                                    const MCRegisterInfo &MRI,
-                                    const MCTargetOptions &Options);
+                                   const MCRegisterInfo &MRI,
+                                   const MCTargetOptions &Options);
 
-std::unique_ptr<MCObjectWriter>
-createSM83ELFObjectWriter(raw_pwrite_stream &OS);
+std::unique_ptr<MCObjectTargetWriter>
+createSM83ELFObjectWriter();
 }
 
 // Defines symbolic names for SM83 registers.
