@@ -22,7 +22,7 @@ class SM83MCAsmInfo : public MCAsmInfoELF {
   virtual void anchor();
 
 public:
-  explicit SM83MCAsmInfo(const Triple &TargetTriple);
+  explicit SM83MCAsmInfo(const Triple &TargetTriple, const MCTargetOptions &Options);
 };
 
 } // namespace llvm

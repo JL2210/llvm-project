@@ -16,7 +16,7 @@ using namespace llvm;
 
 void SM83MCAsmInfo::anchor() {}
 
-SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT)
+SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT, const MCTargetOptions &Options)
 {
   CodePointerSize = 2;
   CalleeSaveStackSlotSize = 2;
@@ -26,7 +26,7 @@ SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT)
   UseIntegratedAssembler = false;
   PreserveAsmComments = true;
   CommentString = ";";
-  SeparatorString = nullptr;
+  SeparatorString = nullptr; // FIXME
   SupportsQuotedNames = false;
   HasDotTypeDotSizeDirective = false;
   HasSingleParameterDotFile = false;

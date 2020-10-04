@@ -48,4 +48,7 @@ createSM83ELFObjectWriter();
 #define GET_INSTRINFO_ENUM
 #include "SM83GenInstrInfo.inc"
 
+#define GET_SUBTARGETINFO_ENUM
+#include "RISCVGenSubtargetInfo.inc"
+
 #endif
