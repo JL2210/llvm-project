@@ -1,4 +1,4 @@
-;===- ./lib/Target/SM83/MCTargetDesc/LLVMBuild.txt -------------*- Conf -*--===;
+;===- ./lib/Target/SM83/AsmParser/LLVMBuild.txt ----------------*- Conf -*--===;
 ;
 ; Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 ; See https://llvm.org/LICENSE.txt for license information.
@@ -16,7 +16,7 @@
 
 [component_0]
 type = Library
-name = SM83Desc
+name = SM83AsmParser
 parent = SM83
-required_libraries = MC SM83Info Support
+required_libraries = MC MCParser SM83Desc SM83Info Support
 add_to_library_groups = SM83
