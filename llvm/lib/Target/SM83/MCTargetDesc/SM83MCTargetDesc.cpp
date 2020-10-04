@@ -28,6 +28,9 @@
 #define GET_REGINFO_MC_DESC
 #include "SM83GenRegisterInfo.inc"
 
+#define GET_SUBTARGETINFO_MC_DESC
+#include "SM83GenSubtargetInfo.inc"
+
 using namespace llvm;
 
 static MCInstrInfo *createSM83MCInstrInfo() {
@@ -38,21 +41,30 @@ static MCInstrInfo *createSM83MCInstrInfo() {
 
 static MCRegisterInfo *createSM83MCRegisterInfo(const Triple &TT) {
   MCRegisterInfo *X = new MCRegisterInfo();
-  InitSM83MCRegisterInfo(X, SM83::A);
+  InitSM83MCRegisterInfo(X, SM83::B);
   return X;
+}
+
+static MCSubtargetInfo *createSM83MCSubtargetInfo(const Triple &TT,
+                                                  StringRef CPU, StringRef FS) {
+  std::string CPUName = CPU;
+  if (CPUName.empty())
+    CPUName = "sm83"
+  return createRISCVMCSubtargetInfoImpl(TT, CPUName, FS);
 }
 
 static MCAsmInfo *createSM83MCAsmInfo(const MCRegisterInfo &MRI,
                                       const Triple &TT, const MCTargetOptions &MTO) {
-  return new SM83MCAsmInfo(TT);
+  return new SM83MCAsmInfo(TT, MTO);
 }
 
 extern "C" void LLVMInitializeSM83TargetMC() {
-  Target *T = &getTheSM83Target();
+  Target &T = getTheSM83Target();
 
-  TargetRegistry::RegisterMCAsmInfo(*T, createSM83MCAsmInfo);
-  TargetRegistry::RegisterMCInstrInfo(*T, createSM83MCInstrInfo);
-  TargetRegistry::RegisterMCRegInfo(*T, createSM83MCRegisterInfo);
-  TargetRegistry::RegisterMCAsmBackend(*T, createSM83AsmBackend);
-  TargetRegistry::RegisterMCCodeEmitter(*T, createSM83MCCodeEmitter);
+  TargetRegistry::RegisterMCAsmInfo(T, createSM83MCAsmInfo);
+  TargetRegistry::RegisterMCInstrInfo(T, createSM83MCInstrInfo);
+  TargetRegistry::RegisterMCRegInfo(T, createSM83MCRegisterInfo);
+  TargetRegistry::RegisterMCAsmBackend(T, createSM83AsmBackend);
+  TargetRegistry::RegisterMCCodeEmitter(T, createSM83MCCodeEmitter);
+  TargetRegistry::RegisterMCSubtargetInfo(T, createSM83SubtargetInfo);
 }
