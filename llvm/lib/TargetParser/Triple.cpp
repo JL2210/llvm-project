@@ -986,9 +986,7 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
     return Triple::DXContainer;
 
   case Triple::sm83:
-/* FIXME: add RGB9 object file format
-    return Triple::RGB9;
-*/
+    return Triple::ELF;
     break;
   }
   llvm_unreachable("unknown architecture");
