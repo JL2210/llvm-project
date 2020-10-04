@@ -20,11 +20,16 @@ include "SM83RegisterInfo.td"
 include "SM83InstrInfo.td"
 // include "SM83CallingConv.td"
 
-def SM83InstrInfo : InstrInfo;
-
 //===------------------------------------------------------------------------===//
 // Define the target
 //===------------------------------------------------------------------------===//
+def SM83InstrInfo : InstrInfo;
+
+def SM83AsmParser : AsmParser {
+  let ShouldEmitMatchRegisterAltName = 1;
+}
+
 def SM83 : Target {
   let InstructionSet = SM83InstrInfo;
+  let AssemblyParsers = [SM83AsmParser];
 }
