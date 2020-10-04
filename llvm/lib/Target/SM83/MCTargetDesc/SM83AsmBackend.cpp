@@ -24,9 +24,10 @@ using namespace llvm;
 namespace {
 
 class SM83AsmBackend : public MCAsmBackend {
+uint8_t OSABI;
 
 public:
-  SM83AsmBackend() : MCAsmBackend(support::little) {}
+  SM83AsmBackend(uint8_t OSABI) : MCAsmBackend(support::little), OSABI(OSABI) {}
   ~SM83AsmBackend() override {}
 
   void applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,

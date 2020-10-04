@@ -6,6 +6,8 @@ tablegen(LLVM SM83GenRegisterInfo.inc -gen-register-info)
 tablegen(LLVM SM83GenMCCodeEmitter.inc -gen-emitter)
 tablegen(LLVM SM83GenAsmMatcher.inc -gen-asm-matcher)
 
+tablegen(LLVM SM83GenSubtargetInfo.inc -gen-subtarget)
+
 add_public_tablegen_target(SM83CommonTableGen)
 
 add_llvm_target(SM83CodeGen
