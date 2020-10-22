@@ -39,7 +39,6 @@ def D : SM83Reg<"d", 2>;
 def E : SM83Reg<"e", 3>;
 def H : SM83Reg<"h", 4>;
 def L : SM83Reg<"l", 5>;
-// we don't want [hl] to be allocated
 def A : SM83Reg<"a", 7>;
 def FLAGS : SM83Reg<"f">;
 
@@ -47,18 +46,15 @@ let SubRegIndices = [sub_high, sub_low],
     CoveredBySubRegs = 1 in
 {
   // 16-bit registers
-  def AF : SM83Reg<"af", 3, [A, FLAGS]>;
+  def AF : SM83Reg<"af", -1, [A, FLAGS]>;
   def BC : SM83Reg<"bc", 0, [B, C]>;
   def DE : SM83Reg<"de", 1, [D, E]>;
   def HL : SM83Reg<"hl", 2, [H, L]>;
 }
 // stack pointer
-def SP : SM83Reg<"sp", 3>;
+def SP : SM83Reg<"sp">;
 // instruction pointer/program counter
 def PC : SM83Reg<"pc">;
-
-// miscellaneous
-def IME : SM83Reg<"ime">;
 
 //===----------------------------------------------------------------------===//
 // Register class definitions...
@@ -67,17 +63,8 @@ def IME : SM83Reg<"ime">;
 // General-purpose 8-bit registers
 def GR8 : RegisterClass<"SM83", [i8], 8, (add A, B, C, D, E, H, L)>;
 
-// All 8-bit registers
-def R8 : RegisterClass<"SM83", [i8], 8, (add GR8, FLAGS)>;
+// Flags
+def F8 : RegisterClass<"SM83", [i8], 8, (add FLAGS)>;
 
 // General-purpose 16-bit registers
 def GR16 : RegisterClass<"SM83", [i16], 8, (add BC, DE, HL)>;
-
-// 16-bit registers that can be used with the stack
-def SR16 : RegisterClass<"SM83", [i16], 8, (add GR16, AF)>;
-
-// with arithmetic and load operations
-def AR16 : RegisterClass<"SM83", [i16], 8, (add GR16, SP)>;
-
-// All 16-bit registers
-def R16 : RegisterClass<"SM83", [i16], 8, (add GR16, AF, SP, PC)>;
