@@ -26,7 +26,7 @@ class SM83Inst8<dag outs, dag ins, string asmstr, list<dag> pattern>
 
 class I8<bits<8> bin, string asmstr, list<dag> pattern = [], dag ins = (ins),
          dag outs = (outs)> : SM83Inst8<outs, ins, asmstr, pattern> {
-  let bits{7-0} = bin;
+  let Inst{7-0} = bin;
 }
 
 class SM83Inst16<dag outs, dag ins, string asmstr, list<dag> pattern>
