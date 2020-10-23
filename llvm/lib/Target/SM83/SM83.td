@@ -26,10 +26,7 @@ def : ProcessorModel<"sm83", NoSchedModel, []>;
 // Define the target
 //===------------------------------------------------------------------------===//
 def SM83InstrInfo : InstrInfo;
-
-def SM83AsmParser : AsmParser {
-  let ShouldEmitMatchRegisterAltName = 1;
-}
+def SM83AsmParser : AsmParser;
 
 def SM83 : Target {
   let InstructionSet = SM83InstrInfo;
