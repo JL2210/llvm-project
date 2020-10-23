@@ -62,6 +62,10 @@ public:
   SM83AsmParser(const MCSubtargetInfo &STI, MCAsmParser &Parser,
                  const MCInstrInfo &MII, const MCTargetOptions &Options)
       : MCTargetAsmParser(Options, STI, MII) {
+    Parser.addAliasForDirective("db", ".byte");
+    Parser.addAliasForDirective("dw", ".2byte");
+    Parser.addAliasForDirective("dl", ".4byte");
+    Parser.addAliasForDirective("ds", ".skip");
     setAvailableFeatures(ComputeAvailableFeatures(STI.getFeatureBits()));
   }
 };
@@ -123,6 +127,22 @@ public:
   int64_t getConstantImm() const {
     const MCExpr *Val = getImm();
     return static_cast<const MCConstantExpr *>(Val)->getValue();
+  }
+
+  bool isUImm3() const {
+    return isConstantImm() && isUInt<3>(getConstantImm());
+  }
+
+  bool isRSTVec() const {
+    return isConstantImm() && isShiftedUInt<3, 3>(getConstantImm());
+  }
+
+  bool isImm8() const {
+    return isConstantImm() && isInt<8>(getConstantImm());
+  }
+
+  bool isImm16() const {
+    return isConstantImm() && isInt<8>(getConstantImm());
   }
 
   /// getStartLoc - Gets location of the first token of this operand
@@ -217,7 +237,6 @@ bool SM83AsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
                                              uint64_t &ErrorInfo,
                                              bool MatchingInlineAsm) {
   MCInst Inst;
-  SMLoc ErrorLoc;
 
   switch (MatchInstructionImpl(Operands, Inst, ErrorInfo, MatchingInlineAsm)) {
   default:
@@ -231,12 +250,12 @@ bool SM83AsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   case Match_MnemonicFail:
     return Error(IDLoc, "unrecognized instruction mnemonic");
   case Match_InvalidOperand:
-    ErrorLoc = IDLoc;
+    SMLoc ErrorLoc = IDLoc;
     if (ErrorInfo != ~0U) {
       if (ErrorInfo >= Operands.size())
         return Error(ErrorLoc, "too few operands for instruction");
 
-      ErrorLoc = ((SM83Operand &)*Operands[ErrorInfo]).getStartLoc();
+      ErrorLoc = static_cast<SM83Operand &>(*Operands[ErrorInfo]).getStartLoc();
       if (ErrorLoc == SMLoc())
         ErrorLoc = IDLoc;
     }
@@ -247,7 +266,7 @@ bool SM83AsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
 }
 
 bool SM83AsmParser::ParseRegister(unsigned &RegNo, SMLoc &StartLoc,
-                                   SMLoc &EndLoc) {
+                                  SMLoc &EndLoc) {
   if (tryParseRegister(RegNo, StartLoc, EndLoc) != MatchOperand_Success)
     return Error(StartLoc, "invalid register name");
   return false;
@@ -259,11 +278,9 @@ OperandMatchResultTy SM83AsmParser::tryParseRegister(unsigned &RegNo,
   const AsmToken &Tok = getParser().getTok();
   StartLoc = Tok.getLoc();
   EndLoc = Tok.getEndLoc();
-  RegNo = 0;
   StringRef Name = getLexer().getTok().getIdentifier();
 
-  RegNo = MatchRegisterName(Name);
-  if (RegNo == SM83::NoRegister) {
+  if (!MatchRegisterName(Name)) {
     return MatchOperand_NoMatch;
   }
   getParser().Lex();  // Eat identifier token.
@@ -280,11 +297,8 @@ OperandMatchResultTy SM83AsmParser::parseRegister(OperandVector &Operands) {
   case AsmToken::Identifier:
     StringRef Name = getLexer().getTok().getIdentifier();
     unsigned RegNo = MatchRegisterName(Name);
-    if (RegNo == 0) {
-      RegNo = MatchRegisterAltName(Name);
-      if (RegNo == 0)
-        return MatchOperand_NoMatch;
-    }
+    if (RegNo == 0)
+      return MatchOperand_NoMatch;
     getLexer().Lex();
     Operands.push_back(SM83Operand::createReg(RegNo, S, E));
   }
