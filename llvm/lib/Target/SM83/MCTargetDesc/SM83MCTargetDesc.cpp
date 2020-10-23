@@ -47,10 +47,7 @@ static MCRegisterInfo *createSM83MCRegisterInfo(const Triple &TT) {
 
 static MCSubtargetInfo *createSM83MCSubtargetInfo(const Triple &TT,
                                                   StringRef CPU, StringRef FS) {
-  std::string CPUName = CPU;
-  if (CPUName.empty())
-    CPUName = "sm83"
-  return createRISCVMCSubtargetInfoImpl(TT, CPUName, FS);
+  return createSM83MCSubtargetInfoImpl(TT, CPU, /*TuneCPU=*/CPU, FS);
 }
 
 static MCAsmInfo *createSM83MCAsmInfo(const MCRegisterInfo &MRI,
@@ -66,5 +63,5 @@ extern "C" void LLVMInitializeSM83TargetMC() {
   TargetRegistry::RegisterMCRegInfo(T, createSM83MCRegisterInfo);
   TargetRegistry::RegisterMCAsmBackend(T, createSM83AsmBackend);
   TargetRegistry::RegisterMCCodeEmitter(T, createSM83MCCodeEmitter);
-  TargetRegistry::RegisterMCSubtargetInfo(T, createSM83SubtargetInfo);
+  TargetRegistry::RegisterMCSubtargetInfo(T, createSM83MCSubtargetInfo);
 }

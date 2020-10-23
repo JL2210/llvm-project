@@ -12,7 +12,6 @@
 
 include "SM83InstrFormats.td"
 
-let isAsCheapAsAMove = 1 in
 class ALU_r<string opstr, bits<3> opc, SDPatternOperator op>
   : SM83Inst8<(outs), (ins GR8:$src), opstr # " a, $src",
               [(set A, (op A, GR8:$src))]> {
@@ -43,7 +42,8 @@ class ALU_dHL<string opstr, bits<3> opc, SDPatternOperator op>
     let Inst{2-0} = 0b110;
 }
 
-multiclass mALU<string opstr, bits<3> opc, list<SM83Reg> uses, SDPatternOperator op = null_frag> {
+multiclass mALU<string opstr, bits<3> opc, list<SM83Reg> uses,
+                SDPatternOperator op = null_frag> {
     let Uses = uses in {
         def r : ALU_r<opstr, opc, op>;
         def i : ALU_i<opstr, opc, op>;
@@ -66,17 +66,14 @@ let Defs = [A, FLAGS] in {
 let Defs = [FLAGS] in
 defm CP : mALU<"cp", 0b111, [A]>;
 
-def LDddnn : SM83Inst24<(outs AR16:$dst),
-                        (ins i16imm:$imm),
-                        "ld $dst, $imm",
-                        [(set AR16:$dst, i16imm:$imm)]>
-{
-  bits<2> dst;
-  bits<16> imm;
+def LDddnn : SM83Inst24<(outs GR16:$dst), (ins i16imm:$imm),
+             "ld $dst, $imm", [(set GR16:$dst, i16imm:$imm)]> {
+    bits<2> dst;
+    bits<16> imm;
 
-  let Inst{7-6} = 0b00;
-  let Inst{5-4} = dst; // Destination
-  let Inst{3-0} = 0b0001;
+    let Inst{7-6} = 0b00;
+    let Inst{5-4} = dst; // Destination
+    let Inst{3-0} = 0b0001;
 
-  let Inst{8-23} = imm; // Operand
+    let Inst{23-8} = imm; // Operand
 }
