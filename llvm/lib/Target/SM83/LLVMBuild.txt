@@ -22,10 +22,11 @@ type = TargetGroup
 name = SM83
 parent = Target
 has_asmparser = 1
+has_asmprinter = 1
 
 [component_1]
 type = Library
 name = SM83CodeGen
 parent = SM83
-required_libraries = Core CodeGen MC SM83Desc SM83Info Support Target SelectionDAG
+required_libraries = AsmPrinter Core CodeGen MC SM83Desc SM83Info Support Target
 add_to_library_groups = SM83
