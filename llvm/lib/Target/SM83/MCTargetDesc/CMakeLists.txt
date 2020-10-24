@@ -4,4 +4,5 @@ add_llvm_component_library(LLVMSM83Desc
   SM83MCAsmInfo.cpp
   SM83MCCodeEmitter.cpp
   SM83MCTargetDesc.cpp
+  SM83InstPrinter.cpp
 )

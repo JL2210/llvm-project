@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83MCTargetDesc.h"
+#include "SM83InstPrinter.h"
 #include "SM83MCAsmInfo.h"
 #include "TargetInfo/SM83TargetInfo.h"
 #include "llvm/ADT/STLExtras.h"
@@ -55,6 +56,14 @@ static MCAsmInfo *createSM83MCAsmInfo(const MCRegisterInfo &MRI,
   return new SM83MCAsmInfo(TT, MTO);
 }
 
+static MCInstPrinter *createSM83MCInstPrinter(const Triple &T,
+                                              unsigned SyntaxVariant,
+                                              const MCAsmInfo &MAI,
+                                              const MCInstrInfo &MII,
+                                              const MCRegisterInfo &MRI) {
+  return new SM83InstPrinter(MAI, MII, MRI);
+}
+
 extern "C" void LLVMInitializeSM83TargetMC() {
   Target &T = getTheSM83Target();
 
@@ -64,4 +73,5 @@ extern "C" void LLVMInitializeSM83TargetMC() {
   TargetRegistry::RegisterMCAsmBackend(T, createSM83AsmBackend);
   TargetRegistry::RegisterMCCodeEmitter(T, createSM83MCCodeEmitter);
   TargetRegistry::RegisterMCSubtargetInfo(T, createSM83MCSubtargetInfo);
+  TargetRegistry::RegisterMCInstPrinter(T, createSM83MCInstPrinter);
 }
