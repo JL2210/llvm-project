@@ -18,7 +18,7 @@ include "llvm/Target/Target.td"
 //===------------------------------------------------------------------------===//
 include "SM83RegisterInfo.td"
 include "SM83InstrInfo.td"
-// include "SM83CallingConv.td"
+include "SM83CallingConv.td"
 
 def : ProcessorModel<"sm83", NoSchedModel, []>;
 
