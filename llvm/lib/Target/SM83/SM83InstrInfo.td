@@ -12,6 +12,55 @@
 
 include "SM83InstrFormats.td"
 
+def LDrrnn : SM83Inst24<(outs GR16:$dst), (ins imm16:$imm),
+             "ld $dst, $imm", [(set GR16:$dst, i16imm:$imm)]> {
+    bits<2> dst;
+    bits<16> imm;
+
+    let Inst{7-6} = 0b00;
+    let Inst{5-4} = dst;
+    let Inst{3-0} = 0b0001;
+
+    let Inst{23-8} = imm;
+}
+
+let Defs = [SP] in
+def LDSPnn : SM83Inst24<(outs), (ins imm16:$imm), "ld sp, $imm",
+                        [(set SP, i16imm:$imm)]> {
+    bits<16> imm;
+
+    let Inst{7-0} = 0b00110001;
+    let Inst{23-8} = imm;
+}
+
+let mayStore = 1 in {
+    let Uses = [BC, A] in
+    def LD_dBC_A : I8<0x02, "ld [bc], a", [(store BC, A)]>;
+    let Uses = [DE, A] in
+    def LD_dDE_A : I8<0x12, "ld [de], a", [(store DE, A)]>;
+    let Uses = [HL, A], Defs = [HL] in {
+        def LD_dHLI_A : I8<0x22, "ld [hl+], a", [(store HL, A), (set HL, (add HL, 1))]>;
+        def LD_dHLD_A : I8<0x32, "ld [hl-], a", [(store HL, A), (set HL, (sub HL, 1))]>;
+    }
+}
+
+let mayLoad = 1, Defs = [A] in {
+    let Uses = [BC] in
+    def LD_A_dBC : I8<0x0a, "ld a, [bc]", [(set A, (load BC))]>;
+    let Uses = [DE] in
+    def LD_A_dDE : I8<0x1a, "ld a, [de]", [(set A, (load DE))]>;
+    let Uses = [HL], Defs = [HL, A] in {
+        def LD_A_dHLI : I8<0x2a, "ld a, [hl+]", [(set A, (load HL)), (set HL, (add HL, 1))]>;
+        def LD_A_dHLD : I8<0x3a, "ld a, [hl-]", [(set A, (load HL)), (set HL, (sub HL, 1))]>;
+    }
+}
+
+let Constraints = "$dst = $src" in
+class INC_DECrr : SM83Inst8<(outs GR16:$dst), (ins GR16:$src), "inc $dst",
+                            [(set GR16:$dst, (add GR16:$src, 1))]> {
+    
+}
+
 class ALU_r<string opstr, bits<3> opc, SDPatternOperator op>
   : SM83Inst8<(outs), (ins GR8:$src), opstr # " a, $src",
               [(set A, (op A, GR8:$src))]> {
@@ -65,15 +114,3 @@ let Defs = [A, FLAGS] in {
 }
 let Defs = [FLAGS] in
 defm CP : mALU<"cp", 0b111, [A]>;
-
-def LDddnn : SM83Inst24<(outs GR16:$dst), (ins i16imm:$imm),
-             "ld $dst, $imm", [(set GR16:$dst, i16imm:$imm)]> {
-    bits<2> dst;
-    bits<16> imm;
-
-    let Inst{7-6} = 0b00;
-    let Inst{5-4} = dst; // Destination
-    let Inst{3-0} = 0b0001;
-
-    let Inst{23-8} = imm; // Operand
-}
