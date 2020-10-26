@@ -56,9 +56,23 @@ let mayLoad = 1, Defs = [A] in {
 }
 
 let Constraints = "$dst = $src" in
-class INC_DECrr : SM83Inst8<(outs GR16:$dst), (ins GR16:$src), "inc $dst",
-                            [(set GR16:$dst, (add GR16:$src, 1))]> {
-    
+class INC_DECrr<string opstr, bit dec, SDPatternOperator op>
+  : SM83Inst8<(outs GR16:$dst), (ins GR16:$src), opstr # " $dst",
+              [(set GR16:$dst, (op GR16:$src, 1)]> {
+    bits<2> dst;
+
+    let Inst{7-6} = 0b00;
+    let Inst{5-4} = dst;
+    let Inst{3} = dec;
+    let Inst{2-0} = 0b011;
+}
+
+def INCrr : INC_DECrr<"inc", 0, add>;
+def DECrr : INC_DECrr<"dec", 1, sub>;
+
+let Uses = [SP], Defs = [SP] in {
+    def INCSP : I8<0x33, "inc sp", [(set SP, (add SP, 1))]>;
+    def DECSP : I8<0x3b, "dec sp", [(set SP, (sub SP, 1))]>;
 }
 
 class ALU_r<string opstr, bits<3> opc, SDPatternOperator op>
