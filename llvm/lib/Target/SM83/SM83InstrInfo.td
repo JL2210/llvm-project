@@ -95,7 +95,7 @@ let Uses = [HL], mayLoad = 1, mayStore = 1 in {
     def DECdHL : I8<0x35, "dec [hl]", [(store HL, (sub (load HL), 1))]>;
 }
 
-def LDri : SM83Inst8<(outs GR8:$dst), (ins i8imm:$imm), "ld $dst, $imm",
+def LDri : SM83Inst16<(outs GR8:$dst), (ins i8imm:$imm), "ld $dst, $imm",
                      [(set GR8:$dst, i8imm:$imm)]> {
     bits<3> dst;
     bits<8> imm;
