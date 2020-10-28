@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+
 #include "SM83InstPrinter.h"
+#include "SM83BaseInfo.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInst.h"
@@ -51,4 +53,17 @@ void SM83InstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
 
   assert(MO.isExpr() && "Unknown operand kind in printOperand");
   MO.getExpr()->print(O, &MAI);
+}
+
+void SM83InstPrinter::printCondition(const MCInst *MI, unsigned OpNo,
+                                     raw_ostream &O) {
+  unsigned Cond = MI->getOperand(OpNo).getImm();
+  if(Cond == SM83Condition::NZ)
+    O << "nz";
+  if(Cond == SM83Condition::Z)
+    O << "z";
+  if(Cond == SM83Condition::NC)
+    O << "nc";
+  if(Cond == SM83Condition::C)
+    O << "c";
 }
