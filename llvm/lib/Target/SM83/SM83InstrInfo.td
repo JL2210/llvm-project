@@ -12,6 +12,40 @@
 
 include "SM83InstrFormats.td"
 
+class ImmAsmOperand<string name> : AsmOperandClass {
+    let Name = name;
+    let RenderMethod = "addImmOperands";
+    let DiagnosticType = "Invalid" # Name;
+}
+
+def Condition : AsmOperandClass {
+    let Name = "Condition";
+    let RenderMethod = "addConditionOperands";
+    let DiagnosticType = "Invalid" # Name;
+}
+
+def condition : Operand<i8> {
+    let ParserMatchClass = Condition;
+    let PrintMethod = "printCondition";
+}
+
+def rstvec : Operand<i8> {
+    let ParserMatchClass = ImmAsmOperand<"RSTVec">;
+    let EncoderMethod = "getRSTVecValue";
+}
+
+def uimm3 : Operand<i8> {
+    let ParserMatchClass = ImmAsmOperand<"UImm3">;
+}
+
+def imm8 : Operand<i8> {
+    let ParserMatchClass = ImmAsmOperand<"Imm8">;
+}
+
+def imm16 : Operand<i16> {
+    let ParserMatchClass = ImmAsmOperand<"Imm16">;
+}
+
 def LDrrnn : SM83Inst24<(outs GR16:$dst), (ins i16imm:$imm),
              "ld $dst, $imm", [(set GR16:$dst, i16imm:$imm)]> {
     bits<2> dst;
