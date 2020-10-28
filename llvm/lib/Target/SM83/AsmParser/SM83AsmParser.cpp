@@ -1,6 +1,8 @@
 //===-- SM83AsmParser.cpp - Parse SM83 assembly to MCInst instructions ----===//
 //
-
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -28,6 +30,9 @@ struct SM83Operand;
 class SM83AsmParser : public MCTargetAsmParser {
   SMLoc getLoc() const { return getParser().getTok().getLoc(); }
 
+  bool generateImmOutOfRangeError(OperandVector &Operands, uint64_t ErrorInfo,
+                                  int Lower, int Upper, Twine Msg);
+
   bool MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
                                OperandVector &Operands, MCStreamer &Out,
                                uint64_t &ErrorInfo,
@@ -48,6 +53,7 @@ class SM83AsmParser : public MCTargetAsmParser {
 
   OperandMatchResultTy parseImmediate(OperandVector &Operands);
   OperandMatchResultTy parseRegister(OperandVector &Operands);
+  OperandMatchResultTy parseMemOpBaseReg(OperandVector &Operands);
 
   bool parseOperand(OperandVector &Operands);
 
@@ -127,6 +133,21 @@ public:
   int64_t getConstantImm() const {
     const MCExpr *Val = getImm();
     return static_cast<const MCConstantExpr *>(Val)->getValue();
+  }
+
+  bool isCondition() const {
+    if(!isImm())
+      return false;
+
+    const MCSymbolRefExpr *SVal = getImm();
+    if (!SVal || SVal->getKind() != MCSymbolRefExpr::VK_None)
+      return false;
+
+    StringRef Str = SVal->getSymbol().getName();
+    if(Str != "nz" && Str != "z" && Str != "nc" && Str != "c")
+      return false;
+
+    return true;
   }
 
   bool isUImm3() const {
@@ -224,6 +245,26 @@ public:
     assert(N == 1 && "Invalid number of operands!");
     addExpr(Inst, getImm());
   }
+
+  void addConditionOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    // isCondition has validated the operand, meaning this conversion is safe
+    const MCSymbolRefExpr *SE = getImm();
+    StringRef Name = SE->getSymbol().getName();
+
+    unsigned Imm;
+    if(Name == "nz")
+      Imm = SM83Condition::NZ;
+    else if(Name == "z")
+      Imm = SM83Condition::Z;
+    else if(Name == "nc")
+      Imm = SM83Condition::NC;
+    else if(Name == "c")
+      Imm = SM83Condition::C;
+    else
+      llvm_unreachable("Condition must contain only nz, z, nc, or c");
+    Inst.addOperand(MCOperand::createImm(Imm));
+  }
 };
 } // end anonymous namespace.
 
@@ -231,11 +272,18 @@ public:
 #define GET_MATCHER_IMPLEMENTATION
 #include "SM83GenAsmMatcher.inc"
 
+bool SM83AsmParser::generateImmOutOfRangeError(
+    OperandVector &Operands, uint64_t ErrorInfo, int Lower, int Upper,
+    Twine Msg = "immediate must be an integer in the range") {
+  SMLoc ErrorLoc = static_cast<SM83Operand &>(*Operands[ErrorInfo]).getStartLoc();
+  return Error(ErrorLoc, Msg + " [" + Twine(Lower) + ", " + Twine(Upper) + "]");
+}
+
 bool SM83AsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
-                                             OperandVector &Operands,
-                                             MCStreamer &Out,
-                                             uint64_t &ErrorInfo,
-                                             bool MatchingInlineAsm) {
+                                            OperandVector &Operands,
+                                            MCStreamer &Out,
+                                            uint64_t &ErrorInfo,
+                                            bool MatchingInlineAsm) {
   MCInst Inst;
 
   switch (MatchInstructionImpl(Operands, Inst, ErrorInfo, MatchingInlineAsm)) {
@@ -306,6 +354,10 @@ OperandMatchResultTy SM83AsmParser::parseRegister(OperandVector &Operands) {
 }
 
 OperandMatchResultTy SM83AsmParser::parseImmediate(OperandVector &Operands) {
+  SMLoc S = getLoc();
+  SMLoc E = SMLoc::getFromPointer(S.getPointer() - 1);
+  const MCExpr *Res;
+
   switch (getLexer().getKind()) {
   default:
     return MatchOperand_NoMatch;
@@ -314,16 +366,53 @@ OperandMatchResultTy SM83AsmParser::parseImmediate(OperandVector &Operands) {
   case AsmToken::Plus:
   case AsmToken::Integer:
   case AsmToken::String:
+    if (getParser().parseExpression(Res))
+      return MatchOperand_ParseFail;
+    break;
+  case AsmToken::Identifier: {
+    StringRef Identifier;
+    if (getParser().parseIdentifier(Identifier))
+      return MatchOperand_ParseFail;
+    MCSymbol *Sym = getContext().getOrCreateSymbol(Identifier);
+    Res = MCSymbolRefExpr::create(Sym, MCSymbolRefExpr::VK_None, getContext());
     break;
   }
+  }
 
-  const MCExpr *IdVal;
-  SMLoc S = getLoc();
-  if (getParser().parseExpression(IdVal))
+  Operands.push_back(RISCVOperand::createImm(Res, S, E));
+  return MatchOperand_Success;
+}
+
+OperandMatchResultTy
+SM83AsmParser::parseMemOpBaseReg(OperandVector &Operands) {
+  if (getLexer().isNot(AsmToken::LBrac)) {
+    Error(getLoc(), "expected '['");
     return MatchOperand_ParseFail;
+  }
 
-  SMLoc E = SMLoc::getFromPointer(S.getPointer() - 1);
-  Operands.push_back(SM83Operand::createImm(IdVal, S, E));
+  getParser().Lex(); // Eat '['
+  Operands.push_back(RISCVOperand::createToken("[", getLoc()));
+
+  if (parseRegister(Operands) != MatchOperand_Success) {
+    Error(getLoc(), "expected register");
+    return MatchOperand_ParseFail;
+  }
+
+  if (getLexer().is(AsmToken::Plus) ||
+      getLexer().is(AsmToken::Minus)) {
+    auto str = getTok().getString();
+    getParser.Lex();
+    Operands.push_back(RISCVOperand::createToken(str, getLoc()));
+  }
+
+  if (getLexer().isNot(AsmToken::RBrac)) {
+    Error(getLoc(), "expected ']'");
+    return MatchOperand_ParseFail;
+  }
+
+  getParser().Lex(); // Eat ']'
+  Operands.push_back(RISCVOperand::createToken("]", getLoc()));
+
   return MatchOperand_Success;
 }
 
@@ -336,8 +425,12 @@ bool SM83AsmParser::parseOperand(OperandVector &Operands) {
     return false;
 
   // Attempt to parse token as an immediate
-  if (parseImmediate(Operands) == MatchOperand_Success)
+  if (parseImmediate(Operands) == MatchOperand_Success) {
+    // Parse memory base register if present
+    if (getLexer().is(AsmToken::LBrac))
+      return parseMemOpBaseReg(Operands) != MatchOperand_Success;
     return false;
+  }
 
   // Finally we have exhausted all options and must declare defeat.
   Error(getLoc(), "unknown operand");
