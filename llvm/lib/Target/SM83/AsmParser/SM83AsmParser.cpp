@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "MCTargetDesc/SM83MCTargetDesc.h"
+#include "MCTargetDesc/SM83BaseInfo.h"
 #include "TargetInfo/SM83TargetInfo.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringSwitch.h"
@@ -139,7 +140,7 @@ public:
     if(!isImm())
       return false;
 
-    const MCSymbolRefExpr *SVal = getImm();
+    auto SVal = static_cast<const MCSymbolRefExpr *>(getImm());
     if (!SVal || SVal->getKind() != MCSymbolRefExpr::VK_None)
       return false;
 
@@ -159,11 +160,17 @@ public:
   }
 
   bool isImm8() const {
-    return isConstantImm() && isInt<8>(getConstantImm());
+    if(!isConstantImm())
+      return false;
+    uint64_t imm = getConstantImm();
+    return isInt<8>(imm) || isUInt<8>(imm);
   }
 
   bool isImm16() const {
-    return isConstantImm() && isInt<8>(getConstantImm());
+    if(!isConstantImm())
+      return false;
+    uint64_t imm = getConstantImm();
+    return isInt<16>(imm) || isUInt<16>(imm);
   }
 
   /// getStartLoc - Gets location of the first token of this operand
@@ -249,7 +256,7 @@ public:
   void addConditionOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     // isCondition has validated the operand, meaning this conversion is safe
-    const MCSymbolRefExpr *SE = getImm();
+    auto SE = static_cast<const MCSymbolRefExpr *>(getImm());
     StringRef Name = SE->getSymbol().getName();
 
     unsigned Imm;
@@ -297,7 +304,7 @@ bool SM83AsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     return Error(IDLoc, "instruction use requires an option to be enabled");
   case Match_MnemonicFail:
     return Error(IDLoc, "unrecognized instruction mnemonic");
-  case Match_InvalidOperand:
+  case Match_InvalidOperand: {
     SMLoc ErrorLoc = IDLoc;
     if (ErrorInfo != ~0U) {
       if (ErrorInfo >= Operands.size())
@@ -308,6 +315,21 @@ bool SM83AsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
         ErrorLoc = IDLoc;
     }
     return Error(ErrorLoc, "invalid operand for instruction");
+  }
+  case Match_InvalidUImm3:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 3) - 1);
+  case Match_InvalidRSTVec:
+    return generateImmOutOfRangeError(
+           Operands, ErrorInfo, 0, (1 << 6) - 8,
+           "immediate must be a multiple of 8 in the range");
+  case Match_InvalidImm8:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7), (1 << 8) - 1);
+  case Match_InvalidImm16:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 15), (1 << 16) - 1);
+  case Match_InvalidCondition: {
+    SMLoc ErrLoc = static_cast<SM83Operand &>(*Operands[ErrorInfo]).getStartLoc();
+    return Error(ErrLoc, "operand must be one of nz, z, nc, or c");
+  }
   }
 
   llvm_unreachable("Unknown match type detected!");
@@ -379,7 +401,7 @@ OperandMatchResultTy SM83AsmParser::parseImmediate(OperandVector &Operands) {
   }
   }
 
-  Operands.push_back(RISCVOperand::createImm(Res, S, E));
+  Operands.push_back(SM83Operand::createImm(Res, S, E));
   return MatchOperand_Success;
 }
 
@@ -391,7 +413,7 @@ SM83AsmParser::parseMemOpBaseReg(OperandVector &Operands) {
   }
 
   getParser().Lex(); // Eat '['
-  Operands.push_back(RISCVOperand::createToken("[", getLoc()));
+  Operands.push_back(SM83Operand::createToken("[", getLoc()));
 
   if (parseRegister(Operands) != MatchOperand_Success) {
     Error(getLoc(), "expected register");
@@ -401,8 +423,8 @@ SM83AsmParser::parseMemOpBaseReg(OperandVector &Operands) {
   if (getLexer().is(AsmToken::Plus) ||
       getLexer().is(AsmToken::Minus)) {
     auto str = getTok().getString();
-    getParser.Lex();
-    Operands.push_back(RISCVOperand::createToken(str, getLoc()));
+    getParser().Lex();
+    Operands.push_back(SM83Operand::createToken(str, getLoc()));
   }
 
   if (getLexer().isNot(AsmToken::RBrac)) {
@@ -411,7 +433,7 @@ SM83AsmParser::parseMemOpBaseReg(OperandVector &Operands) {
   }
 
   getParser().Lex(); // Eat ']'
-  Operands.push_back(RISCVOperand::createToken("]", getLoc()));
+  Operands.push_back(SM83Operand::createToken("]", getLoc()));
 
   return MatchOperand_Success;
 }
