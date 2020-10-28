@@ -58,6 +58,10 @@ public:
   unsigned getMachineOpValue(const MCInst &MI, const MCOperand &MO,
                              SmallVectorImpl<MCFixup> &Fixups,
                              const MCSubtargetInfo &STI) const;
+
+  unsigned getRSTVecValue(const MCInst &MI, unsigned OpNo,
+                          SmallVectorImpl<MCFixup> &Fixups,
+                          const MCSubtargetInfo &STI) const;
 };
 } // end anonymous namespace
 
@@ -86,7 +90,6 @@ unsigned
 SM83MCCodeEmitter::getMachineOpValue(const MCInst &MI, const MCOperand &MO,
                                       SmallVectorImpl<MCFixup> &Fixups,
                                       const MCSubtargetInfo &STI) const {
-
   if (MO.isReg())
     return CTX.getRegisterInfo()->getEncodingValue(MO.getReg());
 
@@ -95,6 +98,21 @@ SM83MCCodeEmitter::getMachineOpValue(const MCInst &MI, const MCOperand &MO,
 
   llvm_unreachable("Unhandled expression!");
   return 0;
+}
+
+unsigned
+SM83MCCodeEmitter::getRSTVecValue(const MCInst &MI, unsigned OpNo,
+                                  SmallVectorImpl<MCFixup> &Fixups,
+                                  const MCSubtargetInfo &STI) const {
+  const MCOperand &MO = MI.getOperand(OpNo);
+
+  if (MO.isImm()) {
+    unsigned Res = MO.getImm();
+    assert((Res & 7) == 0 && "Immediate is not a multiple of 8");
+    return Res >> 3;
+  }
+
+  llvm_unreachable("Unhandled expression!");
 }
 
 #include "SM83GenMCCodeEmitter.inc"
