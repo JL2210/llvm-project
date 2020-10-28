@@ -46,8 +46,8 @@ def imm16 : Operand<i16> {
     let ParserMatchClass = ImmAsmOperand<"Imm16">;
 }
 
-def LDrrnn : SM83Inst24<(outs GR16:$dst), (ins i16imm:$imm),
-             "ld $dst, $imm", [(set GR16:$dst, i16imm:$imm)]> {
+def LDrrnn : SM83Inst24<(outs GR16:$dst), (ins imm16:$imm),
+             "ld $dst, $imm", [(set GR16:$dst, imm16:$imm)]> {
     bits<2> dst;
     bits<16> imm;
 
@@ -59,8 +59,8 @@ def LDrrnn : SM83Inst24<(outs GR16:$dst), (ins i16imm:$imm),
 }
 
 let Defs = [SP] in
-def LDSPnn : SM83Inst24<(outs), (ins i16imm:$imm), "ld sp, $imm",
-                        [(set SP, i16imm:$imm)]> {
+def LDSPnn : SM83Inst24<(outs), (ins imm16:$imm), "ld sp, $imm",
+                        [(set SP, imm16:$imm)]> {
     bits<16> imm;
 
     let Inst{7-0} = 0x31;
@@ -129,8 +129,8 @@ let Uses = [HL], mayLoad = 1, mayStore = 1 in {
     def DECdHL : I8<0x35, "dec [hl]", [(store HL, (sub (load HL), 1))]>;
 }
 
-def LDri : SM83Inst16<(outs GR8:$dst), (ins i8imm:$imm), "ld $dst, $imm",
-                     [(set GR8:$dst, i8imm:$imm)]> {
+def LDri : SM83Inst16<(outs GR8:$dst), (ins imm8:$imm), "ld $dst, $imm",
+                     [(set GR8:$dst, imm8:$imm)]> {
     bits<3> dst;
     bits<8> imm;
 
@@ -142,8 +142,8 @@ def LDri : SM83Inst16<(outs GR8:$dst), (ins i8imm:$imm), "ld $dst, $imm",
 }
 
 let mayStore = 1, Uses = [HL] in
-def LDdHLi : SM83Inst16<(outs), (ins i8imm:$imm), "ld [hl], $imm",
-                       [(store HL, i8imm:$imm)]> {
+def LDdHLi : SM83Inst16<(outs), (ins imm8:$imm), "ld [hl], $imm",
+                       [(store HL, imm8:$imm)]> {
     bits<8> imm;
 
     let Inst{7-0} = 0x36;
@@ -161,8 +161,8 @@ multiclass mALU<string opstr, bits<3> opc, list<SM83Reg> uses,
             let Inst{5-3} = opc;
             let Inst{2-0} = src;
         }
-        def i : SM83Inst16<(outs), (ins i8imm:$imm), opstr # " a, $imm",
-                           [(set A, (op A, i8imm:$imm))]> {
+        def i : SM83Inst16<(outs), (ins imm8:$imm), opstr # " a, $imm",
+                           [(set A, (op A, imm8:$imm))]> {
             bits<8> imm;
 
             let Inst{7-6}  = 0b11;
