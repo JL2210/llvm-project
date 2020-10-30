@@ -37,13 +37,17 @@ def rstvec : Operand<i8> {
 def uimm3 : Operand<i8> {
   let ParserMatchClass = ImmAsmOperand<"UImm3">;
 }
-
 def imm8 : Operand<i8> {
   let ParserMatchClass = ImmAsmOperand<"Imm8">;
 }
-
 def imm16 : Operand<i16> {
   let ParserMatchClass = ImmAsmOperand<"Imm16">;
+}
+def direct16 : Operand<i16> {
+  let ParserMatchClass = ImmAsmOperand<"Direct16">;
+}
+def rel8 : Operand<i8> {
+  let ParserMatchClass = ImmAsmOperand<"Rel8">;
 }
 
 def LDrrnn : SM83Inst24<(outs GR16:$dst), (ins imm16:$imm),
@@ -163,6 +167,39 @@ let Uses = [A], Defs = [A, FLAGS] in {
 let Defs = [FLAGS] in {
   def SCF : I8<0x37, "scf">;
   def CCF : I8<0x3f, "ccf">;
+}
+
+let mayStore = 1, Uses = [SP] in
+def LDd16SP : SM83Inst24<(outs), (ins direct16:$addr), "ld [$addr], sp",
+                         [(store direct16:$addr, SP)]> {
+  bits<16> addr;
+
+  let Inst{7-0} = 0x08;
+  let Inst{23-8} = addr;
+}
+
+class relbranch<dag ins, string asmstr> : SM83Inst16<(outs), ins, asmstr, []> {
+  bits<8> off;
+
+  let Inst{7-6} = 0b00;
+  let Inst{15-8} = off;
+
+  let isBranch = 1;
+  let isTerminator = 1;
+}
+
+def JRr8 : relbranch<(ins rel8:$off), "jr $off"> {
+  let Inst{5-0} = 0x18;
+
+  let isBarrier = 1;
+}
+
+def JRcr8 : relbranch<(ins condition:$cc, rel8:$off), "jr $cc, $off"> {
+  bits<2> cc;
+
+  let Inst{5} = 0b1;
+  let Inst{4-3} = cc;
+  let Inst{2-0} = 0b000;
 }
 
 multiclass mALU<string opstr, bits<3> opc, list<SM83Reg> uses,
