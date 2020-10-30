@@ -60,10 +60,12 @@ void SM83InstPrinter::printCondition(const MCInst *MI, unsigned OpNo,
   unsigned Cond = MI->getOperand(OpNo).getImm();
   if(Cond == SM83Condition::NZ)
     O << "nz";
-  if(Cond == SM83Condition::Z)
+  else if(Cond == SM83Condition::Z)
     O << "z";
-  if(Cond == SM83Condition::NC)
+  else if(Cond == SM83Condition::NC)
     O << "nc";
-  if(Cond == SM83Condition::C)
+  else if(Cond == SM83Condition::C)
     O << "c";
+  else
+    llvm_unreachable("invalid condition");
 }
