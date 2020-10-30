@@ -138,7 +138,20 @@ public:
 
   bool isCondition() const {
     if(!isImm())
+    {
+      // wtf is it
+      if(isToken())
+        llvm_unreachable("token");
+      else if(isReg())
+        llvm_unreachable("reg");
+      else if(isImm())
+        llvm_unreachable("dude srsly");
+      else if(isMem())
+        llvm_unreachable("mem");
+      else
+        llvm_unreachable("something else");
       return false;
+    }
 
     auto SVal = static_cast<const MCSymbolRefExpr *>(getImm());
     if (!SVal || SVal->getKind() != MCSymbolRefExpr::VK_None)
@@ -171,6 +184,14 @@ public:
       return false;
     uint64_t imm = getConstantImm();
     return isInt<16>(imm) || isUInt<16>(imm);
+  }
+
+  bool isDirect16() const {
+    return isConstantImm() && isUInt<16>(getConstantImm());
+  }
+
+  bool isRel8() const {
+    return isConstantImm() && isInt<8>(getConstantImm());
   }
 
   /// getStartLoc - Gets location of the first token of this operand
@@ -326,6 +347,10 @@ bool SM83AsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7), (1 << 8) - 1);
   case Match_InvalidImm16:
     return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 15), (1 << 16) - 1);
+  case Match_InvalidDirect16:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 16) - 1);
+  case Match_InvalidRel8:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7), (1 << 7) - 1);
   case Match_InvalidCondition: {
     SMLoc ErrLoc = static_cast<SM83Operand &>(*Operands[ErrorInfo]).getStartLoc();
     return Error(ErrLoc, "operand must be one of nz, z, nc, or c");
