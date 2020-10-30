@@ -202,6 +202,18 @@ def JRcr8 : relbranch<(ins condition:$cc, rel8:$off), "jr $cc, $off"> {
   let Inst{2-0} = 0b000;
 }
 
+let Uses = [HL], Defs = [HL] in
+def ADDHLrr : SM83Inst8<(ins GR16:$src), (outs), "add hl, $src",
+                        [(set HL, (add HL, GR16:$src))]> {
+  bits<2> src;
+
+  let Inst{7-6} = 0b00;
+  let Inst{5-4} = src;
+  let Inst{3-0} = 0b1001;
+}
+let Uses = [HL, SP], Defs = [HL] in
+def ADDHLSP : I8<0x39, "add hl, sp", [(set HL, (add HL, SP))]>;
+
 multiclass mALU<string opstr, bits<3> opc, list<SM83Reg> uses,
                 SDPatternOperator op = null_frag> {
   let Uses = uses in {
