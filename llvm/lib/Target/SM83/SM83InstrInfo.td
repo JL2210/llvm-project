@@ -50,6 +50,13 @@ def rel8 : Operand<i8> {
   let ParserMatchClass = ImmAsmOperand<"Rel8">;
 }
 
+def NOP : I8<0x00, "nop">;
+let hasSideEffects = 1 in
+def STOP : SM83Inst16<(outs), (ins), "stop", []> {
+    let Inst{7-0} = 0x10;
+    let Inst{15-8} = 0x00;
+}
+
 def LDrrnn : SM83Inst24<(outs GR16:$dst), (ins imm16:$imm),
              "ld $dst, $imm", [(set GR16:$dst, imm16:$imm)]> {
   bits<2> dst;
@@ -67,7 +74,10 @@ def LDSPnn : SM83Inst24<(outs), (ins imm16:$imm), "ld sp, $imm",
                         [(set SP, imm16:$imm)]> {
   bits<16> imm;
 
-  let Inst{7-0} = 0x31;
+  let Inst{7-6} = 0b00;
+  let Inst{5-4} = 0b11;
+  let Inst{3-0} = 0b0001;
+
   let Inst{23-8} = imm;
 }
 
@@ -150,7 +160,10 @@ def LDdHLi : SM83Inst16<(outs), (ins imm8:$imm), "ld [hl], $imm",
                        [(store HL, imm8:$imm)]> {
   bits<8> imm;
 
-  let Inst{7-0} = 0x36;
+  let Inst{7-6} = 0b00;
+  let Inst{5-3} = 0b110;
+  let Inst{2-0} = 0b110;
+
   let Inst{15-8} = imm;
 }
 
@@ -197,13 +210,13 @@ def JRr8 : relbranch<(ins rel8:$off), "jr $off"> {
 def JRcr8 : relbranch<(ins condition:$cc, rel8:$off), "jr $cc, $off"> {
   bits<2> cc;
 
-  let Inst{5} = 0b1;
+  let Inst{5} = 1;
   let Inst{4-3} = cc;
   let Inst{2-0} = 0b000;
 }
 
 let Uses = [HL], Defs = [HL] in
-def ADDHLrr : SM83Inst8<(ins GR16:$src), (outs), "add hl, $src",
+def ADDHLrr : SM83Inst8<(outs), (ins GR16:$src), "add hl, $src",
                         [(set HL, (add HL, GR16:$src))]> {
   bits<2> src;
 
@@ -212,7 +225,46 @@ def ADDHLrr : SM83Inst8<(ins GR16:$src), (outs), "add hl, $src",
   let Inst{3-0} = 0b1001;
 }
 let Uses = [HL, SP], Defs = [HL] in
-def ADDHLSP : I8<0x39, "add hl, sp", [(set HL, (add HL, SP))]>;
+def ADDHLSP : SM83Inst8<(outs), (ins), "add hl, sp",
+                        [(set HL, (add HL, SP))]> {
+  let Inst{7-6} = 0b00;
+  let Inst{5-4} = 0b11;
+  let Inst{3-0} = 0b1001;
+}
+
+def LDrr : SM83Inst8<(outs GR8:$dst), (ins GR8:$src), "ld $dst, $src",
+                     [(set GR8:$dst, GR8:$src)]> {
+  bits<3> dst;
+  bits<3> src;
+
+  let Inst{7-6} = 0b01;
+  let Inst{5-3} = dst;
+  let Inst{2-0} = src;
+}
+
+let Uses = [HL], mayStore = 1 in
+def LDdHLr : SM83Inst8<(outs), (ins GR8:$src), "ld [hl], $src",
+                       [(store HL, GR8:$src)]> {
+  bits<3> src;
+
+  let Inst{7-6} = 0b01;
+  let Inst{5-3} = 0b110;
+  let Inst{2-0} = src;
+}
+
+let Uses = [HL], mayLoad = 1 in
+def LDrdHL : SM83Inst8<(outs GR8:$dst), (ins), "ld $dst, [hl]",
+                       [(set GR8:$dst, (load HL))]> {
+  bits<3> dst;
+
+  let Inst{7-6} = 0b01;
+  let Inst{5-3} = dst;
+  let Inst{2-0} = 0b110;
+}
+
+// not ld [hl], [hl]
+let hasSideEffects = 1 in
+def HALT : I8<0x76, "halt">;
 
 multiclass mALU<string opstr, bits<3> opc, list<SM83Reg> uses,
                 SDPatternOperator op = null_frag> {
@@ -257,3 +309,12 @@ let Defs = [A, FLAGS] in {
 }
 let Defs = [FLAGS] in
 defm CP : mALU<"cp", 0b111, [A]>;
+
+let isCall = 1 in
+def RST : SM83Inst8<(outs), (ins rstvec:$vec), "rst $vec", []> {
+  bits<3> vec;
+
+  let Inst{7-6} = 0b11;
+  let Inst{5-3} = vec;
+  let Inst{2-0} = 0b111;
+}
