@@ -137,21 +137,12 @@ public:
   }
 
   bool isCondition() const {
+    // TODO: FIXME: terrible hack
+    if(isReg() && getReg() == SM83::C)
+      return true;
+
     if(!isImm())
-    {
-      // wtf is it
-      if(isToken())
-        llvm_unreachable("token");
-      else if(isReg())
-        llvm_unreachable("reg");
-      else if(isImm())
-        llvm_unreachable("dude srsly");
-      else if(isMem())
-        llvm_unreachable("mem");
-      else
-        llvm_unreachable("something else");
       return false;
-    }
 
     auto SVal = static_cast<const MCSymbolRefExpr *>(getImm());
     if (!SVal || SVal->getKind() != MCSymbolRefExpr::VK_None)
@@ -276,9 +267,15 @@ public:
 
   void addConditionOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
-    // isCondition has validated the operand, meaning this conversion is safe
-    auto SE = static_cast<const MCSymbolRefExpr *>(getImm());
-    StringRef Name = SE->getSymbol().getName();
+    StringRef Name;
+    // TODO: FIXME: terrible hack
+    // this might be matched as a register
+    if(isReg() && getReg() == SM83::C) {
+      Name = "c";
+    } else {
+      auto SE = static_cast<const MCSymbolRefExpr *>(getImm());
+      Name = SE->getSymbol().getName();
+    }
 
     unsigned Imm;
     if(Name == "nz")
