@@ -207,7 +207,7 @@ def JRr8 : relbranch<(ins rel8:$off), "jr $off"> {
   let isBarrier = 1;
 }
 
-def JRcr8 : relbranch<(ins condition:$cc, rel8:$off), "jr $cc, $off"> {
+def JRccr8 : relbranch<(ins condition:$cc, rel8:$off), "jr $cc, $off"> {
   bits<2> cc;
 
   let Inst{5} = 1;
@@ -309,6 +309,15 @@ let Defs = [A, FLAGS] in {
 }
 let Defs = [FLAGS] in
 defm CP : mALU<"cp", 0b111, [A]>;
+
+let isReturn = 1 in
+def RETcc : SM83Inst8<(outs), (ins condition:$cc), "ret $cc", []> {
+  bits<2> cc;
+
+  let Inst{7-5} = 0b110;
+  let Inst{4-3} = cc;
+  let Inst{2-0} = 0b000;
+}
 
 let isCall = 1 in
 def RST : SM83Inst8<(outs), (ins rstvec:$vec), "rst $vec", []> {

@@ -181,6 +181,13 @@ public:
     return isConstantImm() && isUInt<16>(getConstantImm());
   }
 
+  bool isDirect8() const {
+    if(!isConstantImm())
+      return false;
+    uint64_t imm = getConstantImm()
+    return imm & ~UINT64_C(0xff) == 0xff00;
+  }
+
   bool isRel8() const {
     return isConstantImm() && isInt<8>(getConstantImm());
   }
