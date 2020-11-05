@@ -37,6 +37,9 @@ def rstvec : Operand<i8> {
 def uimm3 : Operand<i8> {
   let ParserMatchClass = ImmAsmOperand<"UImm3">;
 }
+def simm8 : Operand<i8> {
+  let ParserMatchClass = ImmAsmOperand<"SImm8">;
+}
 def imm8 : Operand<i8> {
   let ParserMatchClass = ImmAsmOperand<"Imm8">;
 }
@@ -307,32 +310,40 @@ let Defs = [A, FLAGS] in {
 let Defs = [FLAGS] in
 defm CP : mALU<"cp", 0b111, [A]>;
 
-let isReturn = 1 in
-def RETcc : SM83Inst8<(outs), (ins condition:$cc), "ret $cc", []> {
-  bits<2> cc;
+let isReturn = 1 in {
+  def RETcc : SM83Inst8<(outs), (ins condition:$cc), "ret $cc", []> {
+    bits<2> cc;
 
-  let Inst{7-5} = 0b110;
-  let Inst{4-3} = cc;
-  let Inst{2-0} = 0b000;
+    let Inst{7-5} = 0b110;
+    let Inst{4-3} = cc;
+    let Inst{2-0} = 0b000;
+  }
+  def RET : I8<0xc9, "ret">;
+  let hasSideEffects = 1 in
+  def RETI : I8<0xd9, "reti">;
 }
 
-let Uses = [A], mayStore = 1, AddedComplexity = 1 in
-def LDHd8A : SM83Inst16<(outs), (ins direct8:$addr), "ldh [$addr], a",
-                        [(store A, direct8:$addr)]> {
+let AddedComplexity = 1 in
+class ldhd8<bit reverse, string asmstr, list<dag> pattern>
+  : SM83Inst16<(outs), (ins direct8:$addr), asmstr, pattern> {
   bits<8> addr;
 
-  let Inst{7-0} = 0b11100000;
+  let Inst{7-5} = 0b111;
+  let Inst{4} = reverse;
+  let Inst{3-0} = 0b0000;
+
   let Inst{15-8} = addr;
 }
 
-let Defs = [A], mayLoad = 1, AddedComplexity = 1 in
-def LDHAd8 : SM83Inst16<(outs), (ins direct8:$addr), "ldh a, [$addr]",
-                        [(set A, (load direct8:$addr))]> {
-  bits<8> addr;
+let Uses = [A], mayStore = 1 in
+def LDHd8A : ldhd8<0, "ldh [$addr], a", [(store A, direct8:$addr)]>;
+let Defs = [A], mayLoad = 1 in
+def LDHAd8 : ldhd8<1, "ldh a, [$addr]", [(set A, (load direct8:$addr))]>;
 
-  let Inst{7-0} = 0b11110000;
-  let Inst{15-8} = addr;
-}
+let Uses = [C, A], mayStore = 1 in
+def LDHdCA : I8<0xe2, "ldh [c], a", [(store A, (or 0xff00, C))]>;
+let Uses = [C], Defs = [A], mayLoad = 1 in
+def LDHAdC : I8<0xf2, "ldh a, [c]", [(set A, (load (or 0xff00, C)))]>;
 
 let mayLoad = 1 in {
   def POPrr : SM83Inst8<(outs GR16:$dst), (ins), "pop $dst", []> {
@@ -360,15 +371,74 @@ let mayStore = 1 in {
   def PUSHAF : I8<0xf5, "push af">;
 }
 
-def JPccd16 : SM83Inst24<(outs), (ins condition:$cc, direct16:$addr),
-                         "jp $cc, $addr", []> {
-  bits<2> cc;
-  bits<16> addr;
+let isBranch = 1, isTerminator = 1 in {
+  def JPccd16 : SM83Inst24<(outs), (ins condition:$cc, direct16:$addr),
+                           "jp $cc, $addr", []> {
+    bits<2> cc;
+    bits<16> addr;
 
-  let Inst{7-5} = 0b110;
-  let Inst{4-3} = cc;
-  let Inst{2-0} = 0b010;
+    let Inst{7-5} = 0b110;
+    let Inst{4-3} = cc;
+    let Inst{2-0} = 0b010;
+  }
+  let isBarrier = 1 in
+  def JPd16 : SM83Inst24<(outs), (ins direct16:$addr), "jp $addr", []> {
+    bits<16> addr;
+
+    let Inst{7-0} = 0xc3;
+    let Inst{23-8} = addr;
+  }
 }
+
+let hasSideEffects = 1 in {
+  def DI : I8<0xf3, "di">;
+  def EI : I8<0xfb, "ei">;
+}
+
+let mayStore = 1, isCall = 1 in {
+  def CALLccd16 : SM83Inst24<(outs), (ins condition:$cc, direct16:$addr),
+                             "call $addr", []> {
+    bits<2> cc;
+    bits<16> addr;
+
+    let Inst{7-5} = 0b110;
+    let Inst{4-3} = cc;
+    let Inst{2-0} = 0b100;
+
+    let Inst{23-8} = addr;
+  }
+
+  def CALLd16 : SM83Inst24<(outs), (ins direct16:$addr), "call $addr", []> {
+    bits<16> addr;
+
+    let Inst{7-0} = 0xcd;
+    let Inst{23-8} = addr;
+  }
+}
+
+let Uses = [SP], Defs = [SP] in
+def ADDSPs8 : SM83Inst16<(outs), (ins simm8:$s8), "add sp, $s8",
+                         [(set SP, (add SP, simm8:$s8))]> {
+  bits<8> s8;
+
+  let Inst{7-0} = 0xe8;
+  let Inst{15-8} = s8;
+}
+
+let isIndirectBranch = 1, isBranch = 1, isTerminator = 1, isBarrier = 1 in
+def JPHL : I8<0xe9, "jp hl">;
+
+let Uses = [SP], Defs = [HL] in
+def LDHLSPs8 : SM83Inst16<(outs), (ins simm8:$s8), "ld hl, sp+$s8",
+                          [(set HL, (add SP, simm8:$s8))]> {
+  bits<8> s8;
+
+  let Inst{7-0} = 0xf8;
+  let Inst{15-8} = s8;
+}
+
+let Defs = [SP], Uses = [HL] in
+def LDSPHL : I8<0xf9, "ld sp, hl", [(set SP, HL)]>;
 
 let isCall = 1 in
 def RST : SM83Inst8<(outs), (ins rstvec:$vec), "rst $vec", []> {
