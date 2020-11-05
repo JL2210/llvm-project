@@ -43,11 +43,14 @@ def imm8 : Operand<i8> {
 def imm16 : Operand<i16> {
   let ParserMatchClass = ImmAsmOperand<"Imm16">;
 }
+def rel8 : Operand<i8> {
+  let ParserMatchClass = ImmAsmOperand<"Rel8">;
+}
 def direct16 : Operand<i16> {
   let ParserMatchClass = ImmAsmOperand<"Direct16">;
 }
-def rel8 : Operand<i8> {
-  let ParserMatchClass = ImmAsmOperand<"Rel8">;
+def direct8 : Operand<i8> {
+  let ParserMatchClass = ImmAsmOperand<"Direct8">;
 }
 
 def NOP : I8<0x00, "nop">;
@@ -83,13 +86,13 @@ def LDSPnn : SM83Inst24<(outs), (ins imm16:$imm), "ld sp, $imm",
 
 let mayStore = 1 in {
   let Uses = [BC, A] in
-  def LDdBCA : I8<0x02, "ld [bc], a", [(store BC, A)]>;
+  def LDdBCA : I8<0x02, "ld [bc], a", [(store A, BC)]>;
   let Uses = [DE, A] in
-  def LDdDEA : I8<0x12, "ld [de], a", [(store DE, A)]>;
+  def LDdDEA : I8<0x12, "ld [de], a", [(store A, DE)]>;
 }
 let mayStore = 1, Uses = [HL, A], Defs = [HL] in {
-  def LDdHLIA : I8<0x22, "ld [hl+], a", [(store HL, A), (set HL, (add HL, 1))]>;
-  def LDdHLDA : I8<0x32, "ld [hl-], a", [(store HL, A), (set HL, (sub HL, 1))]>;
+  def LDdHLIA : I8<0x22, "ld [hl+], a", [(store A, HL), (set HL, (add HL, 1))]>;
+  def LDdHLDA : I8<0x32, "ld [hl-], a", [(store A, HL), (set HL, (sub HL, 1))]>;
 }
 
 let mayLoad = 1, Defs = [A] in {
@@ -139,8 +142,8 @@ def INCr : INC_DECr<"inc", 0, add>;
 def DECr : INC_DECr<"dec", 1, sub>;
 
 let Uses = [HL], mayLoad = 1, mayStore = 1 in {
-  def INCdHL : I8<0x34, "inc [hl]", [(store HL, (add (load HL), 1))]>;
-  def DECdHL : I8<0x35, "dec [hl]", [(store HL, (sub (load HL), 1))]>;
+  def INCdHL : I8<0x34, "inc [hl]", [(store (add (i8 (load HL)), 1), HL)]>;
+  def DECdHL : I8<0x35, "dec [hl]", [(store (sub (i8 (load HL)), 1), HL)]>;
 }
 
 def LDri : SM83Inst16<(outs GR8:$dst), (ins imm8:$imm), "ld $dst, $imm",
@@ -157,7 +160,7 @@ def LDri : SM83Inst16<(outs GR8:$dst), (ins imm8:$imm), "ld $dst, $imm",
 
 let mayStore = 1, Uses = [HL] in
 def LDdHLi : SM83Inst16<(outs), (ins imm8:$imm), "ld [hl], $imm",
-                       [(store HL, imm8:$imm)]> {
+                       [(store imm8:$imm, HL)]> {
   bits<8> imm;
 
   let Inst{7-6} = 0b00;
@@ -184,35 +187,34 @@ let Defs = [FLAGS] in {
 
 let mayStore = 1, Uses = [SP] in
 def LDd16SP : SM83Inst24<(outs), (ins direct16:$addr), "ld [$addr], sp",
-                         [(store direct16:$addr, SP)]> {
+                         [(store SP, direct16:$addr)]> {
   bits<16> addr;
 
   let Inst{7-0} = 0x08;
   let Inst{23-8} = addr;
 }
 
-class relbranch<dag ins, string asmstr> : SM83Inst16<(outs), ins, asmstr, []> {
+def JRr8 : SM83Inst16<(outs), (ins rel8:$off), "jr $off", []> {
   bits<8> off;
 
-  let Inst{7-6} = 0b00;
+  let Inst{7-0} = 0x18;
   let Inst{15-8} = off;
 
   let isBranch = 1;
   let isTerminator = 1;
-}
-
-def JRr8 : relbranch<(ins rel8:$off), "jr $off"> {
-  let Inst{5-0} = 0x18;
-
   let isBarrier = 1;
 }
 
-def JRccr8 : relbranch<(ins condition:$cc, rel8:$off), "jr $cc, $off"> {
+def JRccr8 : SM83Inst16<(outs), (ins condition:$cc, rel8:$off),
+                        "jr $cc, $off", []> {
   bits<2> cc;
 
-  let Inst{5} = 1;
+  let Inst{7-5} = 0b001;
   let Inst{4-3} = cc;
   let Inst{2-0} = 0b000;
+
+  let isBranch = 1;
+  let isTerminator = 1;
 }
 
 let Uses = [HL], Defs = [HL] in
@@ -225,12 +227,7 @@ def ADDHLrr : SM83Inst8<(outs), (ins GR16:$src), "add hl, $src",
   let Inst{3-0} = 0b1001;
 }
 let Uses = [HL, SP], Defs = [HL] in
-def ADDHLSP : SM83Inst8<(outs), (ins), "add hl, sp",
-                        [(set HL, (add HL, SP))]> {
-  let Inst{7-6} = 0b00;
-  let Inst{5-4} = 0b11;
-  let Inst{3-0} = 0b1001;
-}
+def ADDHLSP : I8<0x39, "add hl, sp", [(set HL, (add HL, SP))]>;
 
 def LDrr : SM83Inst8<(outs GR8:$dst), (ins GR8:$src), "ld $dst, $src",
                      [(set GR8:$dst, GR8:$src)]> {
@@ -244,7 +241,7 @@ def LDrr : SM83Inst8<(outs GR8:$dst), (ins GR8:$src), "ld $dst, $src",
 
 let Uses = [HL], mayStore = 1 in
 def LDdHLr : SM83Inst8<(outs), (ins GR8:$src), "ld [hl], $src",
-                       [(store HL, GR8:$src)]> {
+                       [(store GR8:$src, HL)]> {
   bits<3> src;
 
   let Inst{7-6} = 0b01;
@@ -317,6 +314,60 @@ def RETcc : SM83Inst8<(outs), (ins condition:$cc), "ret $cc", []> {
   let Inst{7-5} = 0b110;
   let Inst{4-3} = cc;
   let Inst{2-0} = 0b000;
+}
+
+let Uses = [A], mayStore = 1, AddedComplexity = 1 in
+def LDHd8A : SM83Inst16<(outs), (ins direct8:$addr), "ldh [$addr], a",
+                        [(store A, direct8:$addr)]> {
+  bits<8> addr;
+
+  let Inst{7-0} = 0b11100000;
+  let Inst{15-8} = addr;
+}
+
+let Defs = [A], mayLoad = 1, AddedComplexity = 1 in
+def LDHAd8 : SM83Inst16<(outs), (ins direct8:$addr), "ldh a, [$addr]",
+                        [(set A, (load direct8:$addr))]> {
+  bits<8> addr;
+
+  let Inst{7-0} = 0b11110000;
+  let Inst{15-8} = addr;
+}
+
+let mayLoad = 1 in {
+  def POPrr : SM83Inst8<(outs GR16:$dst), (ins), "pop $dst", []> {
+    bits<2> dst;
+
+    let Inst{7-6} = 0b11;
+    let Inst{5-4} = dst;
+    let Inst{3-0} = 0b0001;
+  }
+
+  let Defs = [AF] in
+  def POPAF : I8<0xf1, "pop af">;
+}
+
+let mayStore = 1 in {
+  def PUSHrr : SM83Inst8<(outs), (ins GR16:$src), "push $src", []> {
+    bits<2> src;
+
+    let Inst{7-6} = 0b11;
+    let Inst{5-4} = src;
+    let Inst{3-0} = 0b0101;
+  }
+
+  let Uses = [AF] in
+  def PUSHAF : I8<0xf5, "push af">;
+}
+
+def JPccd16 : SM83Inst24<(outs), (ins condition:$cc, direct16:$addr),
+                         "jp $cc, $addr", []> {
+  bits<2> cc;
+  bits<16> addr;
+
+  let Inst{7-5} = 0b110;
+  let Inst{4-3} = cc;
+  let Inst{2-0} = 0b010;
 }
 
 let isCall = 1 in
