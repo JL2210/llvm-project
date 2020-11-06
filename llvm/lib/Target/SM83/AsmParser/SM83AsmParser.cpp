@@ -54,7 +54,7 @@ class SM83AsmParser : public MCTargetAsmParser {
 
   OperandMatchResultTy parseImmediate(OperandVector &Operands);
   OperandMatchResultTy parseRegister(OperandVector &Operands);
-  OperandMatchResultTy parseMemOpBaseReg(OperandVector &Operands);
+  OperandMatchResultTy parseMemOp(OperandVector &Operands);
 
   bool parseOperand(OperandVector &Operands);
 
@@ -155,12 +155,16 @@ public:
     return true;
   }
 
+  bool isRSTVec() const {
+    return isConstantImm() && isShiftedUInt<3, 3>(getConstantImm());
+  }
+
   bool isUImm3() const {
     return isConstantImm() && isUInt<3>(getConstantImm());
   }
 
-  bool isRSTVec() const {
-    return isConstantImm() && isShiftedUInt<3, 3>(getConstantImm());
+  bool isSImm8() const {
+    return isConstantImm() && isInt<3>(getConstantImm());
   }
 
   bool isImm8() const {
@@ -177,8 +181,8 @@ public:
     return isInt<16>(imm) || isUInt<16>(imm);
   }
 
-  bool isDirect16() const {
-    return isConstantImm() && isUInt<16>(getConstantImm());
+  bool isRel8() const {
+    return isConstantImm() && isInt<8>(getConstantImm());
   }
 
   bool isDirect8() const {
@@ -188,8 +192,8 @@ public:
     return (imm & ~UINT64_C(0xff)) == 0xff00;
   }
 
-  bool isRel8() const {
-    return isConstantImm() && isInt<8>(getConstantImm());
+  bool isDirect16() const {
+    return isConstantImm() && isUInt<16>(getConstantImm());
   }
 
   /// getStartLoc - Gets location of the first token of this operand
@@ -341,24 +345,28 @@ bool SM83AsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     }
     return Error(ErrorLoc, "invalid operand for instruction");
   }
-  case Match_InvalidUImm3:
-    return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 3) - 1);
-  case Match_InvalidRSTVec:
-    return generateImmOutOfRangeError(
-           Operands, ErrorInfo, 0, (1 << 6) - 8,
-           "immediate must be a multiple of 8 in the range");
-  case Match_InvalidImm8:
-    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7), (1 << 8) - 1);
-  case Match_InvalidImm16:
-    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 15), (1 << 16) - 1);
-  case Match_InvalidDirect16:
-    return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 16) - 1);
-  case Match_InvalidRel8:
-    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7), (1 << 7) - 1);
   case Match_InvalidCondition: {
     SMLoc ErrLoc = static_cast<SM83Operand &>(*Operands[ErrorInfo]).getStartLoc();
     return Error(ErrLoc, "operand must be one of nz, z, nc, or c");
   }
+  case Match_InvalidRSTVec:
+    return generateImmOutOfRangeError(
+           Operands, ErrorInfo, 0, (1 << 6) - 8,
+           "immediate must be a multiple of 8 in the range");
+  case Match_InvalidUImm3:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 3) - 1);
+  case Match_InvalidSImm8:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7), (1 << 7) - 1);
+  case Match_InvalidImm8:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7), (1 << 8) - 1);
+  case Match_InvalidImm16:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 15), (1 << 16) - 1);
+  case Match_InvalidRel8:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7), (1 << 7) - 1);
+  case Match_InvalidDirect8:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, 0xff00, 0xff00 + ((1 << 8) - 1));
+  case Match_InvalidDirect16:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 16) - 1);
   }
 
   llvm_unreachable("Unknown match type detected!");
@@ -435,7 +443,7 @@ OperandMatchResultTy SM83AsmParser::parseImmediate(OperandVector &Operands) {
 }
 
 OperandMatchResultTy
-SM83AsmParser::parseMemOpBaseReg(OperandVector &Operands) {
+SM83AsmParser::parseMemOp(OperandVector &Operands) {
   if (getLexer().isNot(AsmToken::LBrac)) {
     Error(getLoc(), "expected '['");
     return MatchOperand_ParseFail;
@@ -444,8 +452,9 @@ SM83AsmParser::parseMemOpBaseReg(OperandVector &Operands) {
   getParser().Lex(); // Eat '['
   Operands.push_back(SM83Operand::createToken("[", getLoc()));
 
-  if (parseRegister(Operands) != MatchOperand_Success) {
-    Error(getLoc(), "expected register");
+  if (parseRegister(Operands) != MatchOperand_Success &&
+      parseImmediate(Operands) != MatchOperand_Success) {
+    Error(getLoc(), "expected register or immediate");
     return MatchOperand_ParseFail;
   }
 
@@ -471,16 +480,11 @@ SM83AsmParser::parseMemOpBaseReg(OperandVector &Operands) {
 /// from this information, adding to Operands.
 /// If operand was parsed, returns false, else true.
 bool SM83AsmParser::parseOperand(OperandVector &Operands) {
-  // Attempt to parse token as register
-  if (parseRegister(Operands) == MatchOperand_Success)
-    return false;
-
-  // Attempt to parse token as an immediate
-  if (parseImmediate(Operands) == MatchOperand_Success) {
-    // Parse memory base register if present
-    if (getLexer().is(AsmToken::LBrac))
-      return parseMemOpBaseReg(Operands) != MatchOperand_Success;
-    return false;
+  // Attempt to parse token as register, immediate, or memory
+  if (parseRegister(Operands) == MatchOperand_Success ||
+      parseImmediate(Operands) == MatchOperand_Success ||
+      parseMemOp(Operands) == MatchOperand_Success) {
+      return false;
   }
 
   // Finally we have exhausted all options and must declare defeat.
