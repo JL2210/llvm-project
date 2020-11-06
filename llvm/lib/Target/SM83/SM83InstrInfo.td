@@ -49,11 +49,11 @@ def imm16 : Operand<i16> {
 def rel8 : Operand<i8> {
   let ParserMatchClass = ImmAsmOperand<"Rel8">;
 }
-def direct16 : Operand<i16> {
-  let ParserMatchClass = ImmAsmOperand<"Direct16">;
-}
 def direct8 : Operand<i8> {
   let ParserMatchClass = ImmAsmOperand<"Direct8">;
+}
+def direct16 : Operand<i16> {
+  let ParserMatchClass = ImmAsmOperand<"Direct16">;
 }
 
 def NOP : I8<0x00, "nop">;
@@ -129,7 +129,7 @@ let Uses = [SP], Defs = [SP] in {
   def DECSP : I8<0x3b, "dec sp", [(set SP, (sub SP, (i16 1)))]>;
 }
 
-let Constraints = "$dst = $src" in
+let Constraints = "$dst = $src", Defs = [FLAGS] in
 class INC_DECr<string opstr, bit dec, SDPatternOperator op>
   : SM83Inst8<(outs GR8:$dst), (ins GR8:$src), opstr # " $dst",
               [(set GR8:$dst, (op GR8:$src, 1))]> {
@@ -144,7 +144,7 @@ class INC_DECr<string opstr, bit dec, SDPatternOperator op>
 def INCr : INC_DECr<"inc", 0, add>;
 def DECr : INC_DECr<"dec", 1, sub>;
 
-let Uses = [HL], mayLoad = 1, mayStore = 1 in {
+let Uses = [HL], Defs = [FLAGS] mayLoad = 1, mayStore = 1 in {
   def INCdHL : I8<0x34, "inc [hl]", [(store (add (i8 (load HL)), 1), HL)]>;
   def DECdHL : I8<0x35, "dec [hl]", [(store (sub (i8 (load HL)), 1), HL)]>;
 }
@@ -220,7 +220,7 @@ def JRccr8 : SM83Inst16<(outs), (ins condition:$cc, rel8:$off),
   let isTerminator = 1;
 }
 
-let Uses = [HL], Defs = [HL] in
+let Uses = [HL], Defs = [HL, FLAGS] in
 def ADDHLrr : SM83Inst8<(outs), (ins GR16:$src), "add hl, $src",
                         [(set HL, (add HL, GR16:$src))]> {
   bits<2> src;
@@ -229,7 +229,7 @@ def ADDHLrr : SM83Inst8<(outs), (ins GR16:$src), "add hl, $src",
   let Inst{5-4} = src;
   let Inst{3-0} = 0b1001;
 }
-let Uses = [HL, SP], Defs = [HL] in
+let Uses = [HL, SP], Defs = [HL, FLAGS] in
 def ADDHLSP : I8<0x39, "add hl, sp", [(set HL, (add HL, SP))]>;
 
 def LDrr : SM83Inst8<(outs GR8:$dst), (ins GR8:$src), "ld $dst, $src",
@@ -341,9 +341,9 @@ let Defs = [A], mayLoad = 1 in
 def LDHAd8 : ldhd8<1, "ldh a, [$addr]", [(set A, (load direct8:$addr))]>;
 
 let Uses = [C, A], mayStore = 1 in
-def LDHdCA : I8<0xe2, "ldh [c], a", [(store A, (or 0xff00, C))]>;
+def LDHdCA : I8<0xe2, "ldh [c], a", [(store A, (or 0xff00, (i16 C)))]>;
 let Uses = [C], Defs = [A], mayLoad = 1 in
-def LDHAdC : I8<0xf2, "ldh a, [c]", [(set A, (load (or 0xff00, C)))]>;
+def LDHAdC : I8<0xf2, "ldh a, [c]", [(set A, (load (or 0xff00, (i16 C))))]>;
 
 let mayLoad = 1 in {
   def POPrr : SM83Inst8<(outs GR16:$dst), (ins), "pop $dst", []> {
@@ -416,7 +416,7 @@ let mayStore = 1, isCall = 1 in {
   }
 }
 
-let Uses = [SP], Defs = [SP] in
+let Uses = [SP], Defs = [SP, FLAGS] in
 def ADDSPs8 : SM83Inst16<(outs), (ins simm8:$s8), "add sp, $s8",
                          [(set SP, (add SP, simm8:$s8))]> {
   bits<8> s8;
@@ -428,7 +428,7 @@ def ADDSPs8 : SM83Inst16<(outs), (ins simm8:$s8), "add sp, $s8",
 let isIndirectBranch = 1, isBranch = 1, isTerminator = 1, isBarrier = 1 in
 def JPHL : I8<0xe9, "jp hl">;
 
-let Uses = [SP], Defs = [HL] in
+let Uses = [SP], Defs = [HL, FLAGS] in
 def LDHLSPs8 : SM83Inst16<(outs), (ins simm8:$s8), "ld hl, sp+$s8",
                           [(set HL, (add SP, simm8:$s8))]> {
   bits<8> s8;
@@ -448,3 +448,34 @@ def RST : SM83Inst8<(outs), (ins rstvec:$vec), "rst $vec", []> {
   let Inst{5-3} = vec;
   let Inst{2-0} = 0b111;
 }
+
+multiclass mBIT<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
+  let Constraints = "$src = $dst", Defs = [FLAGS] in
+  def r : CB<(outs GR8:$dst), (ins GR8:$src), opstr # " $dst",
+             [(set GR8:$dst, (op GR8:$src))]> {
+    bits<3> dst;
+
+    let Inst{7-6} = 0b00;
+    let Inst{5-3} = opc;
+    let Inst{2-0} = dst;
+  }
+
+  let Uses = [HL], Defs = [FLAGS], mayLoad = 1, mayStore = 1 in
+  def dHL : CB<(outs), (ins), opstr # " [hl]",        
+             [(store (op (load HL)), HL)]> { 
+    let Inst{7-6} = 0b00;
+    let Inst{5-3} = opc;
+    let Inst{2-0} = 0b110;
+  }
+}
+
+def swap : PatFrag<(ops node:$in), (rotr node:$in, 4)>;
+
+defm RLC : mBIT<"rlc", 0b000, rotl>;
+defm RRC : mBIT<"rrc", 0b001, rotr>;
+defm RL : mBIT<"rl", 0b010>;
+defm RR : mBIT<"rr", 0b011>;
+defm SLA : mBIT<"sla", 0b100, shl>;
+defm SRA : mBIT<"sra", 0b101, sra>;
+defm SWAP : mBIT<"swap", 0b110, swap>;
+defm SRL : mBIT<"srl", 0b111, srl>;
