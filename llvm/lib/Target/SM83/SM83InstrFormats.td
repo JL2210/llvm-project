@@ -37,6 +37,11 @@ class SM83Inst16<dag outs, dag ins, string asmstr, list<dag> pattern>
   let Size = 2;
 }
 
+class CB<dag outs, dag ins, string asmstr, list<dag> pattern>
+  : SM83Inst16<outs, ins, asmstr, pattern> {
+  let Inst{7-0} = 0xcb;
+}
+
 class SM83Inst24<dag outs, dag ins, string asmstr, list<dag> pattern>
   : SM83Instruction<outs, ins, asmstr, pattern>
 {
