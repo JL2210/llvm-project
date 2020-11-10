@@ -51,6 +51,7 @@ def rel8 : Operand<i8> {
 }
 def direct8 : Operand<i8> {
   let ParserMatchClass = ImmAsmOperand<"Direct8">;
+  let EncoderMethod = "getDirect8Value";
 }
 def direct16 : Operand<i16> {
   let ParserMatchClass = ImmAsmOperand<"Direct16">;
@@ -94,8 +95,8 @@ let mayStore = 1 in {
   def LDdDEA : I8<0x12, "ld [de], a", [(store A, DE)]>;
 }
 let mayStore = 1, Uses = [HL, A], Defs = [HL] in {
-  def LDdHLIA : I8<0x22, "ld [hl+], a", [(store A, HL), (set HL, (add HL, 1))]>;
-  def LDdHLDA : I8<0x32, "ld [hl-], a", [(store A, HL), (set HL, (sub HL, 1))]>;
+  def LDdHLIA : I8<0x22, "ld [hli], a", [(store A, HL), (set HL, (add HL, 1))]>;
+  def LDdHLDA : I8<0x32, "ld [hld], a", [(store A, HL), (set HL, (sub HL, 1))]>;
 }
 
 let mayLoad = 1, Defs = [A] in {
@@ -105,8 +106,8 @@ let mayLoad = 1, Defs = [A] in {
   def LDAdDE : I8<0x1a, "ld a, [de]", [(set A, (load DE))]>;
 }
 let mayLoad = 1, Uses = [HL], Defs = [HL, A] in {
-  def LDAdHLI : I8<0x2a, "ld a, [hl+]", [(set A, (load HL)), (set HL, (add HL, 1))]>;
-  def LDAdHLD : I8<0x3a, "ld a, [hl-]", [(set A, (load HL)), (set HL, (sub HL, 1))]>;
+  def LDAdHLI : I8<0x2a, "ld a, [hli]", [(set A, (load HL)), (set HL, (add HL, 1))]>;
+  def LDAdHLD : I8<0x3a, "ld a, [hld]", [(set A, (load HL)), (set HL, (sub HL, 1))]>;
 }
 
 let Constraints = "$dst = $src" in
@@ -144,7 +145,7 @@ class INC_DECr<string opstr, bit dec, SDPatternOperator op>
 def INCr : INC_DECr<"inc", 0, add>;
 def DECr : INC_DECr<"dec", 1, sub>;
 
-let Uses = [HL], Defs = [FLAGS] mayLoad = 1, mayStore = 1 in {
+let Uses = [HL], Defs = [FLAGS], mayLoad = 1, mayStore = 1 in {
   def INCdHL : I8<0x34, "inc [hl]", [(store (add (i8 (load HL)), 1), HL)]>;
   def DECdHL : I8<0x35, "dec [hl]", [(store (sub (i8 (load HL)), 1), HL)]>;
 }
@@ -449,10 +450,10 @@ def RST : SM83Inst8<(outs), (ins rstvec:$vec), "rst $vec", []> {
   let Inst{2-0} = 0b111;
 }
 
-multiclass mBIT<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
+multiclass mBIT<string opstr, bits<3> opc, SDPatternOperator op = null_frag, int n = 1> {
   let Constraints = "$src = $dst", Defs = [FLAGS] in
   def r : CB<(outs GR8:$dst), (ins GR8:$src), opstr # " $dst",
-             [(set GR8:$dst, (op GR8:$src))]> {
+             [(set GR8:$dst, (op GR8:$src, (i8 n)))]> {
     bits<3> dst;
 
     let Inst{7-6} = 0b00;
@@ -462,14 +463,12 @@ multiclass mBIT<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
 
   let Uses = [HL], Defs = [FLAGS], mayLoad = 1, mayStore = 1 in
   def dHL : CB<(outs), (ins), opstr # " [hl]",        
-             [(store (op (load HL)), HL)]> { 
+             [(store (op (i8 (load HL)), (i8 n)), HL)]> {
     let Inst{7-6} = 0b00;
     let Inst{5-3} = opc;
     let Inst{2-0} = 0b110;
   }
 }
-
-def swap : PatFrag<(ops node:$in), (rotr node:$in, 4)>;
 
 defm RLC : mBIT<"rlc", 0b000, rotl>;
 defm RRC : mBIT<"rrc", 0b001, rotr>;
@@ -477,5 +476,56 @@ defm RL : mBIT<"rl", 0b010>;
 defm RR : mBIT<"rr", 0b011>;
 defm SLA : mBIT<"sla", 0b100, shl>;
 defm SRA : mBIT<"sra", 0b101, sra>;
-defm SWAP : mBIT<"swap", 0b110, swap>;
+defm SWAP : mBIT<"swap", 0b110, rotr, 4>;
 defm SRL : mBIT<"srl", 0b111, srl>;
+
+def setbitn : PatFrag<(ops node:$in, node:$idx),
+                      (or node:$in, (shl 1, node:$idx))>;
+def resbitn : PatFrag<(ops node:$in, node:$idx),
+                      (and node:$in, (not (shl 1, node:$idx)))>;
+
+// bit reset & set
+multiclass mBRS<string opstr, bits<2> opc, SDPatternOperator op> {
+  let Constraints = "$src = $dst" in
+  def r : CB<(outs GR8:$dst), (ins uimm3:$idx, GR8:$src), opstr # " $idx, $dst",
+             [(set GR8:$dst, (op GR8:$src, uimm3:$idx))]> {
+    bits<3> idx;
+    bits<3> dst;
+
+    let Inst{7-6} = opc;
+    let Inst{5-3} = idx;
+    let Inst{2-0} = dst;
+  }
+
+  let Uses = [HL], mayLoad = 1, mayStore = 1 in
+  def dHL : CB<(outs), (ins uimm3:$idx), opstr # " $idx, [hl]",
+               [(store (op (i8 (load HL)), uimm3:$idx), HL)]> {
+    bits<3> idx;
+
+    let Inst{7-6} = opc;
+    let Inst{5-3} = idx;
+    let Inst{2-0} = 0b110;
+  }
+}
+
+defm RES : mBRS<"res", 0b10, resbitn>;
+defm SET : mBRS<"set", 0b11, setbitn>;
+
+let Defs = [FLAGS] in
+def BITr : CB<(outs), (ins uimm3:$idx, GR8:$src), "bit $idx, $src", []> {
+  bits<3> idx;
+  bits<3> src;
+
+  let Inst{7-6} = 0b01;
+  let Inst{5-3} = idx;
+  let Inst{2-0} = src;
+}
+
+let Uses = [HL], Defs = [FLAGS], mayLoad = 1 in
+def BITdHL : CB<(outs), (ins uimm3:$idx), "bit $idx, [hl]", []> {
+  bits<3> idx;
+
+  let Inst{7-6} = 0b01;
+  let Inst{5-3} = idx;
+  let Inst{2-0} = 0b110;
+}
