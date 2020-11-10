@@ -390,6 +390,7 @@ OperandMatchResultTy SM83AsmParser::tryParseRegister(unsigned &RegNo,
   if (!MatchRegisterName(Name)) {
     return MatchOperand_NoMatch;
   }
+
   getParser().Lex();  // Eat identifier token.
   return MatchOperand_Success;
 }
@@ -409,6 +410,7 @@ OperandMatchResultTy SM83AsmParser::parseRegister(OperandVector &Operands) {
     getLexer().Lex();
     Operands.push_back(SM83Operand::createReg(RegNo, S, E));
   }
+
   return MatchOperand_Success;
 }
 
@@ -452,17 +454,15 @@ SM83AsmParser::parseMemOp(OperandVector &Operands) {
   getParser().Lex(); // Eat '['
   Operands.push_back(SM83Operand::createToken("[", getLoc()));
 
-  if (parseRegister(Operands) != MatchOperand_Success &&
-      parseImmediate(Operands) != MatchOperand_Success) {
-    Error(getLoc(), "expected register or immediate");
-    return MatchOperand_ParseFail;
-  }
-
-  if (getLexer().is(AsmToken::Plus) ||
-      getLexer().is(AsmToken::Minus)) {
-    auto str = getTok().getString();
+  auto str = getTok().getString();
+  if (str == "hli" || str == "hld") {
     getParser().Lex();
     Operands.push_back(SM83Operand::createToken(str, getLoc()));
+  }
+  else if (parseRegister(Operands) != MatchOperand_Success &&
+          parseImmediate(Operands) != MatchOperand_Success) {
+    Error(getLoc(), "expected register or immediate");
+    return MatchOperand_ParseFail;
   }
 
   if (getLexer().isNot(AsmToken::RBrac)) {
