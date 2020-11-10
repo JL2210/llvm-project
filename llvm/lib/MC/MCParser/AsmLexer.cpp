@@ -723,9 +723,7 @@ bool AsmLexer::isAtStartOfComment(const char *Ptr) {
 }
 
 bool AsmLexer::isAtStatementSeparator(const char *Ptr) {
-  /* FIXME: check sep string null here or no? */
-  return MAI.getSeparatorString() &&
-         strncmp(Ptr, MAI.getSeparatorString(),
+  return strncmp(Ptr, MAI.getSeparatorString(),
                  strlen(MAI.getSeparatorString())) == 0;
 }
 
