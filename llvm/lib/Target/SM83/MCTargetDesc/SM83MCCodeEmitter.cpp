@@ -62,6 +62,9 @@ public:
   unsigned getRSTVecValue(const MCInst &MI, unsigned OpNo,
                           SmallVectorImpl<MCFixup> &Fixups,
                           const MCSubtargetInfo &STI) const;
+  unsigned getDirect8Value(const MCInst &MI, unsigned OpNo,
+                           SmallVectorImpl<MCFixup> &Fixups,
+                           const MCSubtargetInfo &STI) const;
 };
 } // end anonymous namespace
 
@@ -113,6 +116,23 @@ SM83MCCodeEmitter::getRSTVecValue(const MCInst &MI, unsigned OpNo,
   }
 
   llvm_unreachable("Unhandled expression!");
+  return 0;
+}
+
+unsigned
+SM83MCCodeEmitter::getDirect8Value(const MCInst &MI, unsigned OpNo,
+                                   SmallVectorImpl<MCFixup> &Fixups,
+                                   const MCSubtargetInfo &STI) const {
+  const MCOperand &MO = MI.getOperand(OpNo);
+
+  if (MO.isImm()) {
+    unsigned Res = MO.getImm();
+    assert((Res & ~0xff) == 0xff00 && "Immediate must be in the range 0xff00-0xffff");
+    return Res & 0xff;
+  }
+
+  llvm_unreachable("Unhandled expression!");
+  return 0;
 }
 
 #include "SM83GenMCCodeEmitter.inc"

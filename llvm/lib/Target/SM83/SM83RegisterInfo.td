@@ -12,11 +12,8 @@
 //
 //===------------------------------------------------------------------------===//
 
-class SM83Reg<string name,
-              bits<16> enc = -1,
-              list<Register> subregs = []>
-  : RegisterWithSubRegs<name, subregs>
-{
+class SM83Reg<string name, bits<16> enc = -1, list<Register> subregs = []>
+  : RegisterWithSubRegs<name, subregs> {
   let Namespace = "SM83";
   let HWEncoding = enc;
   let SubRegs = subregs;
@@ -26,6 +23,8 @@ class SM83Reg<string name,
 let Namespace = "SM83" in {
   def sub_low : SubRegIndex<8>;
   def sub_high : SubRegIndex<8, 8>;
+  def sub_low16 : SubRegIndex<16>;
+  def sub_high16 : SubRegIndex<16, 16>;
 }
 
 //===----------------------------------------------------------------------===//
@@ -42,9 +41,7 @@ def L : SM83Reg<"l", 5>;
 def A : SM83Reg<"a", 7>;
 def FLAGS : SM83Reg<"f">;
 
-let SubRegIndices = [sub_high, sub_low],
-    CoveredBySubRegs = 1 in
-{
+let SubRegIndices = [sub_high, sub_low], CoveredBySubRegs = 1 in {
   // 16-bit registers
   def AF : SM83Reg<"af", -1, [A, FLAGS]>;
   def BC : SM83Reg<"bc", 0, [B, C]>;
@@ -56,15 +53,15 @@ def SP : SM83Reg<"sp">;
 // instruction pointer/program counter
 def PC : SM83Reg<"pc">;
 
+let SubRegIndices = [sub_high16, sub_low16], CoveredBySubRegs = 1 in
+def DEHL : SM83Reg<"dehl", -1, [DE, HL]>;
+
 //===----------------------------------------------------------------------===//
 // Register class definitions...
 //
 
 // General-purpose 8-bit registers
 def GR8 : RegisterClass<"SM83", [i8], 8, (add A, B, C, D, E, H, L)>;
-
-// Flags
-def F8 : RegisterClass<"SM83", [i8], 8, (add FLAGS)>;
 
 // General-purpose 16-bit registers
 def GR16 : RegisterClass<"SM83", [i16], 8, (add BC, DE, HL)>;
