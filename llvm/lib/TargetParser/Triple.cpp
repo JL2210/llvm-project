@@ -883,6 +883,7 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
   case Triple::riscv32:
   case Triple::riscv64:
   case Triple::shave:
+  case Triple::sm83:
   case Triple::sparc:
   case Triple::sparcel:
   case Triple::sparcv9:
@@ -921,9 +922,7 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
   case Triple::dxil:
     return Triple::DXContainer;
 
-  case Triple::sm83:
-    return Triple::ELF;
-    break;
+    return Triple::UnknownObjectFormat;
   }
   llvm_unreachable("unknown architecture");
 }

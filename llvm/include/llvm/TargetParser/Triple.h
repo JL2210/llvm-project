@@ -290,7 +290,6 @@ public:
     ELF,
     GOFF,
     MachO,
-//  RGB9,
     SPIRV,
     Wasm,
     XCOFF,
