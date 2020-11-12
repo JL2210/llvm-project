@@ -12,5 +12,14 @@
 
 #include "SM83FrameLowering.h"
 
-void emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const {}
-void emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const {}
+#include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
+
+using namespace llvm;
+
+void SM83FrameLowering::emitPrologue(
+    MachineFunction &MF, MachineBasicBlock &MBB) const {
+}
+void SM83FrameLowering::emitEpilogue(
+    MachineFunction &MF, MachineBasicBlock &MBB) const {
+}
