@@ -60,8 +60,10 @@ def direct16 : Operand<i16> {
 def NOP : I8<0x00, "nop">;
 let hasSideEffects = 1 in
 def STOP : SM83Inst16<(outs), (ins), "stop", []> {
-    let Inst{7-0} = 0x10;
-    let Inst{15-8} = 0x00;
+  let Inst{7-0} = 0x10;
+  // stop needs to have an extra byte; otherwise,
+  // the first byte of the next instruction is skipped
+  let Inst{15-8} = 0x00;
 }
 
 def LDrrnn : SM83Inst24<(outs GR16:$dst), (ins imm16:$imm),
@@ -151,7 +153,7 @@ let Uses = [HL], Defs = [FLAGS], mayLoad = 1, mayStore = 1 in {
 }
 
 def LDri : SM83Inst16<(outs GR8:$dst), (ins imm8:$imm), "ld $dst, $imm",
-                     [(set GR8:$dst, imm8:$imm)]> {
+                      [(set GR8:$dst, imm8:$imm)]> {
   bits<3> dst;
   bits<8> imm;
 
@@ -164,7 +166,7 @@ def LDri : SM83Inst16<(outs GR8:$dst), (ins imm8:$imm), "ld $dst, $imm",
 
 let mayStore = 1, Uses = [HL] in
 def LDdHLi : SM83Inst16<(outs), (ins imm8:$imm), "ld [hl], $imm",
-                       [(store imm8:$imm, HL)]> {
+                        [(store imm8:$imm, HL)]> {
   bits<8> imm;
 
   let Inst{7-6} = 0b00;
@@ -198,17 +200,14 @@ def LDd16SP : SM83Inst24<(outs), (ins direct16:$addr), "ld [$addr], sp",
   let Inst{23-8} = addr;
 }
 
+let isTerminator = 1, isBranch = 1, isBarrier = 1 in
 def JRr8 : SM83Inst16<(outs), (ins rel8:$off), "jr $off", []> {
   bits<8> off;
 
   let Inst{7-0} = 0x18;
   let Inst{15-8} = off;
-
-  let isBranch = 1;
-  let isTerminator = 1;
-  let isBarrier = 1;
 }
-
+let isTerminator = 1, isBranch = 1 in
 def JRccr8 : SM83Inst16<(outs), (ins condition:$cc, rel8:$off),
                         "jr $cc, $off", []> {
   bits<2> cc;
@@ -216,9 +215,6 @@ def JRccr8 : SM83Inst16<(outs), (ins condition:$cc, rel8:$off),
   let Inst{7-5} = 0b001;
   let Inst{4-3} = cc;
   let Inst{2-0} = 0b000;
-
-  let isBranch = 1;
-  let isTerminator = 1;
 }
 
 let Uses = [HL], Defs = [HL, FLAGS] in
@@ -311,14 +307,15 @@ let Defs = [A, FLAGS] in {
 let Defs = [FLAGS] in
 defm CP : mALU<"cp", 0b111, [A]>;
 
-let isReturn = 1 in {
-  def RETcc : SM83Inst8<(outs), (ins condition:$cc), "ret $cc", []> {
-    bits<2> cc;
+let isReturn = 1, isTerminator = 1 in
+def RETcc : SM83Inst8<(outs), (ins condition:$cc), "ret $cc", []> {
+  bits<2> cc;
 
-    let Inst{7-5} = 0b110;
-    let Inst{4-3} = cc;
-    let Inst{2-0} = 0b000;
-  }
+  let Inst{7-5} = 0b110;
+  let Inst{4-3} = cc;
+  let Inst{2-0} = 0b000;
+}
+let isReturn = 1, isTerminator = 1, isBarrier = 1 in {
   def RET : I8<0xc9, "ret">;
   let hasSideEffects = 1 in
   def RETI : I8<0xd9, "reti">;
@@ -342,11 +339,11 @@ let Defs = [A], mayLoad = 1 in
 def LDHAd8 : ldhd8<1, "ldh a, [$addr]", [(set A, (load direct8:$addr))]>;
 
 let Uses = [C, A], mayStore = 1 in
-def LDHdCA : I8<0xe2, "ldh [c], a", [(store A, (or 0xff00, (i16 C)))]>;
+def LDHdCA : I8<0xe2, "ldh [c], a", [(store A, (i16 (or 0xff00, C)))]>;
 let Uses = [C], Defs = [A], mayLoad = 1 in
-def LDHAdC : I8<0xf2, "ldh a, [c]", [(set A, (load (or 0xff00, (i16 C))))]>;
+def LDHAdC : I8<0xf2, "ldh a, [c]", [(set A, (load (i16 (or 0xff00, C))))]>;
 
-let mayLoad = 1 in {
+let Defs = [SP] in {
   def POPrr : SM83Inst8<(outs GR16:$dst), (ins), "pop $dst", []> {
     bits<2> dst;
 
@@ -357,9 +354,7 @@ let mayLoad = 1 in {
 
   let Defs = [AF] in
   def POPAF : I8<0xf1, "pop af">;
-}
 
-let mayStore = 1 in {
   def PUSHrr : SM83Inst8<(outs), (ins GR16:$src), "push $src", []> {
     bits<2> src;
 
@@ -372,23 +367,22 @@ let mayStore = 1 in {
   def PUSHAF : I8<0xf5, "push af">;
 }
 
-let isBranch = 1, isTerminator = 1 in {
-  def JPccd16 : SM83Inst24<(outs), (ins condition:$cc, direct16:$addr),
-                           "jp $cc, $addr", []> {
-    bits<2> cc;
-    bits<16> addr;
+let isBranch = 1, isTerminator = 1 in
+def JPccd16 : SM83Inst24<(outs), (ins condition:$cc, direct16:$addr),
+                         "jp $cc, $addr", []> {
+  bits<2> cc;
+  bits<16> addr;
 
-    let Inst{7-5} = 0b110;
-    let Inst{4-3} = cc;
-    let Inst{2-0} = 0b010;
-  }
-  let isBarrier = 1 in
-  def JPd16 : SM83Inst24<(outs), (ins direct16:$addr), "jp $addr", []> {
-    bits<16> addr;
+  let Inst{7-5} = 0b110;
+  let Inst{4-3} = cc;
+  let Inst{2-0} = 0b010;
+}
+let isBranch = 1, isTerminator = 1, isBarrier = 1 in
+def JPd16 : SM83Inst24<(outs), (ins direct16:$addr), "jp $addr", []> {
+  bits<16> addr;
 
-    let Inst{7-0} = 0xc3;
-    let Inst{23-8} = addr;
-  }
+  let Inst{7-0} = 0xc3;
+  let Inst{23-8} = addr;
 }
 
 let hasSideEffects = 1 in {
@@ -396,7 +390,7 @@ let hasSideEffects = 1 in {
   def EI : I8<0xfb, "ei">;
 }
 
-let mayStore = 1, isCall = 1 in {
+let isTerminator = 1, isCall = 1 in {
   def CALLccd16 : SM83Inst24<(outs), (ins condition:$cc, direct16:$addr),
                              "call $addr", []> {
     bits<2> cc;
