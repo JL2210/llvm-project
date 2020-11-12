@@ -243,13 +243,6 @@ file_magic llvm::identify_magic(StringRef Magic) {
       return file_magic::coff_object;
     break;
 
-#if 0
-  case 'R': // SM83
-    if (startswith(Magic, "RGB9"))
-      return file_magic::rgb9_object;
-    break;
-#endif
-
   default:
     break;
   }
