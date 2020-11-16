@@ -22,3 +22,6 @@ def CC_SM83 : CallingConv <[
   CCIfType<[i32], CCAssignToReg<[DEHL]>>,
   CCAssignToStack<0, 0>,
 ]>;
+
+def CSR : CalleeSavedRegs<(add)>;
+def CSR_Interrupt : CalleeSavedRegs<(add AF, BC, DE, HL, SP)>;
