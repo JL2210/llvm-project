@@ -5,9 +5,9 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-///
-/// This file provides SM83-specific target descriptions.
-///
+//
+// This file provides SM83-specific target descriptions.
+//
 //===----------------------------------------------------------------------===//
 
 #include "SM83MCTargetDesc.h"
@@ -42,7 +42,7 @@ static MCInstrInfo *createSM83MCInstrInfo() {
 
 static MCRegisterInfo *createSM83MCRegisterInfo(const Triple &TT) {
   MCRegisterInfo *X = new MCRegisterInfo();
-  InitSM83MCRegisterInfo(X, SM83::B);
+  InitSM83MCRegisterInfo(X, SM83::A);
   return X;
 }
 
