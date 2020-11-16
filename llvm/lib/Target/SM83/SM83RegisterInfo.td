@@ -61,7 +61,7 @@ def DEHL : SM83Reg<"dehl", -1, [DE, HL]>;
 //
 
 // General-purpose 8-bit registers
-def GR8 : RegisterClass<"SM83", [i8], 8, (add A, B, C, D, E, H, L)>;
+def GR8 : RegisterClass<"SM83", [i8], 8, (add A, L, H, E, D, C, B)>;
 
 // General-purpose 16-bit registers
-def GR16 : RegisterClass<"SM83", [i16], 8, (add BC, DE, HL)>;
+def GR16 : RegisterClass<"SM83", [i16], 8, (add HL, DE, BC)>;

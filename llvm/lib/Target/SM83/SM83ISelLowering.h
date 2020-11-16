@@ -10,9 +10,11 @@ namespace llvm {
 class SM83TargetMachine;
 
 class SM83TargetLowering : public TargetLowering {
+  const SM83Subtarget &Subtarget;
+
 public:
-  SM83TargetLowering(const SM83TargetMachine &TM)
-    : TargetLowering(TM) {}
+  explicit SM83TargetLowering(const SM83TargetMachine &TM,
+                              const SM83Subtarget &STI);
 
   bool supportSwiftError() const override { return false; }  
 };

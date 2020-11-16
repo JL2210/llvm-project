@@ -12,7 +12,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "MCTargetDesc/SM83InstPrinter.h"
+#include "TargetInfo/SM83TargetInfo.h"
+#include "SM83MCInstLower.h"
 #include "SM83TargetMachine.h"
+
 #include "llvm/CodeGen/AsmPrinter.h"
 #include "llvm/CodeGen/MachineConstantPool.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
@@ -30,14 +33,17 @@ using namespace llvm;
 
 namespace {
 class SM83AsmPrinter : public AsmPrinter {
+  SM83MCInstLower MCInstLowering;
+
 public:
-  explicit SM83AsmPrinter(SM83TargetMachine &TM,
+  explicit SM83AsmPrinter(TargetMachine &TM,
                           std::unique_ptr<MCStreamer> Streamer)
-      : AsmPrinter(TM, std::move(Streamer)) {}
+      : AsmPrinter(TM, std::move(Streamer)),
+        MCInstLowering(OutContext, *this) {}
 
   StringRef getPassName() const override { return "SM83 Assembly Printer"; }
 
-  void EmitInstruction(const MachineInstr *MI) override;
+  void emitInstruction(const MachineInstr *MI) override;
 
   bool emitPseudoExpansionLowering(MCStreamer &OutStreamer,
                                    const MachineInstr *MI);
@@ -48,13 +54,13 @@ public:
 // instructions) auto-generated.
 #include "SM83GenMCPseudoLowering.inc"
 
-void SM83AsmPrinter::EmitInstruction(const MachineInstr *MI) {
+void SM83AsmPrinter::emitInstruction(const MachineInstr *MI) {
   // Do any auto-generated pseudo lowerings.
   if (emitPseudoExpansionLowering(*OutStreamer, MI))
     return;
 
   MCInst TmpInst;
-  LowerSM83MachineInstrToMCInst(MI, TmpInst);
+  MCInstLowering.Lower(MI, TmpInst);
   EmitToStreamer(*OutStreamer, TmpInst);
 }
 
