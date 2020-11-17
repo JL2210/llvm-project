@@ -15,6 +15,7 @@
 #include "SM83.h"
 #include "SM83MCInstLower.h"
 #include "SM83TargetMachine.h"
+#include "TargetInfo/SM83TargetInfo.h"
 
 #include "llvm/CodeGen/AsmPrinter.h"
 #include "llvm/CodeGen/MachineConstantPool.h"
