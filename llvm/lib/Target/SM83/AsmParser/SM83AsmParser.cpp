@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "MCTargetDesc/SM83MCTargetDesc.h"
 #include "MCTargetDesc/SM83BaseInfo.h"
+#include "MCTargetDesc/SM83MCTargetDesc.h"
 #include "TargetInfo/SM83TargetInfo.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringSwitch.h"
@@ -67,7 +67,7 @@ public:
   };
 
   SM83AsmParser(const MCSubtargetInfo &STI, MCAsmParser &Parser,
-                 const MCInstrInfo &MII, const MCTargetOptions &Options)
+                const MCInstrInfo &MII, const MCTargetOptions &Options)
       : MCTargetAsmParser(Options, STI, MII) {
     Parser.addAliasForDirective("db", ".byte");
     Parser.addAliasForDirective("dw", ".2byte");
@@ -138,10 +138,10 @@ public:
 
   bool isCondition() const {
     // TODO: FIXME: terrible hack
-    if(isReg() && getReg() == SM83::C)
+    if (isReg() && getReg() == SM83::C)
       return true;
 
-    if(!isImm())
+    if (!isImm())
       return false;
 
     auto SVal = static_cast<const MCSymbolRefExpr *>(getImm());
@@ -149,7 +149,7 @@ public:
       return false;
 
     StringRef Str = SVal->getSymbol().getName();
-    if(Str != "nz" && Str != "z" && Str != "nc" && Str != "c")
+    if (Str != "nz" && Str != "z" && Str != "nc" && Str != "c")
       return false;
 
     return true;
@@ -163,30 +163,26 @@ public:
     return isConstantImm() && isUInt<3>(getConstantImm());
   }
 
-  bool isSImm8() const {
-    return isConstantImm() && isInt<3>(getConstantImm());
-  }
+  bool isSImm8() const { return isConstantImm() && isInt<3>(getConstantImm()); }
 
   bool isImm8() const {
-    if(!isConstantImm())
+    if (!isConstantImm())
       return false;
     uint64_t imm = getConstantImm();
     return isInt<8>(imm) || isUInt<8>(imm);
   }
 
   bool isImm16() const {
-    if(!isConstantImm())
+    if (!isConstantImm())
       return false;
     uint64_t imm = getConstantImm();
     return isInt<16>(imm) || isUInt<16>(imm);
   }
 
-  bool isRel8() const {
-    return isConstantImm() && isInt<8>(getConstantImm());
-  }
+  bool isRel8() const { return isConstantImm() && isInt<8>(getConstantImm()); }
 
   bool isDirect8() const {
-    if(!isConstantImm())
+    if (!isConstantImm())
       return false;
     uint64_t imm = getConstantImm();
     return (imm & ~UINT64_C(0xff)) == 0xff00;
@@ -240,7 +236,7 @@ public:
   }
 
   static std::unique_ptr<SM83Operand> createReg(unsigned RegNo, SMLoc S,
-                                                 SMLoc E) {
+                                                SMLoc E) {
     auto Op = std::make_unique<SM83Operand>(Register);
     Op->Reg.RegNum = RegNo;
     Op->StartLoc = S;
@@ -249,7 +245,7 @@ public:
   }
 
   static std::unique_ptr<SM83Operand> createImm(const MCExpr *Val, SMLoc S,
-                                                 SMLoc E) {
+                                                SMLoc E) {
     auto Op = std::make_unique<SM83Operand>(Immediate);
     Op->Imm.Val = Val;
     Op->StartLoc = S;
@@ -281,7 +277,7 @@ public:
     StringRef Name;
     // TODO: FIXME: terrible hack
     // this might be matched as a register
-    if(isReg() && getReg() == SM83::C) {
+    if (isReg() && getReg() == SM83::C) {
       Name = "c";
     } else {
       auto SE = static_cast<const MCSymbolRefExpr *>(getImm());
@@ -289,13 +285,13 @@ public:
     }
 
     unsigned Imm;
-    if(Name == "nz")
+    if (Name == "nz")
       Imm = SM83Condition::NZ;
-    else if(Name == "z")
+    else if (Name == "z")
       Imm = SM83Condition::Z;
-    else if(Name == "nc")
+    else if (Name == "nc")
       Imm = SM83Condition::NC;
-    else if(Name == "c")
+    else if (Name == "c")
       Imm = SM83Condition::C;
     else
       llvm_unreachable("Condition must contain only nz, z, nc, or c");
@@ -311,7 +307,8 @@ public:
 bool SM83AsmParser::generateImmOutOfRangeError(
     OperandVector &Operands, uint64_t ErrorInfo, int Lower, int Upper,
     Twine Msg = "immediate must be an integer in the range") {
-  SMLoc ErrorLoc = static_cast<SM83Operand &>(*Operands[ErrorInfo]).getStartLoc();
+  SMLoc ErrorLoc =
+      static_cast<SM83Operand &>(*Operands[ErrorInfo]).getStartLoc();
   return Error(ErrorLoc, Msg + " [" + Twine(Lower) + ", " + Twine(Upper) + "]");
 }
 
@@ -346,25 +343,31 @@ bool SM83AsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     return Error(ErrorLoc, "invalid operand for instruction");
   }
   case Match_InvalidCondition: {
-    SMLoc ErrLoc = static_cast<SM83Operand &>(*Operands[ErrorInfo]).getStartLoc();
+    SMLoc ErrLoc =
+        static_cast<SM83Operand &>(*Operands[ErrorInfo]).getStartLoc();
     return Error(ErrLoc, "operand must be one of nz, z, nc, or c");
   }
   case Match_InvalidRSTVec:
     return generateImmOutOfRangeError(
-           Operands, ErrorInfo, 0, (1 << 6) - 8,
-           "immediate must be a multiple of 8 in the range");
+        Operands, ErrorInfo, 0, (1 << 6) - 8,
+        "immediate must be a multiple of 8 in the range");
   case Match_InvalidUImm3:
     return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 3) - 1);
   case Match_InvalidSImm8:
-    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7), (1 << 7) - 1);
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7),
+                                      (1 << 7) - 1);
   case Match_InvalidImm8:
-    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7), (1 << 8) - 1);
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7),
+                                      (1 << 8) - 1);
   case Match_InvalidImm16:
-    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 15), (1 << 16) - 1);
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 15),
+                                      (1 << 16) - 1);
   case Match_InvalidRel8:
-    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7), (1 << 7) - 1);
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 7),
+                                      (1 << 7) - 1);
   case Match_InvalidDirect8:
-    return generateImmOutOfRangeError(Operands, ErrorInfo, 0xff00, 0xff00 + ((1 << 8) - 1));
+    return generateImmOutOfRangeError(Operands, ErrorInfo, 0xff00,
+                                      0xff00 + ((1 << 8) - 1));
   case Match_InvalidDirect16:
     return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 16) - 1);
   }
@@ -391,7 +394,7 @@ OperandMatchResultTy SM83AsmParser::tryParseRegister(unsigned &RegNo,
     return MatchOperand_NoMatch;
   }
 
-  getParser().Lex();  // Eat identifier token.
+  getParser().Lex(); // Eat identifier token.
   return MatchOperand_Success;
 }
 
@@ -444,8 +447,7 @@ OperandMatchResultTy SM83AsmParser::parseImmediate(OperandVector &Operands) {
   return MatchOperand_Success;
 }
 
-OperandMatchResultTy
-SM83AsmParser::parseMemOp(OperandVector &Operands) {
+OperandMatchResultTy SM83AsmParser::parseMemOp(OperandVector &Operands) {
   if (getLexer().isNot(AsmToken::LBrac)) {
     Error(getLoc(), "expected '['");
     return MatchOperand_ParseFail;
@@ -458,9 +460,8 @@ SM83AsmParser::parseMemOp(OperandVector &Operands) {
   if (str == "hli" || str == "hld") {
     getParser().Lex();
     Operands.push_back(SM83Operand::createToken(str, getLoc()));
-  }
-  else if (parseRegister(Operands) != MatchOperand_Success &&
-          parseImmediate(Operands) != MatchOperand_Success) {
+  } else if (parseRegister(Operands) != MatchOperand_Success &&
+             parseImmediate(Operands) != MatchOperand_Success) {
     Error(getLoc(), "expected register or immediate");
     return MatchOperand_ParseFail;
   }
@@ -484,7 +485,7 @@ bool SM83AsmParser::parseOperand(OperandVector &Operands) {
   if (parseRegister(Operands) == MatchOperand_Success ||
       parseImmediate(Operands) == MatchOperand_Success ||
       parseMemOp(Operands) == MatchOperand_Success) {
-      return false;
+    return false;
   }
 
   // Finally we have exhausted all options and must declare defeat.
@@ -492,9 +493,8 @@ bool SM83AsmParser::parseOperand(OperandVector &Operands) {
   return true;
 }
 
-bool SM83AsmParser::ParseInstruction(ParseInstructionInfo &Info,
-                                      StringRef Name, SMLoc NameLoc,
-                                      OperandVector &Operands) {
+bool SM83AsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
+                                     SMLoc NameLoc, OperandVector &Operands) {
   // First operand is token for instruction
   Operands.push_back(SM83Operand::createToken(Name, NameLoc));
 

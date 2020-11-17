@@ -10,8 +10,7 @@ namespace llvm {
 
 class SM83CallLowering : public CallLowering {
 public:
-  SM83CallLowering(const SM83TargetLowering &TL)
-    : CallLowering(&TL) {}
+  SM83CallLowering(const SM83TargetLowering &TL) : CallLowering(&TL) {}
 
   bool supportSwiftError() const override { return false; }
 
@@ -25,6 +24,6 @@ public:
                  CallLoweringInfo &Info) const override;
 };
 
-}
+} // namespace llvm
 
 #endif

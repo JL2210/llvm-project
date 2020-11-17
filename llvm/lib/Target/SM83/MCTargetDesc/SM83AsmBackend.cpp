@@ -1,4 +1,4 @@
-//===-- SM83AsmBackend.cpp - SM83 Assembler Backend -------------------------===//
+//===-- SM83AsmBackend.cpp - SM83 Assembler Backend -----------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -30,9 +30,9 @@ public:
   ~SM83AsmBackend() override {}
 
   void applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
-                  const MCValue &Target,
-                  MutableArrayRef<char> Data, uint64_t Value,
-                  bool IsResolved, const MCSubtargetInfo *STI) const override;
+                  const MCValue &Target, MutableArrayRef<char> Data,
+                  uint64_t Value, bool IsResolved,
+                  const MCSubtargetInfo *STI) const override;
 
   std::unique_ptr<MCObjectTargetWriter>
   createObjectTargetWriter() const override;
@@ -68,7 +68,8 @@ bool SM83AsmBackend::writeNopData(raw_ostream &OS, uint64_t Count) const {
 void SM83AsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
                                 const MCValue &Target,
                                 MutableArrayRef<char> Data, uint64_t Value,
-                                bool IsResolved, const MCSubtargetInfo *STI) const {
+                                bool IsResolved,
+                                const MCSubtargetInfo *STI) const {
   /* TODO */
 }
 

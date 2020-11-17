@@ -18,11 +18,11 @@ namespace llvm {
 namespace SM83Condition {
 enum Condition {
   NZ = 0,
-  Z  = 1,
+  Z = 1,
   NC = 2,
-  C  = 3,
+  C = 3,
 };
 }
-}
+} // namespace llvm
 
 #endif

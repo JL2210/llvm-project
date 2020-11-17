@@ -39,24 +39,20 @@ class SM83Subtarget : public SM83GenSubtargetInfo {
 
 public:
   // Initializes the data members to match that of the specified triple.
-  SM83Subtarget(const Triple &TT, const std::string &CPU,
-                const std::string &FS, const TargetMachine &TM);
+  SM83Subtarget(const Triple &TT, const std::string &CPU, const std::string &FS,
+                const TargetMachine &TM);
 
   const SM83FrameLowering *getFrameLowering() const override {
     return &FrameLowering;
   }
-  const SM83InstrInfo *getInstrInfo() const override {
-    return &InstrInfo;
-  }
-  const SM83RegisterInfo *getRegisterInfo() const override {
-    return &RegInfo;
-  }
+  const SM83InstrInfo *getInstrInfo() const override { return &InstrInfo; }
+  const SM83RegisterInfo *getRegisterInfo() const override { return &RegInfo; }
   const SM83TargetLowering *getTargetLowering() const override {
     return &TLInfo;
   }
 
   // TODO: GlobalISel API getters
 };
-}
+} // namespace llvm
 
 #endif
