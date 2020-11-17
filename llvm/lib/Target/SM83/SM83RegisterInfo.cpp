@@ -24,6 +24,7 @@
 
 #define GET_REGINFO_TARGET_DESC
 #include "SM83GenRegisterInfo.inc"
+
 using namespace llvm;
 
 SM83RegisterInfo::SM83RegisterInfo()
@@ -36,17 +37,20 @@ SM83RegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
 
 BitVector SM83RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
+
   Reserved.set(SM83::PC); // PC is program counter
   Reserved.set(SM83::SP); // SP is stack pointer
+  assert(checkAllSuperRegsMarked(Reserved));
+
   return Reserved;
 }
 
 void SM83RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
-                                          int SPAdj, unsigned FIOperandNum,
-                                          RegScavenger *RS) const {
-  llvm_unreachable("Unimplemented eliminateFrameIndex!");
+                                           int SPAdj, unsigned FIOperandNum,
+                                           RegScavenger *RS) const {
+  llvm_unreachable("Subroutines not supported yet!");
 }
 
 Register SM83RegisterInfo::getFrameRegister(const MachineFunction &MF) const {
-  return SM83::NoReg;
+  return SM83::NoRegister;
 }
