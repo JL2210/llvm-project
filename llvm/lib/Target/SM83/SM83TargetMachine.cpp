@@ -10,17 +10,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "SM83.h"
 #include "SM83TargetMachine.h"
+#include "SM83.h"
 #include "TargetInfo/SM83TargetInfo.h"
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Target/TargetOptions.h"
-#include "llvm/InitializePasses.h"
 
 namespace llvm {
 
@@ -30,7 +30,8 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83Target() {
   initializeGlobalISel(*PR);
 }
 
-static const char SM83DataLayout[] = "e-p:16:8-i16:8-i32:8-i64:8-a:0:8-m:e-n8:16";
+static const char SM83DataLayout[] =
+    "e-p:16:8-i16:8-i32:8-i64:8-a:0:8-m:e-n8:16";
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {
   return RM.hasValue() ? *RM : Reloc::Static;
@@ -53,7 +54,7 @@ SM83TargetMachine::SM83TargetMachine(const Target &T, const Triple &TT,
 class SM83PassConfig : public TargetPassConfig {
 public:
   SM83PassConfig(SM83TargetMachine &TM, PassManagerBase &PM)
-    : TargetPassConfig(TM, PM) {}
+      : TargetPassConfig(TM, PM) {}
 
   SM83TargetMachine &getSM83TargetMachine() const {
     return getTM<SM83TargetMachine>();
@@ -65,18 +66,10 @@ public:
   bool addGlobalInstructionSelect() override;
 };
 
-bool SM83PassConfig::addIRTranslator() {
-  return false;
-}
-bool SM83PassConfig::addLegalizeMachineIR() {
-  return false;
-}
-bool SM83PassConfig::addRegBankSelect() {
-  return false;
-}
-bool SM83PassConfig::addGlobalInstructionSelect() {
-  return false;
-}
+bool SM83PassConfig::addIRTranslator() { return false; }
+bool SM83PassConfig::addLegalizeMachineIR() { return false; }
+bool SM83PassConfig::addRegBankSelect() { return false; }
+bool SM83PassConfig::addGlobalInstructionSelect() { return false; }
 
 TargetPassConfig *SM83TargetMachine::createPassConfig(PassManagerBase &PM) {
   return new SM83PassConfig(*this, PM);

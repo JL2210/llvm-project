@@ -22,8 +22,8 @@ using namespace llvm;
 
 bool SM83FrameLowering::hasFP(const MachineFunction &MF) const { return false; }
 
-void SM83FrameLowering::emitPrologue(
-    MachineFunction &MF, MachineBasicBlock &MBB) const {}
+void SM83FrameLowering::emitPrologue(MachineFunction &MF,
+                                     MachineBasicBlock &MBB) const {}
 
-void SM83FrameLowering::emitEpilogue(
-    MachineFunction &MF, MachineBasicBlock &MBB) const {}
+void SM83FrameLowering::emitEpilogue(MachineFunction &MF,
+                                     MachineBasicBlock &MBB) const {}

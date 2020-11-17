@@ -1,4 +1,4 @@
-//===-- SM83RegisterInfo.cpp - SM83 Register Information ----------*- C++ -*-===//
+//===-- SM83RegisterInfo.cpp - SM83 Register Information --------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -27,8 +27,7 @@
 
 using namespace llvm;
 
-SM83RegisterInfo::SM83RegisterInfo()
-    : SM83GenRegisterInfo(SM83::A) {}
+SM83RegisterInfo::SM83RegisterInfo() : SM83GenRegisterInfo(SM83::A) {}
 
 const MCPhysReg *
 SM83RegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {

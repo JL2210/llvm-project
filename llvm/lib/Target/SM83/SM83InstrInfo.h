@@ -26,6 +26,6 @@ public:
   SM83InstrInfo();
 };
 
-}
+} // namespace llvm
 
 #endif

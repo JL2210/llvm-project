@@ -14,9 +14,9 @@ public:
   explicit SM83TargetLowering(const SM83TargetMachine &TM,
                               const SM83Subtarget &STI);
 
-  bool supportSwiftError() const override { return false; }  
+  bool supportSwiftError() const override { return false; }
 };
 
-}
+} // namespace llvm
 
 #endif
