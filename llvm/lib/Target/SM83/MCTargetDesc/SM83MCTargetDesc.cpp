@@ -52,7 +52,8 @@ static MCSubtargetInfo *createSM83MCSubtargetInfo(const Triple &TT,
 }
 
 static MCAsmInfo *createSM83MCAsmInfo(const MCRegisterInfo &MRI,
-                                      const Triple &TT, const MCTargetOptions &MTO) {
+                                      const Triple &TT,
+                                      const MCTargetOptions &MTO) {
   return new SM83MCAsmInfo(TT, MTO);
 }
 

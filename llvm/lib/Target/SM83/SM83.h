@@ -15,8 +15,6 @@
 #include "MCTargetDesc/SM83MCTargetDesc.h"
 #include "llvm/Target/TargetMachine.h"
 
-namespace llvm {
-
-}
+namespace llvm {}
 
 #endif

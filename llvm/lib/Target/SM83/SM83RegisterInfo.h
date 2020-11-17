@@ -34,6 +34,6 @@ struct SM83RegisterInfo : public SM83GenRegisterInfo {
   Register getFrameRegister(const MachineFunction &MF) const override;
 };
 
-}
+} // namespace llvm
 
 #endif
