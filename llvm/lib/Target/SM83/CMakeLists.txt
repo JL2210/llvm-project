@@ -17,7 +17,10 @@ add_llvm_target(SM83CodeGen
   SM83AsmPrinter.cpp
   SM83FrameLowering.cpp
   SM83InstrInfo.cpp
+  SM83ISelLowering.cpp
   SM83MCInstLower.cpp
+  SM83RegisterInfo.cpp
+  SM83Subtarget.cpp
   SM83TargetMachine.cpp
   )
 

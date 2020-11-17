@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "SM83.h"
 #include "MCTargetDesc/SM83InstPrinter.h"
-#include "TargetInfo/SM83TargetInfo.h"
 #include "SM83MCInstLower.h"
 #include "SM83TargetMachine.h"
 
