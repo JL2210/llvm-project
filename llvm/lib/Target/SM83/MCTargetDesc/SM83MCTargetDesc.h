@@ -36,9 +36,8 @@ MCAsmBackend *createSM83AsmBackend(const Target &T, const MCSubtargetInfo &STI,
                                    const MCRegisterInfo &MRI,
                                    const MCTargetOptions &Options);
 
-std::unique_ptr<MCObjectTargetWriter>
-createSM83ELFObjectWriter();
-}
+std::unique_ptr<MCObjectTargetWriter> createSM83ELFObjectWriter();
+} // namespace llvm
 
 // Defines symbolic names for SM83 registers.
 #define GET_REGINFO_ENUM

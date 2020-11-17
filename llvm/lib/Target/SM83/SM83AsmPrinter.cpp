@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "SM83.h"
 #include "MCTargetDesc/SM83InstPrinter.h"
+#include "SM83.h"
 #include "SM83MCInstLower.h"
 #include "SM83TargetMachine.h"
 
@@ -38,8 +38,8 @@ class SM83AsmPrinter : public AsmPrinter {
 public:
   explicit SM83AsmPrinter(TargetMachine &TM,
                           std::unique_ptr<MCStreamer> Streamer)
-      : AsmPrinter(TM, std::move(Streamer)),
-        MCInstLowering(OutContext, *this) {}
+      : AsmPrinter(TM, std::move(Streamer)), MCInstLowering(OutContext, *this) {
+  }
 
   StringRef getPassName() const override { return "SM83 Assembly Printer"; }
 
@@ -48,7 +48,7 @@ public:
   bool emitPseudoExpansionLowering(MCStreamer &OutStreamer,
                                    const MachineInstr *MI);
 };
-}
+} // namespace
 
 // Simple pseudo-instructions have their lowering (with expansion to real
 // instructions) auto-generated.

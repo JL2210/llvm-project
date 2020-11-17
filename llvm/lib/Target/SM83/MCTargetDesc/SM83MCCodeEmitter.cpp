@@ -39,7 +39,7 @@ class SM83MCCodeEmitter : public MCCodeEmitter {
 
 public:
   SM83MCCodeEmitter(const MCInstrInfo &mcii, MCContext &ctx)
-    : MCII(mcii), CTX(ctx) {}
+      : MCII(mcii), CTX(ctx) {}
 
   ~SM83MCCodeEmitter() override {}
 
@@ -83,7 +83,7 @@ void SM83MCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
   unsigned bytes = Desc.getSize();
 
   for (unsigned i = 0; i < bytes; i++) {
-    OS.write((uint8_t) ((Encoding >> (i * 8)) & 0xff));
+    OS.write((uint8_t)((Encoding >> (i * 8)) & 0xff));
   }
 
   ++MCNumEmitted; // Keep track of the # of mi's emitted.
@@ -91,8 +91,8 @@ void SM83MCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
 
 unsigned
 SM83MCCodeEmitter::getMachineOpValue(const MCInst &MI, const MCOperand &MO,
-                                      SmallVectorImpl<MCFixup> &Fixups,
-                                      const MCSubtargetInfo &STI) const {
+                                     SmallVectorImpl<MCFixup> &Fixups,
+                                     const MCSubtargetInfo &STI) const {
   if (MO.isReg())
     return CTX.getRegisterInfo()->getEncodingValue(MO.getReg());
 
@@ -103,10 +103,9 @@ SM83MCCodeEmitter::getMachineOpValue(const MCInst &MI, const MCOperand &MO,
   return 0;
 }
 
-unsigned
-SM83MCCodeEmitter::getRSTVecValue(const MCInst &MI, unsigned OpNo,
-                                  SmallVectorImpl<MCFixup> &Fixups,
-                                  const MCSubtargetInfo &STI) const {
+unsigned SM83MCCodeEmitter::getRSTVecValue(const MCInst &MI, unsigned OpNo,
+                                           SmallVectorImpl<MCFixup> &Fixups,
+                                           const MCSubtargetInfo &STI) const {
   const MCOperand &MO = MI.getOperand(OpNo);
 
   if (MO.isImm()) {
@@ -119,15 +118,15 @@ SM83MCCodeEmitter::getRSTVecValue(const MCInst &MI, unsigned OpNo,
   return 0;
 }
 
-unsigned
-SM83MCCodeEmitter::getDirect8Value(const MCInst &MI, unsigned OpNo,
-                                   SmallVectorImpl<MCFixup> &Fixups,
-                                   const MCSubtargetInfo &STI) const {
+unsigned SM83MCCodeEmitter::getDirect8Value(const MCInst &MI, unsigned OpNo,
+                                            SmallVectorImpl<MCFixup> &Fixups,
+                                            const MCSubtargetInfo &STI) const {
   const MCOperand &MO = MI.getOperand(OpNo);
 
   if (MO.isImm()) {
     unsigned Res = MO.getImm();
-    assert((Res & ~0xff) == 0xff00 && "Immediate must be in the range 0xff00-0xffff");
+    assert((Res & ~0xff) == 0xff00 &&
+           "Immediate must be in the range 0xff00-0xffff");
     return Res & 0xff;
   }
 

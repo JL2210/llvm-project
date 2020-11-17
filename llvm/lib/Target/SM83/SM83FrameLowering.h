@@ -21,9 +21,9 @@ class SM83Subtarget;
 class SM83FrameLowering : public TargetFrameLowering {
 public:
   explicit SM83FrameLowering(const SM83Subtarget &STI)
-    : TargetFrameLowering(StackGrowsDown,
-                          /*StackAlignment=*/Align(8),
-                          /*LocalAreaOffset=*/0) {}
+      : TargetFrameLowering(StackGrowsDown,
+                            /*StackAlignment=*/Align(8),
+                            /*LocalAreaOffset=*/0) {}
 
   void emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
   void emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
@@ -31,5 +31,5 @@ public:
   bool hasFP(const MachineFunction &MF) const override;
 };
 
-}
+} // namespace llvm
 #endif

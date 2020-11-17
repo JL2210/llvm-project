@@ -10,7 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-
 #include "SM83InstPrinter.h"
 #include "SM83BaseInfo.h"
 #include "llvm/MC/MCAsmInfo.h"
@@ -26,8 +25,9 @@ using namespace llvm;
 // Include the auto-generated portion of the assembly writer.
 #include "SM83GenAsmWriter.inc"
 
-void SM83InstPrinter::printInst(const MCInst *MI, uint64_t Address, StringRef Annot,
-                                const MCSubtargetInfo &STI, raw_ostream &O) {
+void SM83InstPrinter::printInst(const MCInst *MI, uint64_t Address,
+                                StringRef Annot, const MCSubtargetInfo &STI,
+                                raw_ostream &O) {
   printInstruction(MI, Address, O);
   printAnnotation(O, Annot);
 }
@@ -58,13 +58,13 @@ void SM83InstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
 void SM83InstPrinter::printCondition(const MCInst *MI, unsigned OpNo,
                                      raw_ostream &O) {
   unsigned Cond = MI->getOperand(OpNo).getImm();
-  if(Cond == SM83Condition::NZ)
+  if (Cond == SM83Condition::NZ)
     O << "nz";
-  else if(Cond == SM83Condition::Z)
+  else if (Cond == SM83Condition::Z)
     O << "z";
-  else if(Cond == SM83Condition::NC)
+  else if (Cond == SM83Condition::NC)
     O << "nc";
-  else if(Cond == SM83Condition::C)
+  else if (Cond == SM83Condition::C)
     O << "c";
   else
     llvm_unreachable("invalid condition");

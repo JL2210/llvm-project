@@ -18,25 +18,24 @@ namespace {
 class SM83ELFObjectWriter : public MCELFObjectTargetWriter {
 public:
   SM83ELFObjectWriter()
-    : MCELFObjectTargetWriter(/*Is64Bit=*/false, /*OSABI=*/0, ELF::EM_SM83,
-                              /*HasRelocationAddend=*/true) {}
+      : MCELFObjectTargetWriter(/*Is64Bit=*/false, /*OSABI=*/0, ELF::EM_SM83,
+                                /*HasRelocationAddend=*/true) {}
 
-  ~SM83ELFObjectWriter() override { }
+  ~SM83ELFObjectWriter() override {}
 
 protected:
   unsigned getRelocType(MCContext &CTX, const MCValue &Target,
                         const MCFixup &Fixup, bool IsPCRel) const override;
 };
-}
+} // namespace
 
 unsigned SM83ELFObjectWriter::getRelocType(MCContext &CTX,
-                                            const MCValue &Target,
-                                            const MCFixup &Fixup,
-                                            bool IsPCRel) const {
+                                           const MCValue &Target,
+                                           const MCFixup &Fixup,
+                                           bool IsPCRel) const {
   report_fatal_error("invalid fixup kind!");
 }
 
-std::unique_ptr<MCObjectTargetWriter>
-llvm::createSM83ELFObjectWriter() {
+std::unique_ptr<MCObjectTargetWriter> llvm::createSM83ELFObjectWriter() {
   return std::make_unique<SM83ELFObjectWriter>();
 }

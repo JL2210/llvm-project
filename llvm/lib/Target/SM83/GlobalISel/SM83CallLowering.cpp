@@ -7,9 +7,9 @@
 
 using namespace llvm;
 
-bool SM83CallLowering::lowerReturn(
-    MachineIRBuilder &MIRBuilder,
-    const Value *Val, ArrayRef<Register> VRegs) const {
+bool SM83CallLowering::lowerReturn(MachineIRBuilder &MIRBuilder,
+                                   const Value *Val,
+                                   ArrayRef<Register> VRegs) const {
   if (Val)
     return false;
   MIRBuilder.buildInstr(SM83::RET);
@@ -22,8 +22,7 @@ bool SM83CallLowering::lowerFormalArguments(
   llvm_unreachable("Unimplemented!");
 }
 
-bool SM83CallLowering::lowerCall(
-    MachineIRBuilder &MIRBuilder,
-    CallLoweringInfo &Info) const {
+bool SM83CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
+                                 CallLoweringInfo &Info) const {
   llvm_unreachable("Unimplemented!");
 }

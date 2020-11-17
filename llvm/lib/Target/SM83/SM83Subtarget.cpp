@@ -11,9 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83Subtarget.h"
+#include "GlobalISel/SM83CallLowering.h"
 #include "SM83.h"
 #include "SM83FrameLowering.h"
-#include "GlobalISel/SM83CallLowering.h"
 #include "llvm/Support/TargetRegistry.h"
 
 using namespace llvm;
@@ -28,5 +28,5 @@ void SM83Subtarget::anchor() {}
 
 SM83Subtarget::SM83Subtarget(const Triple &TT, const std::string &CPU,
                              const std::string &FS, const TargetMachine &TM)
-    : SM83GenSubtargetInfo(TT, CPU, FS), FrameLowering(*this),
-      InstrInfo(), RegInfo(), TLInfo(TM, *this) {}
+    : SM83GenSubtargetInfo(TT, CPU, FS), FrameLowering(*this), InstrInfo(),
+      RegInfo(), TLInfo(TM, *this) {}

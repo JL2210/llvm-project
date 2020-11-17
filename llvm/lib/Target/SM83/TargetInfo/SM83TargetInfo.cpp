@@ -17,9 +17,9 @@ Target &getTheSM83Target() {
   return TheSM83Target;
 }
 
-}
+} // namespace llvm
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83TargetInfo() {
-  llvm::RegisterTarget<llvm::Triple::sm83> X(llvm::getTheSM83Target(), "sm83",
-                                            "Sharp SM83 Microcomputer", "SM83");
+  llvm::RegisterTarget<llvm::Triple::sm83> X(
+      llvm::getTheSM83Target(), "sm83", "Sharp SM83 Microcomputer", "SM83");
 }
