@@ -13,6 +13,7 @@
 #include "SM83Subtarget.h"
 #include "SM83.h"
 #include "SM83FrameLowering.h"
+#include "GlobalISel/SM83CallLowering.h"
 #include "llvm/Support/TargetRegistry.h"
 
 using namespace llvm;

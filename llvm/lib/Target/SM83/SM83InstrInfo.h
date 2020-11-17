@@ -25,6 +25,7 @@ class SM83InstrInfo : public SM83GenInstrInfo {
 public:
   SM83InstrInfo();
 };
+
 }
 
 #endif

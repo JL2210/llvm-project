@@ -21,6 +21,7 @@
 #include "llvm/MC/MCInst.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
+
 using namespace llvm;
 
 MCSymbol *
@@ -34,8 +35,7 @@ SM83MCInstLower::GetExternalSymbolSymbol(const MachineOperand &MO) const {
 }
 
 MCOperand SM83MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
-                                             MCSymbol *Sym) const {
-
+                                              MCSymbol *Sym) const {
   const MCExpr *Expr = MCSymbolRefExpr::create(Sym, Ctx);
 
   if (!MO.isJTI() && MO.getOffset())

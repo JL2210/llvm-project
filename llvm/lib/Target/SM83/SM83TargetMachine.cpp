@@ -10,16 +10,17 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "SM83.h"
 #include "SM83TargetMachine.h"
+#include "TargetInfo/SM83TargetInfo.h"
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/InitializePasses.h"
-
-#include "TargetInfo/SM83TargetInfo.h"
 
 namespace llvm {
 
@@ -44,7 +45,8 @@ SM83TargetMachine::SM83TargetMachine(const Target &T, const Triple &TT,
     : LLVMTargetMachine(T, SM83DataLayout, TT, CPU, FS, Options,
                         getEffectiveRelocModel(RM),
                         getEffectiveCodeModel(CM, CodeModel::Small), OL),
-      TLOF(std::make_unique<TargetLoweringObjectFileELF>()) {
+      TLOF(std::make_unique<TargetLoweringObjectFileELF>()),
+      Subtarget(TT, CPU, FS, *this) {
   initAsmInfo();
 }
 
