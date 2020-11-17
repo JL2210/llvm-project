@@ -28,7 +28,7 @@ public:
   void emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
   void emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
 
-  bool hasFP(const MachineFunction &MF) const override { return false; }
+  bool hasFP(const MachineFunction &MF) const override;
 };
 
 }

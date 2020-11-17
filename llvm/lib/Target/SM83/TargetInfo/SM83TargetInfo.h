@@ -6,15 +6,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SM83_TARGET_INFO_H
-#define LLVM_SM83_TARGET_INFO_H
+#ifndef LLVM_LIB_TARGET_SM83_TARGETINFO_SM83TARGETINFO_H
+#define LLVM_LIB_TARGET_SM83_TARGETINFO_SM83TARGETINFO_H
 
 namespace llvm {
 
 class Target;
-
 Target &getTheSM83Target();
 
-} // namespace llvm
+}
 
-#endif // LLVM_SM83_TARGET_INFO_H
+#endif

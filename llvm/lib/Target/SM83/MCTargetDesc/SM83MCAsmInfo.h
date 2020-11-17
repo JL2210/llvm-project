@@ -25,6 +25,6 @@ public:
   explicit SM83MCAsmInfo(const Triple &TargetTriple, const MCTargetOptions &Options);
 };
 
-} // namespace llvm
+}
 
 #endif

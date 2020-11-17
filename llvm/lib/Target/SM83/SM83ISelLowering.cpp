@@ -1,4 +1,4 @@
-//===-- SM83ISelLowering.cpp - SM83 DAG Lowering Implementation  ----------===//
+//===-- SM83ISelLowering.cpp - SM83 Instruction Selection Lowering --------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -15,6 +15,7 @@
 #include "SM83RegisterInfo.h"
 #include "SM83Subtarget.h"
 #include "SM83TargetMachine.h"
+
 #include "llvm/CodeGen/CallingConvLower.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
@@ -31,12 +32,12 @@ using namespace llvm;
 
 #define DEBUG_TYPE "sm83-lower"
 
-SM83TargetLowering::SM83TargetLowering(const TargetMachine &TM,
+SM83TargetLowering::SM83TargetLowering(const SM83TargetMachine &TM,
                                        const SM83Subtarget &STI)
-    : TargetLowering(TM), Subtarget(STI) {
+    : TargetLowering(TM) {
   // Set up the register classes.
-  addRegisterClass(MVT::i8, &SM83::GR8);
-  addRegisterClass(MVT::i16, &SM83::GR16);
+  addRegisterClass(MVT::i8, &SM83::GR8RegClass);
+  addRegisterClass(MVT::i16, &SM83::GR16RegClass);
 
   // Compute derived properties from the register classes.
   computeRegisterProperties(STI.getRegisterInfo());

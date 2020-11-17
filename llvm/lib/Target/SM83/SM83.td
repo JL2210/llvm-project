@@ -17,15 +17,17 @@ include "llvm/Target/Target.td"
 // Register file, instruction descriptions, and calling conventions
 //===------------------------------------------------------------------------===//
 include "SM83RegisterInfo.td"
-include "SM83InstrInfo.td"
 include "SM83CallingConv.td"
+include "SM83InstrInfo.td"
 
 def : ProcessorModel<"sm83", NoSchedModel, []>;
 
 //===------------------------------------------------------------------------===//
 // Define the target
 //===------------------------------------------------------------------------===//
-def SM83InstrInfo : InstrInfo;
+def SM83InstrInfo : InstrInfo {
+  let guessInstructionProperties = 0;
+}
 def SM83AsmParser : AsmParser;
 
 def SM83 : Target {

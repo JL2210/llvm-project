@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83InstrInfo.h"
+#include "SM83.h"
 #include "SM83Subtarget.h"
 #include "SM83TargetMachine.h"
 #include "llvm/ADT/STLExtras.h"
