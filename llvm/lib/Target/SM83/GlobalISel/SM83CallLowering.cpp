@@ -2,9 +2,6 @@
 
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
 
-#define GET_INSTRINFO_ENUM
-#include "SM83GenInstrInfo.inc"
-
 using namespace llvm;
 
 bool SM83CallLowering::lowerReturn(MachineIRBuilder &MIRBuilder,

@@ -28,5 +28,5 @@ has_asmprinter = 1
 type = Library
 name = SM83CodeGen
 parent = SM83
-required_libraries = AsmPrinter Core CodeGen MC SM83Desc SM83Info GlobalISel Support Target
+required_libraries = AsmPrinter Core CodeGen MC SM83Desc SM83Info SelectionDAG GlobalISel Support Target
 add_to_library_groups = SM83
