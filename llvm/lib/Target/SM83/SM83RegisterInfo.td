@@ -53,9 +53,6 @@ def SP : SM83Reg<"sp">;
 // instruction pointer/program counter
 def PC : SM83Reg<"pc">;
 
-let SubRegIndices = [sub_high16, sub_low16], CoveredBySubRegs = 1 in
-def DEHL : SM83Reg<"dehl", -1, [DE, HL]>;
-
 //===----------------------------------------------------------------------===//
 // Register class definitions...
 //
