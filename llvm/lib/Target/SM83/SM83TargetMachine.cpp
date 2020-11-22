@@ -18,6 +18,10 @@
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
+#include "llvm/CodeGen/GlobalISel/InstructionSelect.h"
+#include "llvm/CodeGen/GlobalISel/IRTranslator.h"
+#include "llvm/CodeGen/GlobalISel/Legalizer.h"
+#include "llvm/CodeGen/GlobalISel/RegBankSelect.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Target/TargetOptions.h"
@@ -66,10 +70,22 @@ public:
   bool addGlobalInstructionSelect() override;
 };
 
-bool SM83PassConfig::addIRTranslator() { return false; }
-bool SM83PassConfig::addLegalizeMachineIR() { return false; }
-bool SM83PassConfig::addRegBankSelect() { return false; }
-bool SM83PassConfig::addGlobalInstructionSelect() { return false; }
+bool SM83PassConfig::addIRTranslator() {
+  addPass(new IRTranslator(getOptLevel()));
+  return false;
+}
+bool SM83PassConfig::addLegalizeMachineIR() {
+  addPass(new Legalizer());
+  return false;
+}
+bool SM83PassConfig::addRegBankSelect() {
+  addPass(new RegBankSelect());
+  return false;
+}
+bool SM83PassConfig::addGlobalInstructionSelect() {
+  addPass(new InstructionSelect());
+  return false;
+}
 
 TargetPassConfig *SM83TargetMachine::createPassConfig(PassManagerBase &PM) {
   return new SM83PassConfig(*this, PM);

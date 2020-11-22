@@ -2,6 +2,7 @@
 #define LLVM_LIB_TARGET_SM83_GLOBALISEL_SM83CALLLOWERING_H
 
 #include "SM83ISelLowering.h"
+#include "llvm/IR/CallingConv.h"
 #include "llvm/CodeGen/CallingConvLower.h"
 #include "llvm/CodeGen/GlobalISel/CallLowering.h"
 #include "llvm/CodeGen/ValueTypes.h"
@@ -13,6 +14,10 @@ public:
   SM83CallLowering(const SM83TargetLowering &TL) : CallLowering(&TL) {}
 
   bool supportSwiftError() const override { return false; }
+
+  void splitToValueTypes(const ArgInfo &OrigArg,
+                         SmallVectorImpl<ArgInfo> &SplitArgs,
+                         const DataLayout &DL) const;
 
   bool lowerReturn(MachineIRBuilder &MIRBuilder, const Value *Val,
                    ArrayRef<Register> VRegs) const override;

@@ -32,7 +32,7 @@ using namespace llvm;
 
 #define DEBUG_TYPE "sm83-lower"
 
-SM83TargetLowering::SM83TargetLowering(const SM83TargetMachine &TM,
+SM83TargetLowering::SM83TargetLowering(const TargetMachine &TM,
                                        const SM83Subtarget &STI)
     : TargetLowering(TM) {
   // Set up the register classes.
@@ -47,4 +47,23 @@ SM83TargetLowering::SM83TargetLowering(const SM83TargetMachine &TM,
   // TODO: add all necessary setOperationAction calls.
 
   setBooleanContents(ZeroOrOneBooleanContent);
+}
+
+#include "SM83GenCallingConv.inc"
+
+/// Selects the correct CCAssignFn for a given CallingConvention value.
+CCAssignFn *SM83TargetLowering::CCAssignFnForCall(CallingConv::ID CC,
+                                                  bool IsVarArg) const {
+  switch (CC) {
+  default:
+    report_fatal_error("Unsupported calling convention.");
+  case CallingConv::C:
+  case CallingConv::Fast:
+    return CC_SM83;
+  }
+}
+
+CCAssignFn *
+SM83TargetLowering::CCAssignFnForReturn(CallingConv::ID CC) const {
+  return RetCC_SM83;
 }
