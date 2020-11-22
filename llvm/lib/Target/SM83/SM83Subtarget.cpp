@@ -25,9 +25,32 @@ using namespace llvm;
 #define GET_SUBTARGETINFO_CTOR
 #include "SM83GenSubtargetInfo.inc"
 
-void SM83Subtarget::anchor() {}
-
 SM83Subtarget::SM83Subtarget(const Triple &TT, const std::string &CPU,
                              const std::string &FS, const TargetMachine &TM)
     : SM83GenSubtargetInfo(TT, CPU, /*TuneCPU*/ CPU, FS), FrameLowering(*this),
-      InstrInfo(), RegInfo(), TLInfo(TM, *this) {}
+      InstrInfo(), RegInfo(), TLInfo(TM, *this) {
+  CallLoweringInfo.reset(new SM83CallLowering(*getTargetLowering()));
+/*
+  Legalizer.reset(new SM83LegalizerInfo(*this));
+
+  auto *RBI = new SM83RegisterBankInfo(*getRegisterInfo());
+  RegBankInfo.reset(RBI);
+  InstSelector.reset(createSM83InstructionSelector(
+    *static_cast<const SM83TargetMachine *>(&TM), *this, *RBI));
+*/
+}
+
+const CallLowering *SM83Subtarget::getCallLowering() const {
+  return CallLoweringInfo.get();
+}
+/*
+InstructionSelector *SM83Subtarget::getInstructionSelector() const {
+  return InstSelector.get();
+}
+const LegalizerInfo *SM83Subtarget::getLegalizerInfo() const {
+  return Legalizer.get();
+}
+const RegisterBankInfo *SM83Subtarget::getRegBankInfo() const {
+  return RegBankInfo.get();
+}
+*/
