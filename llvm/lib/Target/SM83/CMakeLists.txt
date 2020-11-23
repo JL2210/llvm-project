@@ -13,7 +13,7 @@ tablegen(LLVM SM83GenSubtargetInfo.inc -gen-subtarget)
 add_public_tablegen_target(SM83CommonTableGen)
 
 add_llvm_target(SM83CodeGen
-  GlobalISel/SM83CallLowering.cpp
+  GISel/SM83CallLowering.cpp
   SM83AsmPrinter.cpp
   SM83FrameLowering.cpp
   SM83InstrInfo.cpp
