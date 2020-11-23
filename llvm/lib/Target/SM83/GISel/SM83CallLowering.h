@@ -6,18 +6,20 @@
 #include "llvm/CodeGen/CallingConvLower.h"
 #include "llvm/CodeGen/GlobalISel/CallLowering.h"
 #include "llvm/CodeGen/ValueTypes.h"
+#include <functional>
 
 namespace llvm {
 
 class SM83CallLowering : public CallLowering {
+  using SplitArgTy = std::function<void(ArrayRef<Register>)>;
+
+  void splitToValueTypes(const ArgInfo &OrigArg,
+                         SmallVectorImpl<ArgInfo> &SplitArgs,
+                         const DataLayout &DL, SplitArgTy SplitArg) const;
 public:
   SM83CallLowering(const SM83TargetLowering &TL) : CallLowering(&TL) {}
 
   bool supportSwiftError() const override { return false; }
-
-  void splitToValueTypes(const ArgInfo &OrigArg,
-                         SmallVectorImpl<ArgInfo> &SplitArgs,
-                         const DataLayout &DL) const;
 
   bool lowerReturn(MachineIRBuilder &MIRBuilder, const Value *Val,
                    ArrayRef<Register> VRegs) const override;

@@ -84,7 +84,7 @@ public:
 
 void SM83CallLowering::splitToValueTypes(
     const ArgInfo &OrigArg, SmallVectorImpl<ArgInfo> &SplitArgs,
-    const DataLayout &DL) const {
+    const DataLayout &DL, SplitArgTy PerformArgSplit) const {
   const SM83TargetLowering &TLI = *getTLI<SM83TargetLowering>();
   LLVMContext &Ctx = OrigArg.Ty->getContext();
 
@@ -184,4 +184,3 @@ bool SM83CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
                                  CallLoweringInfo &Info) const {
   return false;
 }
-
