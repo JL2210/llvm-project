@@ -82,36 +82,105 @@ public:
 
 }
 
+static void unpackRegsToOrigType(MachineIRBuilder &MIRBuilder,
+                                 ArrayRef<Register> DstRegs,
+                                 Register SrcReg,
+                                 const CallLowering::ArgInfo &Info,
+                                 LLT SrcTy,
+                                 LLT PartTy) {
+  assert(DstRegs.size() > 1 && "Nothing to unpack");
+
+  if (PartTy.isVector()) {
+    llvm_unreachable("cannot handle vector!");
+  }
+
+  LLT GCDTy = getGCDType(SrcTy, PartTy);
+  if (GCDTy == PartTy) {
+    // parts are evenly divisible
+    MIRBuilder.buildUnmerge(DstRegs, SrcReg);
+    return;
+  } else {
+    llvm_unreachable("cannot handle splits requiring extension!");
+  }
+}
+
+static void packSplitRegsToOrigType(MachineIRBuilder &MIRBuilder,
+                                    ArrayRef<Register> OrigRegs,
+                                    ArrayRef<Register> Regs,
+                                    LLT LLTy,
+                                    LLT PartLLT) {
+  MachineRegisterInfo &MRI = *MIRBuilder.getMRI();
+
+  if (!LLTy.isVector() && !PartLLT.isVector()) {
+    assert(OrigRegs.size() == 1);
+    LLT OrigTy = MRI.getType(OrigRegs[0]);
+
+    unsigned SrcSize = PartLLT.getSizeInBits() * Regs.size();
+    if (SrcSize == OrigTy.getSizeInBits()) {
+      MIRBuilder.buildMerge(OrigRegs[0], Regs);
+    } else {
+      auto Widened = MIRBuilder.buildMerge(LLT::scalar(SrcSize), Regs);
+      MIRBuilder.buildTrunc(OrigRegs[0], Widened);
+    }
+
+    return;
+  } else {
+    llvm_unreachable("cannot handle vectors!");
+  }
+}
+
 void SM83CallLowering::splitToValueTypes(
     const ArgInfo &OrigArg, SmallVectorImpl<ArgInfo> &SplitArgs,
-    const DataLayout &DL, SplitArgTy PerformArgSplit) const {
+    const DataLayout &DL, CallingConv::ID CallConv,
+    MachineRegisterInfo &MRI, SplitArgTy PerformArgSplit) const {
   const SM83TargetLowering &TLI = *getTLI<SM83TargetLowering>();
   LLVMContext &Ctx = OrigArg.Ty->getContext();
 
   SmallVector<EVT, 4> SplitVTs;
+  // split aggregates and arrays into those members
   ComputeValueVTs(TLI, DL, OrigArg.Ty, SplitVTs);
 
+  // ignore empty or void arguments
   if (SplitVTs.size() == 0)
     return;
 
-  if (SplitVTs.size() == 1) {
-    // No splitting to do, but we want to replace the original type (e.g. [1 x
-    // double] -> double).
-    SplitArgs.emplace_back(OrigArg.Regs[0], SplitVTs[0].getTypeForEVT(Ctx),
-                           OrigArg.Flags[0], OrigArg.IsFixed);
-    return;
-  }
-
-  // Create one ArgInfo for each virtual register in the original ArgInfo.
   assert(OrigArg.Regs.size() == SplitVTs.size() && "Regs / types mismatch");
 
+  // iterate over members of aggregates and arrays and split those
   for (unsigned i = 0, e = SplitVTs.size(); i < e; ++i) {
-    Type *SplitTy = SplitVTs[i].getTypeForEVT(Ctx);
-    SplitArgs.emplace_back(OrigArg.Regs[i], SplitTy, OrigArg.Flags[0],
-                           OrigArg.IsFixed);
-  }
+    Register Reg = OrigArg.Regs[i];
+    EVT VT = SplitVTs[i];
+    Type *Ty = VT.getTypeForEVT(Ctx);
+    LLT LLTy = getLLTForType(*Ty, DL);
 
-  SplitArgs.back().Flags[0].setInConsecutiveRegsLast();
+    /* TODO: Extend? */
+
+    // number of required registers to fit value in
+    unsigned NumParts = TLI.getNumRegistersForCallingConv(Ctx, CallConv, VT);
+    // types of those registers
+    MVT RegVT = TLI.getRegisterTypeForCallingConv(Ctx, CallConv, VT);
+
+    if (NumParts == 1) {
+      // Replace a vector of a single element with the element itself
+      SplitArgs.emplace_back(Reg, Ty, OrigArg.Flags, OrigArg.IsFixed);
+      continue;
+    }
+
+    // split the argument into the required registers
+    SmallVector<Register, 8> SplitRegs;
+    Type *PartTy = EVT(RegVT).getTypeForEVT(Ctx);
+    LLT PartLLT = getLLTForType(*PartTy, DL);
+
+    // FIXME: Should we be reporting all of the part registers for a single
+    // argument, and let handleAssignments take care of the repacking?
+    for (unsigned j = 0; j < NumParts; ++j) {
+      Register PartReg = MRI.createGenericVirtualRegister(PartLLT);
+      SplitRegs.push_back(PartReg);
+      SplitArgs.emplace_back(ArrayRef<Register>(PartReg), PartTy, OrigArg.Flags);
+    }
+
+    PerformArgSplit(SplitRegs, Reg, LLTy, PartLLT, i);
+  }
 }
 
 bool SM83CallLowering::lowerReturn(MachineIRBuilder &MIRBuilder,
@@ -122,36 +191,30 @@ bool SM83CallLowering::lowerReturn(MachineIRBuilder &MIRBuilder,
          "Return value without a vreg");
 
   bool Success = true;
-  if (!VRegs.empty()) {
+  if(!VRegs.empty()) {
     MachineFunction &MF = MIRBuilder.getMF();
     const Function &F = MF.getFunction();
+    const DataLayout &DL = F.getParent()->getDataLayout();
 
+    CallingConv::ID CC = F.getCallingConv();
     const SM83TargetLowering &TLI = *getTLI<SM83TargetLowering>();
-    CCAssignFn *AssignFn = TLI.CCAssignFnForReturn(F.getCallingConv());
-    auto &DL = F.getParent()->getDataLayout();
-    LLVMContext &Ctx = Val->getType()->getContext();
 
-    SmallVector<EVT, 4> SplitEVTs;
-    ComputeValueVTs(TLI, DL, Val->getType(), SplitEVTs);
-    assert(VRegs.size() == SplitEVTs.size() &&
-           "For each split Type there should be exactly one VReg.");
+    ArgInfo OrigRetInfo(VRegs, Val->getType());
+    setArgFlags(OrigRetInfo, AttributeList::ReturnIndex, DL, F);
+    SmallVector<ArgInfo, 4> SplitRetInfos;
 
-    SmallVector<ArgInfo, 8> SplitArgs;
+    splitToValueTypes(
+      OrigRetInfo, SplitRetInfos, DL, CC, *MIRBuilder.getMRI(),
+      [&MIRBuilder, &SplitRetInfos](ArrayRef<Register> Regs, Register SrcReg, LLT LLTy, LLT PartLLT,
+          int VTSplitIdx) {
+        unpackRegsToOrigType(MIRBuilder, Regs, SrcReg,
+                             SplitRetInfos[VTSplitIdx],
+                             LLTy, PartLLT);
+      });
 
-    for (unsigned i = 0; i < SplitEVTs.size(); ++i) {
-      if (TLI.getNumRegistersForCallingConv(Ctx, F.getCallingConv(), SplitEVTs[i]) > 1) {
-        LLVM_DEBUG(dbgs() << "Can't handle extended arg types which need split");
-        return false;
-      }
-
-      Register CurVReg = VRegs[i];
-      ArgInfo CurArgInfo = ArgInfo{CurVReg, SplitEVTs[i].getTypeForEVT(Ctx)};
-      setArgFlags(CurArgInfo, AttributeList::ReturnIndex, DL, F);
-      splitToValueTypes(CurArgInfo, SplitArgs, DL);
-    }
-
+    CCAssignFn *AssignFn = TLI.CCAssignFnForReturn(CC);
     OutgoingArgHandler Handler(MIRBuilder, MF.getRegInfo(), MIB, AssignFn);
-    Success = handleAssignments(MIRBuilder, SplitArgs, Handler);
+    Success = handleAssignments(MIRBuilder, SplitRetInfos, Handler);
   }
 
   MIRBuilder.insertInstr(MIB);
@@ -162,6 +225,8 @@ bool SM83CallLowering::lowerFormalArguments(
     MachineIRBuilder &MIRBuilder, const Function &F,
     ArrayRef<ArrayRef<Register>> VRegs) const {
   auto &DL = F.getParent()->getDataLayout();
+  CallingConv::ID CC = F.getCallingConv();
+  MachineRegisterInfo &MRI = *MIRBuilder.getMRI();
 
   SmallVector<ArgInfo, 8> SplitArgs;
   unsigned i = 0;
@@ -169,12 +234,19 @@ bool SM83CallLowering::lowerFormalArguments(
     ArgInfo OrigArg{VRegs[i], Arg.getType()};
     setArgFlags(OrigArg, i + AttributeList::FirstArgIndex, DL, F);
 
-    splitToValueTypes(OrigArg, SplitArgs, DL);
+    splitToValueTypes(
+      OrigArg, SplitArgs, DL, CC, MRI,
+      [&VRegs, &MIRBuilder, i](ArrayRef<Register> Regs, Register DstReg, LLT LLTy, LLT PartLLT,
+          int VTSplitIdx) {
+        assert(DstReg == VRegs[i][VTSplitIdx]);
+        packSplitRegsToOrigType(MIRBuilder, VRegs[i][VTSplitIdx], Regs,
+                                LLTy, PartLLT);
+      });
     ++i;
   }
 
   const SM83TargetLowering &TLI = *getTLI<SM83TargetLowering>();
-  CCAssignFn *AssignFn = TLI.CCAssignFnForCall(F.getCallingConv(), /*IsVarArg=*/false);
+  CCAssignFn *AssignFn = TLI.CCAssignFnForCall(CC, /*IsVarArg=*/false);
 
   IncomingArgHandler Handler(MIRBuilder, MIRBuilder.getMF().getRegInfo(), AssignFn);
   return handleAssignments(MIRBuilder, SplitArgs, Handler);
