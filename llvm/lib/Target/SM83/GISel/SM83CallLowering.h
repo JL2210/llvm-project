@@ -11,11 +11,11 @@
 namespace llvm {
 
 class SM83CallLowering : public CallLowering {
-  using SplitArgTy = std::function<void(ArrayRef<Register>)>;
+  using SplitArgTy = std::function<void(ArrayRef<Register>, Register, LLT, LLT, int)>;
 
-  void splitToValueTypes(const ArgInfo &OrigArg,
-                         SmallVectorImpl<ArgInfo> &SplitArgs,
-                         const DataLayout &DL, SplitArgTy SplitArg) const;
+  void splitToValueTypes(const ArgInfo &OrigArg, SmallVectorImpl<ArgInfo> &SplitArgs,
+                         const DataLayout &DL, CallingConv::ID CallConv,
+                         MachineRegisterInfo &MRI, SplitArgTy PerformArgSplit) const;
 public:
   SM83CallLowering(const SM83TargetLowering &TL) : CallLowering(&TL) {}
 
