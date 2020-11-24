@@ -12,7 +12,7 @@
 
 #include "SM83Subtarget.h"
 #include "SM83TargetMachine.h"
-#include "GlobalISel/SM83CallLowering.h"
+#include "GISel/SM83CallLowering.h"
 #include "SM83.h"
 #include "SM83FrameLowering.h"
 #include "llvm/Support/TargetRegistry.h"
