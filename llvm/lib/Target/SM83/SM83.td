@@ -17,6 +17,7 @@ include "llvm/Target/Target.td"
 // Register file, instruction descriptions, and calling conventions
 //===------------------------------------------------------------------------===//
 include "SM83RegisterInfo.td"
+include "SM83RegisterBanks.td"
 include "SM83CallingConv.td"
 include "SM83InstrInfo.td"
 
