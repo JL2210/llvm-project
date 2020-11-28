@@ -14,6 +14,7 @@ def CC_SM83 : CallingConv <[
   CCIfType<[i1], CCPromoteToType<i8>>,
   CCIfType<[i8], CCAssignToReg<[A, L, H, E, D]>>,
   CCIfType<[i16], CCAssignToReg<[HL, DE]>>,
+  CCAssignToStack<0, 0>,
 ]>;
 
 def RetCC_SM83 : CallingConv <[

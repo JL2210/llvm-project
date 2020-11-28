@@ -56,12 +56,12 @@ public:
 };
 
 struct OutgoingArgHandler : public CallLowering::OutgoingValueHandler {
-  MachineInstrBuilder &MIB;
+  const DataLayout &DL;
 
 public:
-  OutgoingArgHandler(MachineIRBuilder &MIRBuilder, MachineRegisterInfo &MRI,
+  OutgoingArgHandler(MachineRegisterInfo &MRI,
                      MachineInstrBuilder &MIB, CCAssignFn *AssignFn)
-      : OutgoingValueHandler(MIRBuilder, MRI, AssignFn), MIB(MIB) {}
+      : OutgoingValueHandler(MIRBuilder, MRI, AssignFn), DL() {}
 
   void assignValueToReg(Register ValVReg, Register PhysReg, CCValAssign &VA) override {
     Register ExtReg = extendRegister(ValVReg, VA);
@@ -71,12 +71,22 @@ public:
 
   Register getStackAddress(uint64_t Size, int64_t Offset,
                            MachinePointerInfo &MPO) override {
-    llvm_unreachable("unimplemented!");
+    LLT p0 = LLT::pointer(0, DL.getPointerSizeInBits(0));
+    LLT SType = LLT::scalar(DL.getPointerSizeInBits(0));
+    auto SPReg =
+        MIRBuilder.buildCopy(p0, STI.getRegisterInfo()->getStackRegister());
+
+    auto OffsetReg = MIRBuilder.buildConstant(SType, Offset);
+
+    auto AddrReg = MIRBuilder.buildPtrAdd(p0, SPReg, OffsetReg);
+
+    MPO = MachinePointerInfo::getStack(MIRBuilder.getMF(), Offset);
+    return AddrReg.getReg(0);
   }
 
   void assignValueToAddress(Register ValVReg, Register Addr, uint64_t Size,
                             MachinePointerInfo &MPO, CCValAssign &VA) override {
-    llvm_unreachable("unimplemented!");
+    llvm_unreachable("assignValueToAddress unimplemented!");
   }
 };
 

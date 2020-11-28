@@ -13,6 +13,7 @@
 #include "SM83Subtarget.h"
 #include "SM83TargetMachine.h"
 #include "GISel/SM83CallLowering.h"
+#include "GISel/SM83RegisterBankInfo.h"
 #include "SM83.h"
 #include "SM83FrameLowering.h"
 #include "llvm/Support/TargetRegistry.h"
@@ -30,11 +31,12 @@ SM83Subtarget::SM83Subtarget(const Triple &TT, const std::string &CPU,
     : SM83GenSubtargetInfo(TT, CPU, /*TuneCPU*/ CPU, FS), FrameLowering(*this),
       InstrInfo(), RegInfo(), TLInfo(TM, *this) {
   CallLoweringInfo.reset(new SM83CallLowering(*getTargetLowering()));
-/*
-  Legalizer.reset(new SM83LegalizerInfo(*this));
 
   auto *RBI = new SM83RegisterBankInfo(*getRegisterInfo());
   RegBankInfo.reset(RBI);
+/*
+  Legalizer.reset(new SM83LegalizerInfo(*this));
+
   InstSelector.reset(createSM83InstructionSelector(
     *static_cast<const SM83TargetMachine *>(&TM), *this, *RBI));
 */
@@ -43,14 +45,14 @@ SM83Subtarget::SM83Subtarget(const Triple &TT, const std::string &CPU,
 const CallLowering *SM83Subtarget::getCallLowering() const {
   return CallLoweringInfo.get();
 }
-/*
-InstructionSelector *SM83Subtarget::getInstructionSelector() const {
-  return InstSelector.get();
+const RegisterBankInfo *SM83Subtarget::getRegBankInfo() const {
+  return RegBankInfo.get();
 }
+/*
 const LegalizerInfo *SM83Subtarget::getLegalizerInfo() const {
   return Legalizer.get();
 }
-const RegisterBankInfo *SM83Subtarget::getRegBankInfo() const {
-  return RegBankInfo.get();
+InstructionSelector *SM83Subtarget::getInstructionSelector() const {
+  return InstSelector.get();
 }
 */
