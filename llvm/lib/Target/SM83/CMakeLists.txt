@@ -1,3 +1,5 @@
+add_llvm_component_group(SM83)
+
 set(LLVM_TARGET_DEFINITIONS SM83.td)
 
 tablegen(LLVM SM83GenAsmMatcher.inc -gen-asm-matcher)
@@ -24,6 +26,21 @@ add_llvm_target(SM83CodeGen
   SM83RegisterInfo.cpp
   SM83Subtarget.cpp
   SM83TargetMachine.cpp
+
+  LINK_COMPONENTS
+  AsmPrinter
+  Core
+  CodeGen
+  GlobalISel
+  MC
+  SM83Desc
+  SM83Info
+  SelectionDAG
+  Support
+  Target
+
+  ADD_TO_COMPONENT
+  SM83
   )
 
 add_subdirectory(AsmParser)

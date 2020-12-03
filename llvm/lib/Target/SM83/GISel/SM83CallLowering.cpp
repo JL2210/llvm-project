@@ -59,9 +59,9 @@ struct OutgoingArgHandler : public CallLowering::OutgoingValueHandler {
   const DataLayout &DL;
 
 public:
-  OutgoingArgHandler(MachineRegisterInfo &MRI,
-                     MachineInstrBuilder &MIB, CCAssignFn *AssignFn)
-      : OutgoingValueHandler(MIRBuilder, MRI, AssignFn), DL() {}
+  OutgoingArgHandler(MachineIRBuilder &MIRBuilder, MachineRegisterInfo &MRI,
+                     CCAssignFn *AssignFn)
+      : OutgoingValueHandler(MIRBuilder, MRI, AssignFn), DL(MIRBuilder.getMF().getDataLayout()) {}
 
   void assignValueToReg(Register ValVReg, Register PhysReg, CCValAssign &VA) override {
     Register ExtReg = extendRegister(ValVReg, VA);
