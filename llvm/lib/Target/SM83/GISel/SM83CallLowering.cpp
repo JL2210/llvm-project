@@ -1,4 +1,5 @@
 #include "SM83CallLowering.h"
+#include "SM83Subtarget.h"
 
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
 #include "llvm/CodeGen/Analysis.h"
@@ -56,12 +57,16 @@ public:
 };
 
 struct OutgoingArgHandler : public CallLowering::OutgoingValueHandler {
+  MachineInstrBuilder &MIB;
   const DataLayout &DL;
+  const SM83Subtarget &STI;
 
 public:
   OutgoingArgHandler(MachineIRBuilder &MIRBuilder, MachineRegisterInfo &MRI,
-                     CCAssignFn *AssignFn)
-      : OutgoingValueHandler(MIRBuilder, MRI, AssignFn), DL(MIRBuilder.getMF().getDataLayout()) {}
+                     MachineInstrBuilder &MIB, CCAssignFn *AssignFn)
+      : OutgoingValueHandler(MIRBuilder, MRI, AssignFn), MIB(MIB),
+        DL(MIRBuilder.getMF().getDataLayout()),
+        STI(MIRBuilder.getMF().getSubtarget<SM83Subtarget>()) {}
 
   void assignValueToReg(Register ValVReg, Register PhysReg, CCValAssign &VA) override {
     Register ExtReg = extendRegister(ValVReg, VA);
