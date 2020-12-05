@@ -53,3 +53,7 @@ void SM83RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 Register SM83RegisterInfo::getFrameRegister(const MachineFunction &MF) const {
   return SM83::NoRegister;
 }
+
+Register SM83RegisterInfo::getStackRegister() const {
+  return SM83::SP;
+}

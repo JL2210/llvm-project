@@ -19,7 +19,7 @@ namespace llvm {
 class Triple;
 
 class SM83MCAsmInfo : public MCAsmInfoELF {
-  virtual void anchor();
+  void anchor() override;
 
 public:
   explicit SM83MCAsmInfo(const Triple &TargetTriple,
