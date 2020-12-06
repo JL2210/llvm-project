@@ -13,9 +13,10 @@
 #ifndef LLVM_LIB_TARGET_SM83_SM83TARGETMACHINE_H
 #define LLVM_LIB_TARGET_SM83_SM83TARGETMACHINE_H
 
-#include "MCTargetDesc/SM83MCTargetDesc.h"
 #include "SM83Subtarget.h"
+
 #include "llvm/IR/DataLayout.h"
+#include "llvm/Target/TargetLoweringObjectFile.h"
 #include "llvm/Target/TargetMachine.h"
 
 namespace llvm {
