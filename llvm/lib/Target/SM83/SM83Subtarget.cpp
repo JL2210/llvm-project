@@ -1,4 +1,4 @@
-//===-- SM83Subtarget.cpp - SM83 Subtarget Information ------------------===//
+//===-- SM83Subtarget.cpp - SM83 Subtarget Information --------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -11,12 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83Subtarget.h"
-#include "SM83TargetMachine.h"
-#include "GISel/SM83CallLowering.h"
-#include "GISel/SM83RegisterBankInfo.h"
-#include "SM83.h"
-#include "SM83FrameLowering.h"
-#include "llvm/Support/TargetRegistry.h"
+
+#include "llvm/IR/DataLayout.h"
+#include "llvm/Target/TargetMachine.h"
 
 using namespace llvm;
 
@@ -28,15 +25,16 @@ using namespace llvm;
 
 SM83Subtarget::SM83Subtarget(const Triple &TT, const std::string &CPU,
                              const std::string &FS, const TargetMachine &TM)
-    : SM83GenSubtargetInfo(TT, CPU, /*TuneCPU*/ CPU, FS), FrameLowering(*this),
+    : SM83GenSubtargetInfo(TT, CPU, /*TuneCPU*/ CPU, FS), FrameLowering(),
       InstrInfo(), RegInfo(), TLInfo(TM, *this) {
   CallLoweringInfo.reset(new SM83CallLowering(*getTargetLowering()));
 
   auto *RBI = new SM83RegisterBankInfo(*getRegisterInfo());
   RegBankInfo.reset(RBI);
-/*
-  Legalizer.reset(new SM83LegalizerInfo(*this));
 
+  Legalizer.reset(new SM83LegalizerInfo(TM.createDataLayout()));
+
+/*
   InstSelector.reset(createSM83InstructionSelector(
     *static_cast<const SM83TargetMachine *>(&TM), *this, *RBI));
 */
@@ -48,10 +46,10 @@ const CallLowering *SM83Subtarget::getCallLowering() const {
 const RegisterBankInfo *SM83Subtarget::getRegBankInfo() const {
   return RegBankInfo.get();
 }
-/*
 const LegalizerInfo *SM83Subtarget::getLegalizerInfo() const {
   return Legalizer.get();
 }
+/*
 InstructionSelector *SM83Subtarget::getInstructionSelector() const {
   return InstSelector.get();
 }
