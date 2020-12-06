@@ -13,7 +13,6 @@
 #ifndef LLVM_LIB_TARGET_SM83_SM83INSTRINFO_H
 #define LLVM_LIB_TARGET_SM83_SM83INSTRINFO_H
 
-#include "SM83RegisterInfo.h"
 #include "llvm/CodeGen/TargetInstrInfo.h"
 
 #define GET_INSTRINFO_HEADER

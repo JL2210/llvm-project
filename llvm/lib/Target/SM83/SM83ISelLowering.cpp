@@ -11,24 +11,16 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83ISelLowering.h"
-#include "SM83.h"
-#include "SM83RegisterInfo.h"
 #include "SM83Subtarget.h"
-#include "SM83TargetMachine.h"
 
-#include "llvm/CodeGen/CallingConvLower.h"
-#include "llvm/CodeGen/MachineFrameInfo.h"
-#include "llvm/CodeGen/MachineFunction.h"
-#include "llvm/CodeGen/MachineInstrBuilder.h"
-#include "llvm/CodeGen/MachineRegisterInfo.h"
-#include "llvm/CodeGen/ValueTypes.h"
-#include "llvm/IR/DiagnosticInfo.h"
-#include "llvm/IR/DiagnosticPrinter.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/raw_ostream.h"
+#include "llvm/CodeGen/TargetCallingConv.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Support/MachineValueType.h"
 
 using namespace llvm;
+
+#define GET_REGINFO_ENUM
+#include "SM83GenRegisterInfo.inc"
 
 #define DEBUG_TYPE "sm83-lower"
 

@@ -1,4 +1,4 @@
-//===-- SM83InstrInfo.cpp - SM83 Instruction Information ------*- C++ -*-===//
+//===-- SM83InstrInfo.cpp - SM83 Instruction Information ------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -11,16 +11,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83InstrInfo.h"
-#include "SM83.h"
-#include "SM83Subtarget.h"
-#include "SM83TargetMachine.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/CodeGen/MachineFunctionPass.h"
-#include "llvm/CodeGen/MachineInstrBuilder.h"
-#include "llvm/CodeGen/MachineRegisterInfo.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/TargetRegistry.h"
+#include "llvm/MC/MCInstrDesc.h"
+#include "llvm/MC/MCInstrInfo.h"
 
 #define GET_INSTRINFO_CTOR_DTOR
 #include "SM83GenInstrInfo.inc"

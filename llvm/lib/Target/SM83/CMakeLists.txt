@@ -18,6 +18,7 @@ add_public_tablegen_target(SM83CommonTableGen)
 add_llvm_target(SM83CodeGen
   GISel/SM83CallLowering.cpp
   GISel/SM83RegisterBankInfo.cpp
+  GISel/SM83LegalizerInfo.cpp
   SM83AsmPrinter.cpp
   SM83FrameLowering.cpp
   SM83InstrInfo.cpp

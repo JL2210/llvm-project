@@ -1,4 +1,4 @@
-//===-- SM83FrameLowering.h - Define frame lowering for SM83 -*- C++ -*--===//
+//===-- SM83FrameLowering.h - Define frame lowering for SM83 ----*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -14,13 +14,16 @@
 #define LLVM_LIB_TARGET_SM83_SM83FRAMELOWERING_H
 
 #include "llvm/CodeGen/TargetFrameLowering.h"
+#include "llvm/Support/Alignment.h"
 
 namespace llvm {
+class MachineFunction;
+class MachineBasicBlock;
 class SM83Subtarget;
 
 class SM83FrameLowering : public TargetFrameLowering {
 public:
-  explicit SM83FrameLowering(const SM83Subtarget &STI)
+  explicit SM83FrameLowering()
       : TargetFrameLowering(StackGrowsDown,
                             /*StackAlignment=*/Align(8),
                             /*LocalAreaOffset=*/0) {}

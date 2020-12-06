@@ -1,4 +1,4 @@
-//===-- SM83Subtarget.h - Define Subtarget for the SM83 -------*- C++ -*-===//
+//===-- SM83Subtarget.h - Define Subtarget for the SM83 ---------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -14,19 +14,20 @@
 #define LLVM_LIB_TARGET_SM83_SM83SUBTARGET_H
 
 #include "SM83FrameLowering.h"
-#include "SM83ISelLowering.h"
 #include "SM83InstrInfo.h"
+#include "SM83RegisterInfo.h"
+#include "SM83ISelLowering.h"
 
-#include "llvm/CodeGen/TargetSubtargetInfo.h"
-#include "llvm/IR/DataLayout.h"
-#include "llvm/Target/TargetMachine.h"
-#include "llvm/CodeGen/GlobalISel/CallLowering.h"
+#include "GISel/SM83CallLowering.h"
+#include "GISel/SM83RegisterBankInfo.h"
+#include "GISel/SM83LegalizerInfo.h"
 
 #define GET_SUBTARGETINFO_HEADER
 #include "SM83GenSubtargetInfo.inc"
 
 namespace llvm {
 class StringRef;
+class TargetMachine;
 
 class SM83Subtarget : public SM83GenSubtargetInfo {
   SM83FrameLowering FrameLowering;
@@ -36,8 +37,8 @@ class SM83Subtarget : public SM83GenSubtargetInfo {
 
   std::unique_ptr<CallLowering> CallLoweringInfo;
   std::unique_ptr<RegisterBankInfo> RegBankInfo;
-/*
   std::unique_ptr<LegalizerInfo> Legalizer;
+/*
   std::unique_ptr<InstructionSelector> InstSelector;
 */
 
@@ -60,11 +61,10 @@ public:
 
   const CallLowering *getCallLowering() const override;
   const RegisterBankInfo *getRegBankInfo() const override;
-/*
   const LegalizerInfo *getLegalizerInfo() const override;
+/*
   InstructionSelector *getInstructionSelector() const override;
 */
-  // TODO: GlobalISel API getters
 };
 } // namespace llvm
 
