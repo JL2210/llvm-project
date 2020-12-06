@@ -11,23 +11,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "MCTargetDesc/SM83InstPrinter.h"
-#include "SM83.h"
 #include "SM83MCInstLower.h"
-#include "SM83TargetMachine.h"
 #include "TargetInfo/SM83TargetInfo.h"
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/CodeGen/AsmPrinter.h"
-#include "llvm/CodeGen/MachineConstantPool.h"
-#include "llvm/CodeGen/MachineFunctionPass.h"
 #include "llvm/CodeGen/MachineInstr.h"
-#include "llvm/CodeGen/MachineModuleInfo.h"
-#include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCStreamer.h"
-#include "llvm/MC/MCSymbol.h"
+#include "llvm/Target/TargetMachine.h"
 #include "llvm/Support/TargetRegistry.h"
-#include "llvm/Support/raw_ostream.h"
+
 using namespace llvm;
 
 #define DEBUG_TYPE "asm-printer"
