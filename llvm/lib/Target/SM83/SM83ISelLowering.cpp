@@ -12,15 +12,13 @@
 
 #include "SM83ISelLowering.h"
 #include "SM83Subtarget.h"
+#include "MCTargetDesc/SM83MCTargetDesc.h"
 
 #include "llvm/CodeGen/TargetCallingConv.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Support/MachineValueType.h"
 
 using namespace llvm;
-
-#define GET_REGINFO_ENUM
-#include "SM83GenRegisterInfo.inc"
 
 #define DEBUG_TYPE "sm83-lower"
 

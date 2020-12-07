@@ -13,13 +13,10 @@
 #ifndef LLVM_LIB_TARGET_SM83_SM83REGISTERINFO_H
 #define LLVM_LIB_TARGET_SM83_SM83REGISTERINFO_H
 
-#include "llvm/CodeGen/TargetRegisterInfo.h"
-
 #define GET_REGINFO_HEADER
 #include "SM83GenRegisterInfo.inc"
 
 namespace llvm {
-class MCPhysReg;
 class MachineFunction;
 
 struct SM83RegisterInfo : public SM83GenRegisterInfo {
