@@ -9,3 +9,15 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83InstructionSelector.h"
+
+#define GET_GLOBALISEL_IMPL
+#include "SM83GenGlobalISel.inc"
+
+bool SM83InstructionSelector::select(MachineInstr &I) const {
+  // the register allocator will handle copies
+  if(Opcode == TargetOpcode::COPY)
+    return true;
+  if(selectImpl(I))
+    return true;
+  return false;
+}
