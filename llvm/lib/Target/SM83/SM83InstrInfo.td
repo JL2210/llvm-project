@@ -24,36 +24,54 @@ def Condition : AsmOperandClass {
   let DiagnosticType = "Invalid" # Name;
 }
 
-def condition : Operand<i8> {
+def condition : Operand<i8>, ImmLeaf<i8, [{
+  return Imm >= 0 && Imm <= 3;
+}]> {
   let ParserMatchClass = Condition;
   let PrintMethod = "printCondition";
 }
 
-def rstvec : Operand<i8> {
+def rstvec : Operand<i8>, ImmLeaf<i8, [{
+  return (Imm & 7) == 0 && Imm >= 0x08 && Imm <= 0x38;
+}]> {
   let ParserMatchClass = ImmAsmOperand<"RSTVec">;
   let EncoderMethod = "getRSTVecValue";
 }
 
-def uimm3 : Operand<i8> {
+def uimm3 : Operand<i8>, ImmLeaf<i8, [{
+  return Imm >= 0 && Imm <= 7;
+}]> {
   let ParserMatchClass = ImmAsmOperand<"UImm3">;
 }
-def simm8 : Operand<i8> {
+def simm8 : Operand<i8>, ImmLeaf<i8, [{
+  return Imm >= 0 && Imm <= 0xff;
+}]> {
   let ParserMatchClass = ImmAsmOperand<"SImm8">;
 }
-def imm8 : Operand<i8> {
+def imm8 : Operand<i8>, ImmLeaf<i8, [{
+  return Imm >= -0x80 && Imm <= 0xff;
+}]> {
   let ParserMatchClass = ImmAsmOperand<"Imm8">;
 }
-def imm16 : Operand<i16> {
+def imm16 : Operand<i16>, ImmLeaf<i16, [{
+  return Imm >= -0x8000 && Imm <= 0xffff;
+}]> {
   let ParserMatchClass = ImmAsmOperand<"Imm16">;
 }
-def rel8 : Operand<i8> {
+def rel8 : Operand<i8>, ImmLeaf<i8, [{
+  return Imm >= -0x80 && Imm <= 0x7f;
+}]> {
   let ParserMatchClass = ImmAsmOperand<"Rel8">;
 }
-def direct8 : Operand<i8> {
+def direct8 : Operand<i8>, ImmLeaf<i16, [{
+  return Imm >= 0xff00 && Imm <= 0xffff;
+}]> {
   let ParserMatchClass = ImmAsmOperand<"Direct8">;
   let EncoderMethod = "getDirect8Value";
 }
-def direct16 : Operand<i16> {
+def direct16 : Operand<i16>, ImmLeaf<i16, [{
+  return Imm >= 0 && Imm <= 0xffff;
+}]> {
   let ParserMatchClass = ImmAsmOperand<"Direct16">;
 }
 
