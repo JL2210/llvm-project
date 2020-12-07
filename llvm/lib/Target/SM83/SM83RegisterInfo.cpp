@@ -11,9 +11,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83RegisterInfo.h"
+#include "SM83FrameLowering.h"
+#include "MCTargetDesc/SM83MCTargetDesc.h"
 
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/Register.h"
+#include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
 
 #define GET_REGINFO_TARGET_DESC
