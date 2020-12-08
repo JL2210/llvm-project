@@ -21,6 +21,18 @@ class SM83GenRegisterBankInfo : public RegisterBankInfo {
 protected:
 #define GET_TARGET_REGBANK_CLASS
 #include "SM83GenRegisterBank.inc"
+
+  enum PartialMappingIdx {
+    PMI_None = -1,
+    PMI_GR8,
+    PMI_GR16,
+    PMI_FirstGPR = PMI_GR8,
+    PMI_LastGPR = PMI_GR16,
+    PMI_MIN = PMI_GR8,
+  };
+
+  static const RegisterBankInfo::ValueMapping *
+  getValueMapping(PartialMappingIdx RBIdx, unsigned Size);
 };
 
 class SM83RegisterBankInfo final : public SM83GenRegisterBankInfo {
