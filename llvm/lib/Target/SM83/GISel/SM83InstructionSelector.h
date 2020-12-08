@@ -1,19 +1,18 @@
 #ifndef LLVM_LIB_TARGET_SM83_GISEL_SM83INSTRUCTIONSELECTOR_H
 #define LLVM_LIB_TARGET_SM83_GISEL_SM83INSTRUCTIONSELECTOR_H
 
-#include "llvm/CodeGen/GlobalISel/InstructionSelector.h"
-
 namespace llvm {
 
-class MachineInstr;
+class InstructionSelector;
+class SM83TargetMachine;
+class SM83Subtarget;
+class SM83RegisterBankInfo;
 
-class SM83InstructionSelector : public InstructionSelector {
-public:
-  SM83InstructionSelector() : InstructionSelector() {}
+InstructionSelector *
+createSM83InstructionSelector(const SM83TargetMachine &TM,
+                              SM83Subtarget &Subtarget,
+                              SM83RegisterBankInfo &RBI);
 
-  bool select(MachineInstr &I) override;
-  // tablegen-erated
-  bool selectImpl(MachineInstr &I);
-};
+}
 
 #endif

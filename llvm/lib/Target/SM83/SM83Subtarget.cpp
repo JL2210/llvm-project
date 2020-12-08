@@ -11,6 +11,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83Subtarget.h"
+#include "SM83TargetMachine.h"
+#include "GISel/SM83CallLowering.h"
+#include "GISel/SM83RegisterBankInfo.h"
+#include "GISel/SM83LegalizerInfo.h"
+#include "GISel/SM83InstructionSelector.h"
 
 #include "llvm/IR/DataLayout.h"
 #include "llvm/Target/TargetMachine.h"
@@ -29,15 +34,14 @@ SM83Subtarget::SM83Subtarget(const Triple &TT, const std::string &CPU,
       InstrInfo(), RegInfo(), TLInfo(TM, *this) {
   CallLoweringInfo.reset(new SM83CallLowering(*getTargetLowering()));
 
-  auto *RBI = new SM83RegisterBankInfo(*getRegisterInfo());
-  RegBankInfo.reset(RBI);
-
   Legalizer.reset(new SM83LegalizerInfo(TM.createDataLayout()));
 
-/*
+  auto *RBI = new SM83RegisterBankInfo(*getRegisterInfo());
+
   InstSelector.reset(createSM83InstructionSelector(
     *static_cast<const SM83TargetMachine *>(&TM), *this, *RBI));
-*/
+
+  RegBankInfo.reset(RBI);
 }
 
 const CallLowering *SM83Subtarget::getCallLowering() const {
@@ -49,8 +53,6 @@ const RegisterBankInfo *SM83Subtarget::getRegBankInfo() const {
 const LegalizerInfo *SM83Subtarget::getLegalizerInfo() const {
   return Legalizer.get();
 }
-/*
 InstructionSelector *SM83Subtarget::getInstructionSelector() const {
   return InstSelector.get();
 }
-*/
