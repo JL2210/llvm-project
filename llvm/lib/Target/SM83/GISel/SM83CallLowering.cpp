@@ -1,5 +1,6 @@
 #include "SM83CallLowering.h"
 #include "SM83Subtarget.h"
+#include "MCTargetDesc/SM83MCTargetDesc.h"
 
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
 #include "llvm/CodeGen/Analysis.h"
