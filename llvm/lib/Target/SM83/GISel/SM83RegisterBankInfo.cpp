@@ -12,6 +12,9 @@
 #define GET_TARGET_REGBANK_IMPL
 #include "SM83GenRegisterBank.inc"
 
+// to be tablegen'd
+#include "SM83GenRegisterBankInfo.def"
+
 using namespace llvm;
 
 const RegisterBank &SM83RegisterBankInfo::getRegBankFromRegClass(

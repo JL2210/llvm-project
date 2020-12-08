@@ -19,6 +19,7 @@ add_llvm_target(SM83CodeGen
   GISel/SM83CallLowering.cpp
   GISel/SM83RegisterBankInfo.cpp
   GISel/SM83LegalizerInfo.cpp
+  GISel/SM83InstructionSelector.cpp
   SM83AsmPrinter.cpp
   SM83FrameLowering.cpp
   SM83InstrInfo.cpp
