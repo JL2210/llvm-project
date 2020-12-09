@@ -21,6 +21,7 @@
 #include "llvm/CodeGen/GlobalISel/InstructionSelect.h"
 #include "llvm/CodeGen/GlobalISel/IRTranslator.h"
 #include "llvm/CodeGen/GlobalISel/Legalizer.h"
+#include "llvm/CodeGen/GlobalISel/Localizer.h"
 #include "llvm/CodeGen/GlobalISel/RegBankSelect.h"
 #include "llvm/Support/CodeGen.h"
 #include "llvm/Support/TargetRegistry.h"
@@ -67,6 +68,7 @@ public:
   bool addIRTranslator() override;
   bool addLegalizeMachineIR() override;
   bool addRegBankSelect() override;
+  void addPreGlobalInstructionSelect() override;
   bool addGlobalInstructionSelect() override;
 };
 
@@ -81,6 +83,9 @@ bool SM83PassConfig::addLegalizeMachineIR() {
 bool SM83PassConfig::addRegBankSelect() {
   addPass(new RegBankSelect());
   return false;
+}
+void SM83PassConfig::addPreGlobalInstructionSelect() {
+  addPass(new Localizer());
 }
 bool SM83PassConfig::addGlobalInstructionSelect() {
   addPass(new InstructionSelect());

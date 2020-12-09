@@ -17,6 +17,7 @@
 
 namespace llvm {
 class Triple;
+class StringRef;
 
 class SM83MCAsmInfo : public MCAsmInfoELF {
   void anchor() override;
