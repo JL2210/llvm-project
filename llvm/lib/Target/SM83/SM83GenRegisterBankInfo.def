@@ -23,7 +23,7 @@ RegisterBankInfo::PartialMapping SM83GenRegisterBankInfo::PartMappings[]{
 #define PARTMAP(x) \
 {&SM83GenRegisterBankInfo::PartMappings[x - PMI_Min], 1},
 // ValueMappings.
-RegisterBankInfo::ValueMapping AArch64GenRegisterBankInfo::ValMappings[]{
+RegisterBankInfo::ValueMapping SM83GenRegisterBankInfo::ValMappings[]{
     /* BreakDown, NumBreakDowns */
     // 3-operands instructions (all binary operations should end up with one of
     // those mapping).
@@ -34,12 +34,6 @@ RegisterBankInfo::ValueMapping AArch64GenRegisterBankInfo::ValMappings[]{
 };
 #undef PARTMAP
 #undef X3
-
-enum ValueMappingIdx {
-  VMI_Invalid = -1,
-  VMI_3OpsGpr8Idx =  PMI_GR8  * 3,
-  VMI_3OpsGpr16Idx = PMI_GR16 * 3,
-};
 
 const RegisterBankInfo::ValueMapping *
 SM83GenRegisterBankInfo::getValueMapping(PartialMappingIdx Idx,

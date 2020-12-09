@@ -31,7 +31,7 @@ SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT, const MCTargetOptions &Options) {
   HasSingleParameterDotFile = false;
   HiddenVisibilityAttr = HiddenDeclarationVisibilityAttr =
       ProtectedVisibilityAttr = MCSA_Invalid;
-  GlobalDirective = "GLOBAL";
+  GlobalDirective = "GLOBAL ";
   WeakDirective = "";
   InlineAsmStart = "";
   InlineAsmEnd = "";

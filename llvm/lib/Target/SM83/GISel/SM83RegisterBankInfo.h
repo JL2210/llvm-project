@@ -28,8 +28,17 @@ protected:
     PMI_GR16,
     PMI_FirstGPR = PMI_GR8,
     PMI_LastGPR = PMI_GR16,
-    PMI_MIN = PMI_GR8,
+    PMI_Min = PMI_GR8,
   };
+
+  enum ValueMappingIdx {
+    VMI_Invalid = -1,
+    VMI_3OpsGpr8Idx =  PMI_GR8  * 3,
+    VMI_3OpsGpr16Idx = PMI_GR16 * 3,
+  };
+
+  static RegisterBankInfo::PartialMapping PartMappings[];
+  static RegisterBankInfo::ValueMapping ValMappings[];
 
   static const RegisterBankInfo::ValueMapping *
   getValueMapping(PartialMappingIdx RBIdx, unsigned Size);

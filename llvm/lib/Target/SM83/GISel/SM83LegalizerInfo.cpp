@@ -28,8 +28,8 @@ SM83LegalizerInfo::SM83LegalizerInfo(const DataLayout DL)
     .legalFor({s8, s16});
 
   getActionDefinitionsBuilder(G_ADD)
-    .legalFor({s16});
-  getActionDefinitionsBuilder({G_ADD, G_SUB, G_AND, G_XOR, G_OR})
+    .legalFor({s8, s16});
+  getActionDefinitionsBuilder({G_SUB, G_AND, G_XOR, G_OR})
     .legalFor({s8});
 
   getActionDefinitionsBuilder({G_FRAME_INDEX, G_BLOCK_ADDR})
