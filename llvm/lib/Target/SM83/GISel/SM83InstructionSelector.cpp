@@ -77,8 +77,9 @@ SM83InstructionSelector::SM83InstructionSelector(const SM83TargetMachine &TM,
 bool SM83InstructionSelector::select(MachineInstr &I) {
   // the register allocator will handle copies
   unsigned Opcode = I.getOpcode();
-  if(Opcode == TargetOpcode::COPY)
+  if (!isPreISelGenericOpcode(Opcode)) {
     return true;
+  }
   if(selectImpl(I, *CoverageInfo))
     return true;
   return false;
