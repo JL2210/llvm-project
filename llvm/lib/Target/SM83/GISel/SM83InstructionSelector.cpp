@@ -56,6 +56,20 @@ private:
 
 }
 
+static const TargetRegisterClass *
+getMinClassForRegBank(const RegisterBank &RB, unsigned SizeInBits) {
+  unsigned RegBankID = RB.getID();
+  assert(RegBankID == SM83::GPRRegBankID);
+
+  if (SizeInBits <= 8)
+    return &SM83::GR8RegClass;
+
+  if (SizeInBits == 16)
+    return &SM83::GR16RegClass;
+
+  return nullptr;
+}
+
 #define GET_GLOBALISEL_IMPL
 #include "SM83GenGlobalISel.inc"
 #undef GET_GLOBALISEL_IMPL
@@ -77,11 +91,33 @@ SM83InstructionSelector::SM83InstructionSelector(const SM83TargetMachine &TM,
 bool SM83InstructionSelector::select(MachineInstr &I) {
   // the register allocator will handle copies
   unsigned Opcode = I.getOpcode();
+
+  MachineBasicBlock &MBB = *I.getParent();
+  MachineFunction &MF = *MBB.getParent();
+  MachineRegisterInfo &MRI = MF.getRegInfo();
+
   if (!isPreISelGenericOpcode(Opcode)) {
+    if (I.isCopy()) {
+      // constrain destination register
+      Register DstReg = I.getOperand(0).getReg();
+      const RegisterBank &DstRegBank = *RBI.getRegBank(DstReg, MRI, TRI);
+      unsigned DstSize = RBI.getSizeInBits(DstReg, MRI, TRI);
+      const TargetRegisterClass *DstRC = getMinClassForRegBank(DstRegBank, DstSize);
+
+      if (!Register::isPhysicalRegister(DstReg) &&
+          !RBI.constrainGenericRegister(DstReg, *DstRC, MRI)) {
+        LLVM_DEBUG(dbgs() << "Failed to constrain " << TII.getName(I.getOpcode())
+                          << " operand\n");
+        return false;
+      }
+    }
+
     return true;
   }
+
   if(selectImpl(I, *CoverageInfo))
     return true;
+
   return false;
 }
 
