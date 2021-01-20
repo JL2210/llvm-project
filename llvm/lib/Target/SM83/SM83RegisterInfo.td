@@ -23,8 +23,6 @@ class SM83Reg<string name, bits<16> enc = -1, list<Register> subregs = []>
 let Namespace = "SM83" in {
   def sub_low : SubRegIndex<8>;
   def sub_high : SubRegIndex<8, 8>;
-  def sub_low16 : SubRegIndex<16>;
-  def sub_high16 : SubRegIndex<16, 16>;
 }
 
 //===----------------------------------------------------------------------===//
@@ -57,8 +55,22 @@ def PC : SM83Reg<"pc">;
 // Register class definitions...
 //
 
+// the A register, since globalisel can't handle defs
+def RA : RegisterClass<"SM83", [i8], 8, (add A)>;
+
 // General-purpose 8-bit registers
-def GR8 : RegisterClass<"SM83", [i8], 8, (add A, L, H, E, D, C, B)>;
+def GR8 : RegisterClass<"SM83", [i8], 8, (add RA, L, H, E, D, C, B)>;
+
+// ditto for HL
+def RHL : RegisterClass<"SM83", [i16], 8, (add HL)>;
 
 // General-purpose 16-bit registers
-def GR16 : RegisterClass<"SM83", [i16], 8, (add HL, DE, BC)>;
+def GR16 : RegisterClass<"SM83", [i16], 8, (add RHL, DE, BC)>;
+
+// special regs
+let isAllocatable = 0, CopyCost = -1 in
+def S16 : RegisterClass<"SM83", [i16], 8, (add SP, AF)>;
+
+// flags
+let isAllocatable = 0, CopyCost = -1 in
+def F8 : RegisterClass<"SM83", [i8], 8, (add FLAGS)>;
