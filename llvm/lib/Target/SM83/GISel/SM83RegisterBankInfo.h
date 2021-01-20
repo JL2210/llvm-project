@@ -32,13 +32,16 @@ protected:
   };
 
   enum ValueMappingIdx {
-    VMI_Invalid = -1,
-    VMI_3OpsGpr8Idx =  PMI_GR8  * 3,
-    VMI_3OpsGpr16Idx = PMI_GR16 * 3,
+    InvalidIdx = 0,
+    First3OpsIdx = PMI_FirstGPR * 3 + 1,
+    Last3OpsIdx = PMI_LastGPR * 3 + 1,
+    DistanceBetweenRegBanks = 3,
   };
 
   static RegisterBankInfo::PartialMapping PartMappings[];
   static RegisterBankInfo::ValueMapping ValMappings[];
+
+  static unsigned getRegBankBaseIdxOffset(unsigned RBIdx, unsigned Size);
 
   static const RegisterBankInfo::ValueMapping *
   getValueMapping(PartialMappingIdx RBIdx, unsigned Size);
