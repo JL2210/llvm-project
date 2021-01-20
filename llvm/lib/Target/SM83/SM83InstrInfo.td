@@ -115,8 +115,8 @@ let mayStore = 1 in {
   def LDdDEA : I8<0x12, "ld [de], a", [(store A, DE)]>;
 }
 let mayStore = 1, Uses = [HL, A], Defs = [HL] in {
-  def LDdHLIA : I8<0x22, "ld [hli], a", [(store A, HL), (set HL, (add HL, 1))]>;
-  def LDdHLDA : I8<0x32, "ld [hld], a", [(store A, HL), (set HL, (sub HL, 1))]>;
+  def LDdHLIA : I8<0x22, "ld [hli], a", [(set HL, (post_store A, HL, 1))]>;
+  def LDdHLDA : I8<0x32, "ld [hld], a", [(set HL, (post_store A, HL, 1))]>;
 }
 
 let mayLoad = 1, Defs = [A] in {
@@ -126,8 +126,8 @@ let mayLoad = 1, Defs = [A] in {
   def LDAdDE : I8<0x1a, "ld a, [de]", [(set A, (load DE))]>;
 }
 let mayLoad = 1, Uses = [HL], Defs = [HL, A] in {
-  def LDAdHLI : I8<0x2a, "ld a, [hli]", [(set A, (load HL)), (set HL, (add HL, 1))]>;
-  def LDAdHLD : I8<0x3a, "ld a, [hld]", [(set A, (load HL)), (set HL, (sub HL, 1))]>;
+  def LDAdHLI : I8<0x2a, "ld a, [hli]", [/*(set A, (load HL)), (set HL, (add HL, 1))*/]>;
+  def LDAdHLD : I8<0x3a, "ld a, [hld]", [/*(set A, (load HL)), (set HL, (sub HL, 1))*/]>;
 }
 
 let Constraints = "$dst = $src" in
@@ -281,49 +281,46 @@ def LDrdHL : SM83Inst8<(outs GR8:$dst), (ins), "ld $dst, [hl]",
 let hasSideEffects = 1 in
 def HALT : I8<0x76, "halt">;
 
-multiclass mALU<string opstr, bits<3> opc, list<SM83Reg> uses,
-                SDPatternOperator op = null_frag> {
-  let Uses = uses in {
-    def r : SM83Inst8<(outs), (ins GR8:$src), opstr # " a, $src",
-                      [(set A, (op A, GR8:$src))]> {
-      bits<3> src;
+multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
+  def r : SM83Inst8<(outs RA:$dst), (ins RA:$a, GR8:$src), opstr # " a, $src",
+                    [(set RA:$dst, (op RA:$a, GR8:$src))]> {
+    bits<3> src;
 
-      let Inst{7-6} = 0b10;
-      let Inst{5-3} = opc;
-      let Inst{2-0} = src;
-    }
-    def i : SM83Inst16<(outs), (ins imm8:$imm), opstr # " a, $imm",
-                       [(set A, (op A, imm8:$imm))]> {
-      bits<8> imm;
+    let Inst{7-6} = 0b10;
+    let Inst{5-3} = opc;
+    let Inst{2-0} = src;
+  }
+  def i : SM83Inst16<(outs RA:$dst), (ins RA:$a, imm8:$imm), opstr # " a, $imm",
+                     [(set RA:$dst, (op RA:$a, imm8:$imm))]> {
+    bits<8> imm;
 
-      let Inst{7-6}  = 0b11;
-      let Inst{5-3}  = opc;
-      let Inst{2-0}  = 0b110;
-      let Inst{15-8} = imm;
-    }
+    let Inst{7-6}  = 0b11;
+    let Inst{5-3}  = opc;
+    let Inst{2-0}  = 0b110;
+    let Inst{15-8} = imm;
   }
 
-  let Uses = !listconcat(uses, [HL]), mayLoad = 1 in
-  def dHL : SM83Inst8<(outs), (ins), opstr # " a, [hl]",
-                      [(set A, (op A, (load HL)))]> {
+  let mayLoad = 1 in
+  def dHL : SM83Inst8<(outs RA:$dst), (ins RA:$a, RHL:$hl), opstr # " a, [hl]",
+                      [(set RA:$dst, (op RA:$a, (load RHL:$hl)))]> {
     let Inst{7-6} = 0b10;
     let Inst{5-3} = opc;
     let Inst{2-0} = 0b110;
   }
 }
 
-let Defs = [A, FLAGS] in {
-  defm ADD : mALU<"add", 0b000, [A], add>;
-  defm SUB : mALU<"sub", 0b010, [A], sub>;
-  defm AND : mALU<"and", 0b100, [A], and>;
-  defm XOR : mALU<"xor", 0b101, [A], xor>;
-  defm OR : mALU<"or", 0b110, [A], or>;
+let Defs = [FLAGS] in {
+  defm ADD : mALU<"add", 0b000, add>;
+  defm SUB : mALU<"sub", 0b010, sub>;
+  defm AND : mALU<"and", 0b100, and>;
+  defm XOR : mALU<"xor", 0b101, xor>;
+  defm OR : mALU<"or", 0b110, or>;
 
-  defm ADC : mALU<"adc", 0b001, [A, FLAGS]>;
-  defm SBC : mALU<"sbc", 0b011, [A, FLAGS]>;
+  let Uses = [FLAGS] in {
+    defm ADC : mALU<"adc", 0b001>;
+    defm SBC : mALU<"sbc", 0b011>;
+  }
 }
-let Defs = [FLAGS] in
-defm CP : mALU<"cp", 0b111, [A]>;
 
 let isReturn = 1, isTerminator = 1 in
 def RETcc : SM83Inst8<(outs), (ins condition:$cc), "ret $cc", []> {
