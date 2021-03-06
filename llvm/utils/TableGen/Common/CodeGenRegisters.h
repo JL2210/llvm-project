@@ -11,6 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// Modified by LLVM-MOS.
+
 #ifndef LLVM_UTILS_TABLEGEN_COMMON_CODEGENREGISTERS_H
 #define LLVM_UTILS_TABLEGEN_COMMON_CODEGENREGISTERS_H
 
@@ -365,6 +367,9 @@ public:
   /// Generate register pressure set for this register class and any class
   /// synthesized from it.
   bool GeneratePressureSet;
+  // Disable register pressure set pruning for this class and any class
+  // synthesized from it.
+  bool IsPressureFineGrained;
 
   // Return the Record that defined this class, or NULL if the class was
   // created by TableGen.
@@ -569,6 +574,7 @@ struct RegUnitSet {
   std::vector<unsigned> Units;
   unsigned Weight = 0; // Cache the sum of all unit weights.
   unsigned Order = 0;  // Cache the sort key.
+  bool IsFineGrained = false;  // Disable pruning.
 
   RegUnitSet(std::string Name) : Name(std::move(Name)) {}
 };

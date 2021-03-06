@@ -11,6 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// Modified by LLVM-MOS.
+
 #include "CodeGenRegisters.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/BitVector.h"
@@ -762,6 +764,7 @@ CodeGenRegisterClass::CodeGenRegisterClass(CodeGenRegBank &RegBank,
     : TheDef(R), Name(std::string(R->getName())),
       TopoSigs(RegBank.getNumTopoSigs()), EnumValue(-1), TSFlags(0) {
   GeneratePressureSet = R->getValueAsBit("GeneratePressureSet");
+  IsPressureFineGrained = R->getValueAsBit("isPressureFineGrained");
   std::vector<const Record *> TypeList = R->getValueAsListOfDefs("RegTypes");
   if (TypeList.empty())
     PrintFatalError(R->getLoc(), "RegTypes list must not be empty!");
@@ -849,6 +852,7 @@ CodeGenRegisterClass::CodeGenRegisterClass(CodeGenRegBank &RegBank,
       GlobalPriority(false), TSFlags(0) {
   Artificial = true;
   GeneratePressureSet = false;
+  IsPressureFineGrained = false;
   for (const auto R : Members) {
     TopoSigs.set(R->getTopoSig());
     Artificial &= R->Artificial;
@@ -877,6 +881,7 @@ void CodeGenRegisterClass::inheritProperties(CodeGenRegBank &RegBank) {
   GlobalPriority = Super.GlobalPriority;
   TSFlags = Super.TSFlags;
   GeneratePressureSet |= Super.GeneratePressureSet;
+  IsPressureFineGrained |= Super.IsPressureFineGrained;
 
   // Copy all allocation orders, filter out foreign registers from the larger
   // super-class.
@@ -1970,7 +1975,8 @@ void CodeGenRegBank::pruneUnitSets() {
       if (isRegUnitSubSet(SubSet.Units, SuperSet.Units) &&
           (SubSet.Units.size() + 3 > SuperSet.Units.size()) &&
           UnitWeight == RegUnits[SuperSet.Units[0]].Weight &&
-          UnitWeight == RegUnits[SuperSet.Units.back()].Weight) {
+          UnitWeight == RegUnits[SuperSet.Units.back()].Weight &&
+          !SubSet.IsFineGrained) {
         LLVM_DEBUG(dbgs() << "UnitSet " << SubIdx << " subsumed by " << SuperIdx
                           << "\n");
         // We can pick any of the set names for the merged set. Go for the
@@ -1992,6 +1998,8 @@ void CodeGenRegBank::pruneUnitSets() {
     unsigned SuperIdx = SuperSetIDs[i];
     PrunedUnitSets.emplace_back(RegUnitSets[SuperIdx].Name);
     PrunedUnitSets.back().Units = std::move(RegUnitSets[SuperIdx].Units);
+    PrunedUnitSets.back().IsFineGrained =
+        std::move(RegUnitSets[SuperIdx].IsFineGrained);
   }
   RegUnitSets = std::move(PrunedUnitSets);
 }
@@ -2066,6 +2074,8 @@ void CodeGenRegBank::computeRegUnitSets() {
 
       RegUnitSet RUSet(RegUnitSets[Idx].Name + "_with_" +
                        RegUnitSets[SearchIdx].Name);
+      RUSet.IsFineGrained = RegUnitSets[Idx].IsFineGrained ||
+                            RegUnitSets[SearchIdx].IsFineGrained;
       std::set_union(RegUnitSets[Idx].Units.begin(),
                      RegUnitSets[Idx].Units.end(),
                      RegUnitSets[SearchIdx].Units.begin(),
