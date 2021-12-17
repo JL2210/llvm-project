@@ -18,9 +18,10 @@
 
 namespace llvm {
 class MachineFunction;
+class Triple;
 
 struct SM83RegisterInfo : public SM83GenRegisterInfo {
-  SM83RegisterInfo();
+  SM83RegisterInfo(const Triple &TT);
 
   const MCPhysReg *getCalleeSavedRegs(const MachineFunction *MF) const override;
 

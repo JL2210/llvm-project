@@ -20,21 +20,17 @@
 namespace llvm {
 
 class SM83CallLowering : public CallLowering {
-  using SplitArgTy = std::function<void(ArrayRef<Register>, Register, LLT, LLT, int)>;
-
-  void splitToValueTypes(const ArgInfo &OrigArg, SmallVectorImpl<ArgInfo> &SplitArgs,
-                         const DataLayout &DL, CallingConv::ID CallConv,
-                         MachineRegisterInfo &MRI, SplitArgTy PerformArgSplit) const;
 public:
   SM83CallLowering(const SM83TargetLowering &TL) : CallLowering(&TL) {}
 
   bool supportSwiftError() const override { return false; }
 
   bool lowerReturn(MachineIRBuilder &MIRBuilder, const Value *Val,
-                   ArrayRef<Register> VRegs) const override;
+                   ArrayRef<Register> VRegs, FunctionLoweringInfo &FLI) const override;
 
   bool lowerFormalArguments(MachineIRBuilder &MIRBuilder, const Function &F,
-                            ArrayRef<ArrayRef<Register>> VRegs) const override;
+                            ArrayRef<ArrayRef<Register>> VRegs,
+                            FunctionLoweringInfo &FLI) const override;
 
   bool lowerCall(MachineIRBuilder &MIRBuilder,
                  CallLoweringInfo &Info) const override;

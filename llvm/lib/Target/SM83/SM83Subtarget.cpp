@@ -31,7 +31,7 @@ using namespace llvm;
 SM83Subtarget::SM83Subtarget(const Triple &TT, const std::string &CPU,
                              const std::string &FS, const TargetMachine &TM)
     : SM83GenSubtargetInfo(TT, CPU, /*TuneCPU*/ CPU, FS), FrameLowering(),
-      InstrInfo(), RegInfo(), TLInfo(TM, *this) {
+      InstrInfo(*this), RegInfo(TT), TLInfo(TM, *this) {
   CallLoweringInfo.reset(new SM83CallLowering(*getTargetLowering()));
 
   Legalizer.reset(new SM83LegalizerInfo(TM.createDataLayout()));
