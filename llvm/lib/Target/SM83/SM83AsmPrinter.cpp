@@ -19,8 +19,8 @@
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCStreamer.h"
+#include "llvm/MC/TargetRegistry.h"
 #include "llvm/Target/TargetMachine.h"
-#include "llvm/Support/TargetRegistry.h"
 
 using namespace llvm;
 
