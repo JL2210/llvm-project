@@ -24,7 +24,10 @@
 
 using namespace llvm;
 
-SM83RegisterInfo::SM83RegisterInfo() : SM83GenRegisterInfo(SM83::A) {}
+SM83RegisterInfo::SM83RegisterInfo(const Triple &TT)
+  : SM83GenRegisterInfo(SM83::A) {
+  (void)TT;
+}
 
 const MCPhysReg *
 SM83RegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {

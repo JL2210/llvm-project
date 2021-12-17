@@ -61,14 +61,6 @@ const RegisterBankInfo::InstructionMapping &SM83RegisterBankInfo::getInstrMappin
     return getInstructionMapping(DefaultMappingID, Cost,
                                  getOperandsMapping(OpdsMapping), NumOperands);
   }
-  case TargetOpcode::G_ADD: {
-    // operands are of the same type
-    LLT Ty = MRI.getType(MI.getOperand(0).getReg());
-    unsigned Size = Ty.getSizeInBits();
-    return getInstructionMapping(DefaultMappingID, Cost,
-                                 getValueMapping(PMI_FirstGPR, Size),
-                                 NumOperands);
-  }
   }
 }
 

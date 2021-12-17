@@ -56,10 +56,10 @@ public:
     report_fatal_error("SM83AsmBackend::relaxInstruction() unimplemented");
   }
 
-  bool writeNopData(raw_ostream &OS, uint64_t Count) const override;
+  bool writeNopData(raw_ostream &OS, uint64_t Count, const MCSubtargetInfo *STI) const override;
 }; // class SM83AsmBackend
 
-bool SM83AsmBackend::writeNopData(raw_ostream &OS, uint64_t Count) const {
+bool SM83AsmBackend::writeNopData(raw_ostream &OS, uint64_t Count, const MCSubtargetInfo *STI) const {
   // nop is 0
   OS.write_zeros(Count);
   return true;

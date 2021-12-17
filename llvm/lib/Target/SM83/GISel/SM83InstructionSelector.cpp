@@ -33,6 +33,7 @@ public:
                           const SM83Subtarget &STI,
                           const SM83RegisterBankInfo &RBI);
 
+
   bool select(MachineInstr &I) override;
   static const char *getName() { return DEBUG_TYPE; }
 
@@ -43,6 +44,7 @@ private:
   const SM83RegisterInfo &TRI;
   const SM83RegisterBankInfo &RBI;
 
+  bool selectCopy(MachineInstr &I, MachineRegisterInfo &MRI);
   bool selectImpl(MachineInstr &I, CodeGenCoverage &CoverageInfo) const;
 
 #define GET_GLOBALISEL_PREDICATES_DECL
@@ -58,8 +60,7 @@ private:
 
 static const TargetRegisterClass *
 getMinClassForRegBank(const RegisterBank &RB, unsigned SizeInBits) {
-  unsigned RegBankID = RB.getID();
-  assert(RegBankID == SM83::GPRRegBankID);
+  assert(RB.getID() == SM83::GPRRegBankID);
 
   if (SizeInBits <= 8)
     return &SM83::GR8RegClass;
@@ -88,6 +89,33 @@ SM83InstructionSelector::SM83InstructionSelector(const SM83TargetMachine &TM,
 {
 }
 
+bool SM83InstructionSelector::selectCopy(MachineInstr &I,
+                                         MachineRegisterInfo &MRI) {
+  // constrain destination register
+  Register DstReg = I.getOperand(0).getReg();
+  unsigned DstSize = RBI.getSizeInBits(DstReg, MRI, TRI);
+  const RegisterBank &DstRegBank = *RBI.getRegBank(DstReg, MRI, TRI);
+  const TargetRegisterClass *DstRC = getMinClassForRegBank(DstRegBank, DstSize);
+
+  Register SrcReg = I.getOperand(1).getReg();
+  unsigned SrcSize = RBI.getSizeInBits(SrcReg, MRI, TRI);
+  const RegisterBank &SrcRegBank = *RBI.getRegBank(SrcReg, MRI, TRI);
+
+  if (!Register::isPhysicalRegister(DstReg) &&
+      !RBI.constrainGenericRegister(DstReg, *DstRC, MRI)) {
+    LLVM_DEBUG(dbgs() << "Failed to constrain " << TII.getName(I.getOpcode())
+                      << " operand\n");
+    return false;
+  }
+
+  if (SrcSize != DstSize || SrcRegBank != DstRegBank) {
+    return false;
+  }
+
+  I.setDesc(TII.get(SM83::COPY));
+  return true;
+}
+
 bool SM83InstructionSelector::select(MachineInstr &I) {
   // the register allocator will handle copies
   unsigned Opcode = I.getOpcode();
@@ -98,18 +126,7 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
 
   if (!isPreISelGenericOpcode(Opcode)) {
     if (I.isCopy()) {
-      // constrain destination register
-      Register DstReg = I.getOperand(0).getReg();
-      const RegisterBank &DstRegBank = *RBI.getRegBank(DstReg, MRI, TRI);
-      unsigned DstSize = RBI.getSizeInBits(DstReg, MRI, TRI);
-      const TargetRegisterClass *DstRC = getMinClassForRegBank(DstRegBank, DstSize);
-
-      if (!Register::isPhysicalRegister(DstReg) &&
-          !RBI.constrainGenericRegister(DstReg, *DstRC, MRI)) {
-        LLVM_DEBUG(dbgs() << "Failed to constrain " << TII.getName(I.getOpcode())
-                          << " operand\n");
-        return false;
-      }
+      return selectCopy(I, MRI);
     }
 
     return true;

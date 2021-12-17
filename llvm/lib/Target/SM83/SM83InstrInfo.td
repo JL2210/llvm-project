@@ -69,7 +69,7 @@ def direct8 : Operand<i8>, ImmLeaf<i16, [{
   let ParserMatchClass = ImmAsmOperand<"Direct8">;
   let EncoderMethod = "getDirect8Value";
 }
-def direct16 : Operand<i16>, ImmLeaf<i16, [{
+def direct16 : Operand<OtherVT>, ImmLeaf<i16, [{
   return isUInt<16>(Imm);
 }]> {
   let ParserMatchClass = ImmAsmOperand<"Direct16">;
@@ -84,6 +84,7 @@ def STOP : SM83Inst16<(outs), (ins), "stop", []> {
   let Inst{15-8} = 0x00;
 }
 
+let isMoveImm = 1 in
 def LDrrnn : SM83Inst24<(outs GR16:$dst), (ins imm16:$imm),
              "ld $dst, $imm", [(set GR16:$dst, imm16:$imm)]> {
   bits<2> dst;
@@ -170,6 +171,7 @@ let Uses = [HL], Defs = [FLAGS], mayLoad = 1, mayStore = 1 in {
   def DECdHL : I8<0x35, "dec [hl]", [(store (sub (i8 (load HL)), 1), HL)]>;
 }
 
+let isMoveImm = 1 in
 def LDri : SM83Inst16<(outs GR8:$dst), (ins imm8:$imm), "ld $dst, $imm",
                       [(set GR8:$dst, imm8:$imm)]> {
   bits<3> dst;
@@ -202,12 +204,19 @@ let Uses = [A], Defs = [A, FLAGS] in {
   def RLA : I8<0x17, "rla">;
   def RRA : I8<0x1f, "rra">;
   def DAA : I8<0x27, "daa">;
-  def CPL : I8<0x2f, "cpl", [(set A, (not A))]>;
 }
+
+let Constraints = "$dst = $a" in
+def CPL : I8<0x2f, "cpl", [(set RA:$dst, (not RA:$a))],
+             (outs RA:$dst), (ins RA:$a)>;
+
 let Defs = [FLAGS] in {
   def SCF : I8<0x37, "scf">;
   def CCF : I8<0x3f, "ccf">;
 }
+
+let Defs = [FLAGS], isReMaterializable = 1 in
+def NEGA : Pseudo<(outs RA:$dst), (ins RA:$a), [(set RA:$dst, (ineg RA:$a))]>;
 
 let mayStore = 1, Uses = [SP] in
 def LDd16SP : SM83Inst24<(outs), (ins direct16:$addr), "ld [$addr], sp",
@@ -235,9 +244,9 @@ def JRccr8 : SM83Inst16<(outs), (ins condition:$cc, rel8:$off),
   let Inst{2-0} = 0b000;
 }
 
-let Uses = [HL], Defs = [HL, FLAGS] in
-def ADDHLrr : SM83Inst8<(outs), (ins GR16:$src), "add hl, $src",
-                        [(set HL, (add HL, GR16:$src))]> {
+let Defs = [FLAGS], Constraints = "$dst = $hl" in
+def ADDHLrr : SM83Inst8<(outs RHL:$dst), (ins RHL:$hl, GR16:$src), "add hl, $src",
+                        [(set RHL:$dst, (add RHL:$hl, GR16:$src))]> {
   bits<2> src;
 
   let Inst{7-6} = 0b00;
@@ -282,6 +291,7 @@ let hasSideEffects = 1 in
 def HALT : I8<0x76, "halt">;
 
 multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
+  let Constraints = "$dst = $a" in
   def r : SM83Inst8<(outs RA:$dst), (ins RA:$a, GR8:$src), opstr # " a, $src",
                     [(set RA:$dst, (op RA:$a, GR8:$src))]> {
     bits<3> src;
@@ -290,6 +300,7 @@ multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
     let Inst{5-3} = opc;
     let Inst{2-0} = src;
   }
+  let Constraints = "$dst = $a" in
   def i : SM83Inst16<(outs RA:$dst), (ins RA:$a, imm8:$imm), opstr # " a, $imm",
                      [(set RA:$dst, (op RA:$a, imm8:$imm))]> {
     bits<8> imm;
@@ -300,7 +311,7 @@ multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
     let Inst{15-8} = imm;
   }
 
-  let mayLoad = 1 in
+  let mayLoad = 1, Constraints = "$dst = $a" in
   def dHL : SM83Inst8<(outs RA:$dst), (ins RA:$a, RHL:$hl), opstr # " a, [hl]",
                       [(set RA:$dst, (op RA:$a, (load RHL:$hl)))]> {
     let Inst{7-6} = 0b10;
@@ -321,6 +332,9 @@ let Defs = [FLAGS] in {
     defm SBC : mALU<"sbc", 0b011>;
   }
 }
+
+let Defs = [FLAGS], isMoveImm = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 in
+def LDaz : Pseudo<(outs RA:$a), (ins), [(set RA:$a, 0)]>;
 
 let isReturn = 1, isTerminator = 1 in
 def RETcc : SM83Inst8<(outs), (ins condition:$cc), "ret $cc", []> {

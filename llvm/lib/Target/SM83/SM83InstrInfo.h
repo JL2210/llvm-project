@@ -13,6 +13,7 @@
 #ifndef LLVM_LIB_TARGET_SM83_SM83INSTRINFO_H
 #define LLVM_LIB_TARGET_SM83_SM83INSTRINFO_H
 
+#include "SM83RegisterInfo.h"
 #include "llvm/CodeGen/TargetInstrInfo.h"
 
 #define GET_INSTRINFO_HEADER
@@ -20,9 +21,23 @@
 
 namespace llvm {
 
+class SM83Subtarget;
+
 class SM83InstrInfo : public SM83GenInstrInfo {
+  const SM83Subtarget &Subtarget;
+  const SM83RegisterInfo RI;
+
 public:
-  SM83InstrInfo();
+  SM83InstrInfo(const SM83Subtarget &STI);
+
+  const SM83RegisterInfo &getRegisterInfo() const { return RI; }
+
+  void copyPhysReg(MachineBasicBlock &MBB,
+                   MachineBasicBlock::iterator MI, const DebugLoc &DL,
+                   MCRegister DstReg, MCRegister SrcReg,
+                   bool KillSrc) const override;
+
+  bool expandPostRAPseudo(MachineInstr &MI) const override;
 };
 
 } // namespace llvm
