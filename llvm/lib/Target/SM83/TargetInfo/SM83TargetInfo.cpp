@@ -8,7 +8,7 @@
 
 #include "SM83TargetInfo.h"
 
-#include "llvm/Support/TargetRegistry.h"
+#include "llvm/MC/TargetRegistry.h"
 
 namespace llvm {
 

@@ -32,8 +32,14 @@ SM83LegalizerInfo::SM83LegalizerInfo(const DataLayout DL)
   getActionDefinitionsBuilder({G_SUB, G_AND, G_XOR, G_OR})
     .legalFor({s8});
 
+  getActionDefinitionsBuilder({G_ABS})
+    .lower();
+
+  getActionDefinitionsBuilder({G_ASHR})
+    .customFor({s8});
+
   getActionDefinitionsBuilder({G_FRAME_INDEX, G_BLOCK_ADDR})
     .legalFor({p0});
 
-  computeTables();
+  getLegacyLegalizerInfo().computeTables();
 }
