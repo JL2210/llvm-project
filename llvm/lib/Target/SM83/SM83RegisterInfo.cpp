@@ -18,6 +18,7 @@
 #include "llvm/CodeGen/Register.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/IR/Function.h"
 
 #define GET_REGINFO_TARGET_DESC
 #include "SM83GenRegisterInfo.inc"
@@ -31,7 +32,12 @@ SM83RegisterInfo::SM83RegisterInfo(const Triple &TT)
 
 const MCPhysReg *
 SM83RegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
-  return CSR_SaveList;
+  switch (MF->getFunction().getCallingConv()) {
+  default: llvm_unreachable("Unsupported calling convention");
+  case CallingConv::C:
+  case CallingConv::Fast:
+    return CSR_SaveList;
+  }
 }
 
 BitVector SM83RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
@@ -44,9 +50,25 @@ BitVector SM83RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   return Reserved;
 }
 
+const uint32_t *
+SM83RegisterInfo::getCallPreservedMask(const MachineFunction &MF,
+                                       CallingConv::ID CC) const {
+  switch (CC) {
+  default: llvm_unreachable("Unsupported calling convention");
+  case CallingConv::C:
+  case CallingConv::Fast:
+    return CSR_RegMask;
+  }
+}
+
+const uint32_t *SM83RegisterInfo::getNoPreservedMask() const {
+  return CSR_NoRegs_RegMask;
+}
+
 void SM83RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                                            int SPAdj, unsigned FIOperandNum,
                                            RegScavenger *RS) const {
+  report_fatal_error("eliminateFrameIndex not implemented!");
   llvm_unreachable("Subroutines not supported yet!");
 }
 

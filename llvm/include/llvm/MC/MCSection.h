@@ -45,6 +45,7 @@ public:
     SV_ELF,
     SV_GOFF,
     SV_MachO,
+    SV_RGB9,
     SV_Wasm,
     SV_XCOFF,
     SV_SPIRV,
