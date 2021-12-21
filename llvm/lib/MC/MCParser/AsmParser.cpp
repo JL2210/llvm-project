@@ -814,6 +814,9 @@ AsmParser::AsmParser(SourceMgr &SM, MCContext &Ctx, MCStreamer &Out,
   case MCContext::IsDXContainer:
     report_fatal_error("DXContainer is not supported yet");
     break;
+  case MCContext::IsRGB9:
+    report_fatal_error("AsmParser not supported on SM83");
+    break;
   }
 
   PlatformParser->Initialize(*this);

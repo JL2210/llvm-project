@@ -50,6 +50,7 @@
 #include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/MCSectionGOFF.h"
 #include "llvm/MC/MCSectionMachO.h"
+#include "llvm/MC/MCSectionRGB9.h"
 #include "llvm/MC/MCSectionWasm.h"
 #include "llvm/MC/MCSectionXCOFF.h"
 #include "llvm/MC/MCStreamer.h"
@@ -2741,4 +2742,43 @@ MCSection *TargetLoweringObjectFileGOFF::SelectSectionForGlobal(
                                        nullptr, 0);
 
   return getContext().getObjectFileInfo()->getTextSection();
+}
+
+//===----------------------------------------------------------------------===//
+//                                  RGB9
+//===----------------------------------------------------------------------===//
+TargetLoweringObjectFileRGB9::TargetLoweringObjectFileRGB9()
+    : TargetLoweringObjectFile() {}
+
+MCSection *TargetLoweringObjectFileRGB9::getExplicitSectionGlobal(
+    const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {
+  return SelectSectionForGlobal(GO, Kind, TM);
+}
+
+MCSection *TargetLoweringObjectFileRGB9::SelectSectionForGlobal(
+    const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {
+  if (Kind.isText()) {
+    if (TM.getFunctionSections()) {
+      report_fatal_error("-ffunction-sections not implemented for RGB9");
+    }
+  } else {
+    if (TM.getDataSections()) {
+      report_fatal_error("-fdata-sections not implemented for RGB9");
+    }
+  }
+
+  if (Kind.isReadOnly())
+    return getContext().getObjectFileInfo()->getReadOnlySection();
+
+  if (Kind.isText())
+    return getContext().getObjectFileInfo()->getTextSection();
+
+  if (Kind.isData())
+    return getContext().getObjectFileInfo()->getDataSection();
+
+  if (Kind.isBSS() || Kind.isCommon())
+    return getContext().getObjectFileInfo()->getBSSSection();
+
+  report_fatal_error("Section kind unsupported!");
+  return nullptr;
 }

@@ -21,5 +21,9 @@ def RetCC_SM83 : CallingConv <[
   CCDelegateTo<CC_SM83>,
 ]>;
 
+def CC_SM83_Interrupt : CallingConv <[
+]>;
+
+def CSR_NoRegs : CalleeSavedRegs<(add)>;
 def CSR : CalleeSavedRegs<(add)>;
 def CSR_Interrupt : CalleeSavedRegs<(add AF, BC, DE, HL, SP)>;

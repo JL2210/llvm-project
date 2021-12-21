@@ -6534,6 +6534,7 @@ bool ARMAsmParser::parsePrefix(ARMMCExpr::VariantKind &RefKind) {
   case MCContext::IsSPIRV:
   case MCContext::IsXCOFF:
   case MCContext::IsDXContainer:
+  case MCContext::IsSM83:
     llvm_unreachable("unexpected object format");
     break;
   }

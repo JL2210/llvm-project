@@ -73,6 +73,9 @@ MCStreamer *Target::createMCObjectStreamer(
                                   std::move(Emitter));
     break;
   }
+  case Triple::RGB9:
+    report_fatal_error("RGB9 MCObjectStreamer not implemented yet");
+  }
   if (ObjectTargetStreamerCtorFn)
     ObjectTargetStreamerCtorFn(*S, STI);
   return S;

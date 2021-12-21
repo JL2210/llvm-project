@@ -27,52 +27,41 @@ def Condition : AsmOperandClass {
 def condition : Operand<i8>, ImmLeaf<i8, [{
   return isUInt<2>(Imm);
 }]> {
-  let ParserMatchClass = Condition;
   let PrintMethod = "printCondition";
 }
 
 def rstvec : Operand<i8>, ImmLeaf<i8, [{
   return isShiftedUInt<3, 3>(Imm);
 }]> {
-  let ParserMatchClass = ImmAsmOperand<"RSTVec">;
-  let EncoderMethod = "getRSTVecValue";
 }
 
 def uimm3 : Operand<i8>, ImmLeaf<i8, [{
   return isUInt<3>(Imm);
 }]> {
-  let ParserMatchClass = ImmAsmOperand<"UImm3">;
 }
 def simm8 : Operand<i8>, ImmLeaf<i8, [{
   return isInt<8>(Imm);
 }]> {
-  let ParserMatchClass = ImmAsmOperand<"SImm8">;
 }
 def imm8 : Operand<i8>, ImmLeaf<i8, [{
   return isUInt<8>(Imm) || isInt<8>(Imm);
 }]> {
-  let ParserMatchClass = ImmAsmOperand<"Imm8">;
 }
 def imm16 : Operand<i16>, ImmLeaf<i16, [{
   return isUInt<16>(Imm) || isInt<16>(Imm);
 }]> {
-  let ParserMatchClass = ImmAsmOperand<"Imm16">;
 }
 def rel8 : Operand<i8>, ImmLeaf<i8, [{
   return isInt<8>(Imm);
 }]> {
-  let ParserMatchClass = ImmAsmOperand<"Rel8">;
 }
 def direct8 : Operand<i8>, ImmLeaf<i16, [{
   return Imm >= 0xff00 && Imm <= 0xffff;
 }]> {
-  let ParserMatchClass = ImmAsmOperand<"Direct8">;
-  let EncoderMethod = "getDirect8Value";
 }
-def direct16 : Operand<OtherVT>, ImmLeaf<i16, [{
+def direct16 : Operand<i16>, ImmLeaf<i16, [{
   return isUInt<16>(Imm);
 }]> {
-  let ParserMatchClass = ImmAsmOperand<"Direct16">;
 }
 
 def NOP : I8<0x00, "nop">;
@@ -85,7 +74,7 @@ def STOP : SM83Inst16<(outs), (ins), "stop", []> {
 }
 
 let isMoveImm = 1 in
-def LDrrnn : SM83Inst24<(outs GR16:$dst), (ins imm16:$imm),
+def LDrrii : SM83Inst24<(outs GR16:$dst), (ins imm16:$imm),
              "ld $dst, $imm", [(set GR16:$dst, imm16:$imm)]> {
   bits<2> dst;
   bits<16> imm;

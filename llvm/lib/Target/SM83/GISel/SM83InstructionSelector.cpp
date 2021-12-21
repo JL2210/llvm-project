@@ -38,14 +38,13 @@ public:
   static const char *getName() { return DEBUG_TYPE; }
 
 private:
-//  const SM83TargetMachine &TM;
-//  const SM83Subtarget &STI;
   const SM83InstrInfo &TII;
   const SM83RegisterInfo &TRI;
   const SM83RegisterBankInfo &RBI;
 
   bool selectCopy(MachineInstr &I, MachineRegisterInfo &MRI);
   bool selectImpl(MachineInstr &I, CodeGenCoverage &CoverageInfo) const;
+  bool selectConstant(MachineInstr &I, MachineRegisterInfo &MRI);
 
 #define GET_GLOBALISEL_PREDICATES_DECL
 #include "SM83GenGlobalISel.inc"
@@ -116,6 +115,28 @@ bool SM83InstructionSelector::selectCopy(MachineInstr &I,
   return true;
 }
 
+bool SM83InstructionSelector::selectConstant(MachineInstr &I,
+                                             MachineRegisterInfo &MRI) {
+  const auto DefReg = I.getOperand(0).getReg();
+  auto Ty = MRI.getType(DefReg);
+
+  unsigned Opc = 0;
+  switch(Ty.getSizeInBits()) {
+  default:
+    report_fatal_error("Unsupported type in selectConstant");
+    return false;
+  case 8:
+    Opc = SM83::LDri;
+    break;
+  case 16:
+    Opc = SM83::LDrrii;
+    break;
+  }
+
+  I.setDesc(TII.get(Opc));
+  return constrainSelectedInstRegOperands(I, TII, TRI, RBI);
+}
+
 bool SM83InstructionSelector::select(MachineInstr &I) {
   // the register allocator will handle copies
   unsigned Opcode = I.getOpcode();
@@ -135,7 +156,12 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
   if(selectImpl(I, *CoverageInfo))
     return true;
 
-  return false;
+  switch(I.getOpcode()) {
+  default:
+    return false;
+  case TargetOpcode::G_GLOBAL_VALUE:
+    return selectConstant(I, MRI);
+  }
 }
 
 InstructionSelector *

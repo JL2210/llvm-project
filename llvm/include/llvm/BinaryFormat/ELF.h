@@ -315,7 +315,6 @@ enum {
   EM_NORC = 218,          // Nanoradio Optimized RISC
   EM_CSR_KALIMBA = 219,   // CSR Kalimba architecture family
   EM_AMDGPU = 224,        // AMD GPU architecture
-  EM_SM83 = 234,          // FIXME: REMOVE! Sharp SM83 Microcontroller
   EM_RISCV = 243,         // RISC-V
   EM_LANAI = 244,         // Lanai 32-bit processor
   EM_BPF = 247,           // Linux kernel bpf virtual machine
@@ -930,11 +929,6 @@ enum : unsigned {
 
   // Virtual processor selection mask for EF_CUDA_VIRTUAL_SM* values.
   EF_CUDA_VIRTUAL_SM = 0xff0000,
-};
-
-// ELF Relocation types for SM83
-enum {
-#include "ELFRelocs/SM83.def"
 };
 
 // ELF Relocation types for BPF

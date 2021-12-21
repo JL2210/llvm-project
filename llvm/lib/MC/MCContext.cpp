@@ -31,6 +31,7 @@
 #include "llvm/MC/MCSectionSPIRV.h"
 #include "llvm/MC/MCSectionWasm.h"
 #include "llvm/MC/MCSectionXCOFF.h"
+#include "llvm/MC/MCSectionRGB9.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCSymbol.h"
@@ -110,6 +111,9 @@ MCContext::MCContext(const Triple &TheTriple, const MCAsmInfo *mai,
   case Triple::SPIRV:
     Env = IsSPIRV;
     break;
+  case Triple::RGB9:
+    Env = IsRGB9;
+    break;
   case Triple::UnknownObjectFormat:
     report_fatal_error("Cannot initialize MC for unknown object file format.");
     break;
@@ -144,6 +148,7 @@ void MCContext::reset() {
   DXCAllocator.DestroyAll();
   ELFAllocator.DestroyAll();
   GOFFAllocator.DestroyAll();
+  RGB9Allocator.DestroyAll();
   MachOAllocator.DestroyAll();
   WasmAllocator.DestroyAll();
   XCOFFAllocator.DestroyAll();
@@ -177,6 +182,7 @@ void MCContext::reset() {
   WasmUniquingMap.clear();
   XCOFFUniquingMap.clear();
   DXCUniquingMap.clear();
+  RGB9UniquingMap.clear();
 
   ELFEntrySizeMap.clear();
   ELFSeenGenericMergeableSections.clear();
@@ -265,6 +271,8 @@ MCSymbol *MCContext::createSymbolImpl(const MCSymbolTableEntry *Name,
                 "MCSymbol classes must be trivially destructible");
   static_assert(std::is_trivially_destructible<MCSymbolXCOFF>(),
                 "MCSymbol classes must be trivially destructible");
+  static_assert(std::is_trivially_destructible<MCSymbolRGB9>(),
+                "MCSymbol classes must be trivially destructible");
 
   switch (getObjectFileType()) {
   case MCContext::IsCOFF:
@@ -275,6 +283,8 @@ MCSymbol *MCContext::createSymbolImpl(const MCSymbolTableEntry *Name,
     return new (Name, *this) MCSymbolGOFF(Name, IsTemporary);
   case MCContext::IsMachO:
     return new (Name, *this) MCSymbolMachO(Name, IsTemporary);
+  case MCContext::IsRGB9: // generic case
+    break;
   case MCContext::IsWasm:
     return new (Name, *this) MCSymbolWasm(Name, IsTemporary);
   case MCContext::IsXCOFF:
@@ -688,6 +698,15 @@ MCSectionGOFF *MCContext::getGOFFSection(StringRef Section, SectionKind Kind,
   Iter->second = GOFFSection;
   allocInitialFragment(*GOFFSection);
   return GOFFSection;
+}
+
+MCSectionRGB9 *MCContext::getRGB9Section(StringRef Section, SectionKind Kind) {
+  // Do the lookup. If we don't have a hit, return a new section.
+  auto &RGB9Section = RGB9UniquingMap[Section.str()];
+  if (!RGB9Section)
+    RGB9Section = new (RGB9Allocator.Allocate()) MCSectionRGB9(Section, Kind);
+
+  return RGB9Section;
 }
 
 MCSectionCOFF *MCContext::getCOFFSection(StringRef Section,
