@@ -5099,6 +5099,8 @@ static const char *getSectionNameForBitcode(const Triple &T) {
     break;
   case Triple::DXContainer:
     llvm_unreachable("DXContainer is not yet implemented");
+  case Triple::RGB9:
+    llvm_unreachable("RGB9 is not yet implemented");
     break;
   }
   llvm_unreachable("Unimplemented ObjectFormatType");
@@ -5124,6 +5126,8 @@ static const char *getSectionNameForCommandline(const Triple &T) {
     break;
   case Triple::DXContainer:
     llvm_unreachable("DXC is not yet implemented");
+  case Triple::RGB9:
+    llvm_unreachable("RGB9 is not yet implemented");
     break;
   }
   llvm_unreachable("Unimplemented ObjectFormatType");

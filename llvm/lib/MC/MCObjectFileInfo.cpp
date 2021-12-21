@@ -21,6 +21,7 @@
 #include "llvm/MC/MCSectionGOFF.h"
 #include "llvm/MC/MCSectionMachO.h"
 #include "llvm/MC/MCSectionSPIRV.h"
+#include "llvm/MC/MCSectionRGB9.h"
 #include "llvm/MC/MCSectionWasm.h"
 #include "llvm/MC/MCSectionXCOFF.h"
 #include "llvm/Support/Casting.h"
@@ -543,6 +544,13 @@ void MCObjectFileInfo::initGOFFMCObjectFileInfo(const Triple &T) {
   PPA1Section =
       Ctx->getGOFFSection(".ppa1", SectionKind::getMetadata(), TextSection,
                           MCConstantExpr::create(GOFF::SK_PPA1, *Ctx));
+}
+
+void MCObjectFileInfo::initRGB9MCObjectFileInfo(const Triple &T) {
+  TextSection = Ctx->getRGB9Section(".text", SectionKind::getText());
+  DataSection = Ctx->getRGB9Section(".data", SectionKind::getData());
+  ReadOnlySection = Ctx->getRGB9Section(".rodata", SectionKind::getReadOnly());
+  BSSSection = Ctx->getRGB9Section(".bss", SectionKind::getBSS());
 }
 
 void MCObjectFileInfo::initCOFFMCObjectFileInfo(const Triple &T) {
@@ -1076,6 +1084,8 @@ void MCObjectFileInfo::initMCObjectFileInfo(MCContext &MCCtx, bool PIC,
     break;
   case MCContext::IsDXContainer:
     initDXContainerObjectFileInfo(TheTriple);
+  case MCContext::IsRGB9:
+    initRGB9MCObjectFileInfo(TheTriple);
     break;
   }
 }
@@ -1095,6 +1105,7 @@ MCSection *MCObjectFileInfo::getDwarfComdatSection(const char *Name,
   case Triple::SPIRV:
   case Triple::XCOFF:
   case Triple::DXContainer:
+  case Triple::RGB9:
   case Triple::UnknownObjectFormat:
     report_fatal_error("Cannot get DWARF comdat section for this object file "
                        "format: not implemented.");

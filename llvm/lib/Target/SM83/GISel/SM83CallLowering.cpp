@@ -202,7 +202,8 @@ bool SM83CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
                                      MIRBuilder, Info.CallConv, Info.IsVarArg))
     return false;
 
-  MIB.addRegMask(TRI->getCallPreservedMask(MF, Info.CallConv));
+  const uint32_t *Mask = TRI->getCallPreservedMask(MF, Info.CallConv);
+  if(Mask) MIB.addRegMask(Mask);
 
   MIRBuilder.insertInstr(MIB);
 

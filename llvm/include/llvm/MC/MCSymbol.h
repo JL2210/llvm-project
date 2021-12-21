@@ -48,6 +48,7 @@ protected:
     SymbolKindELF,
     SymbolKindGOFF,
     SymbolKindMachO,
+    SymbolKindRGB9,
     SymbolKindWasm,
     SymbolKindXCOFF,
   };
@@ -280,6 +281,8 @@ public:
   bool isGOFF() const { return Kind == SymbolKindGOFF; }
 
   bool isMachO() const { return Kind == SymbolKindMachO; }
+
+  bool isRGB9() const { return Kind == SymbolKindRGB9; }
 
   bool isWasm() const { return Kind == SymbolKindWasm; }
 

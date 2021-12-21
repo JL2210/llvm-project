@@ -611,6 +611,8 @@ public:
         S = createDXContainerStreamer(Ctx, std::move(TAB), std::move(OW),
                                       std::move(Emitter), RelaxAll);
       break;
+    case Triple::RGB9:
+      report_fatal_error("RGB9 MCObjectStreamer not implemented yet");
     }
     if (ObjectTargetStreamerCtorFn)
       ObjectTargetStreamerCtorFn(*S, STI);

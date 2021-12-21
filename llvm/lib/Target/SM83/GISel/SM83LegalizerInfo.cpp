@@ -24,6 +24,9 @@ SM83LegalizerInfo::SM83LegalizerInfo(const DataLayout DL)
   getActionDefinitionsBuilder({G_IMPLICIT_DEF, G_CONSTANT})
     .legalFor({p0, s1, s8, s16, s32});
 
+  getActionDefinitionsBuilder({G_GLOBAL_VALUE})
+    .legalFor({p0});
+
   getActionDefinitionsBuilder(G_PHI)
     .legalFor({s8, s16});
 

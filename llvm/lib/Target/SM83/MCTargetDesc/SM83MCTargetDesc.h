@@ -13,31 +13,7 @@
 #ifndef LLVM_LIB_TARGET_SM83_MCTARGETDESC_SM83MCTARGETDESC_H
 #define LLVM_LIB_TARGET_SM83_MCTARGETDESC_SM83MCTARGETDESC_H
 
-#include "llvm/Config/config.h"
-#include "llvm/MC/MCTargetOptions.h"
-#include "llvm/Support/DataTypes.h"
-#include <memory>
-
-namespace llvm {
-class MCAsmBackend;
-class MCCodeEmitter;
-class MCContext;
-class MCInstrInfo;
-class MCObjectTargetWriter;
-class MCRegisterInfo;
-class MCSubtargetInfo;
-class Target;
-
-MCCodeEmitter *createSM83MCCodeEmitter(const MCInstrInfo &MCII,
-                                       const MCRegisterInfo &MRI,
-                                       MCContext &Ctx);
-
-MCAsmBackend *createSM83AsmBackend(const Target &T, const MCSubtargetInfo &STI,
-                                   const MCRegisterInfo &MRI,
-                                   const MCTargetOptions &Options);
-
-std::unique_ptr<MCObjectTargetWriter> createSM83ELFObjectWriter();
-} // namespace llvm
+#include <cstdint>
 
 // Defines symbolic names for SM83 registers.
 #define GET_REGINFO_ENUM

@@ -32,13 +32,12 @@ SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT, const MCTargetOptions &Options) {
   HiddenVisibilityAttr = HiddenDeclarationVisibilityAttr =
       ProtectedVisibilityAttr = MCSA_Invalid;
   GlobalDirective = "GLOBAL ";
+  PrivateGlobalPrefix = PrivateLabelPrefix = ".L";
   WeakDirective = "";
-  InlineAsmStart = "";
-  InlineAsmEnd = "";
+  InlineAsmStart = InlineAsmEnd = "";
   ZeroDirective = "\tds\t";
-  AsciiDirective = "\tdb\t";
-  AscizDirective = nullptr;
-  Data8bitsDirective = "\tdb\t";
+  AsciiDirective = AscizDirective = nullptr;
+  ByteListDirective = Data8bitsDirective = "\tdb\t";
   Data16bitsDirective = "\tdw\t";
   Data32bitsDirective = "\tdl\t";
   Data64bitsDirective = nullptr;

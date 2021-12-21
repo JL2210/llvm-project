@@ -778,6 +778,8 @@ static StringRef getObjectFormatTypeName(Triple::ObjectFormatType Kind) {
     return "goff";
   case Triple::MachO:
     return "macho";
+  case Triple::RGB9:
+    return "rgb9";
   case Triple::Wasm:
     return "wasm";
   case Triple::XCOFF:
@@ -840,7 +842,6 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
   case Triple::riscv32:
   case Triple::riscv64:
   case Triple::shave:
-  case Triple::sm83:
   case Triple::sparc:
   case Triple::sparcel:
   case Triple::sparcv9:
@@ -863,6 +864,9 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
     if (T.isOSzOS())
       return Triple::GOFF;
     return Triple::ELF;
+
+  case Triple::sm83:
+    return Triple::RGB9;
 
   case Triple::wasm32:
   case Triple::wasm64:
