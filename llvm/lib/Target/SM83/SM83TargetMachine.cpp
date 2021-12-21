@@ -51,7 +51,7 @@ SM83TargetMachine::SM83TargetMachine(const Target &T, const Triple &TT,
     : LLVMTargetMachine(T, SM83DataLayout, TT, CPU, FS, Options,
                         getEffectiveRelocModel(RM),
                         getEffectiveCodeModel(CM, CodeModel::Small), OL),
-      TLOF(std::make_unique<TargetLoweringObjectFileELF>()),
+      TLOF(std::make_unique<TargetLoweringObjectFileRGB9>()),
       Subtarget(TT, std::string(CPU), std::string(FS), *this) {
   initAsmInfo();
 }

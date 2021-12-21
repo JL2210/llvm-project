@@ -2,12 +2,10 @@ add_llvm_component_group(SM83)
 
 set(LLVM_TARGET_DEFINITIONS SM83.td)
 
-tablegen(LLVM SM83GenAsmMatcher.inc -gen-asm-matcher)
 tablegen(LLVM SM83GenAsmWriter.inc -gen-asm-writer)
 tablegen(LLVM SM83GenCallingConv.inc -gen-callingconv)
 tablegen(LLVM SM83GenGlobalISel.inc -gen-global-isel)
 tablegen(LLVM SM83GenInstrInfo.inc -gen-instr-info)
-tablegen(LLVM SM83GenMCCodeEmitter.inc -gen-emitter)
 tablegen(LLVM SM83GenMCPseudoLowering.inc -gen-pseudo-lowering)
 tablegen(LLVM SM83GenRegisterBank.inc -gen-register-bank)
 tablegen(LLVM SM83GenRegisterInfo.inc -gen-register-info)
@@ -45,6 +43,5 @@ add_llvm_target(SM83CodeGen
   SM83
   )
 
-add_subdirectory(AsmParser)
 add_subdirectory(TargetInfo)
 add_subdirectory(MCTargetDesc)

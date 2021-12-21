@@ -43,6 +43,7 @@
 
 namespace llvm {
 
+<<<<<<< HEAD
 class CodeViewContext;
 class MCAsmInfo;
 class MCDataFragment;
@@ -59,6 +60,7 @@ class MCSectionMachO;
 class MCSectionSPIRV;
 class MCSectionWasm;
 class MCSectionXCOFF;
+class MCSectionRGB9;
 class MCStreamer;
 class MCSubtargetInfo;
 class MCSymbol;
@@ -94,8 +96,11 @@ public:
     IsSPIRV,
     IsWasm,
     IsXCOFF,
-    IsDXContainer
+    IsDXContainer,
+    IsRgb9
   };
+
+
 
 private:
   Environment Env;
@@ -147,6 +152,7 @@ private:
   SpecificBumpPtrAllocator<MCSectionSPIRV> SPIRVAllocator;
   SpecificBumpPtrAllocator<MCSectionWasm> WasmAllocator;
   SpecificBumpPtrAllocator<MCSectionXCOFF> XCOFFAllocator;
+  SpecificBumpPtrAllocator<MCSectionRGB9> RGB9Allocator;
   SpecificBumpPtrAllocator<MCInst> MCInstAllocator;
 
   SpecificBumpPtrAllocator<wasm::WasmSignature> WasmSignatureAllocator;
@@ -326,6 +332,7 @@ private:
   std::map<WasmSectionKey, MCSectionWasm *> WasmUniquingMap;
   std::map<XCOFFSectionKey, MCSectionXCOFF *> XCOFFUniquingMap;
   StringMap<MCSectionDXContainer *> DXCUniquingMap;
+  StringMap<MCSectionRGB9 *> RGB9UniquingMap;
   StringMap<bool> RelSecNames;
 
   SpecificBumpPtrAllocator<MCSubtargetInfo> MCSubtargetAllocator;
@@ -650,6 +657,8 @@ public:
       bool MultiSymbolsAllowed = false,
       std::optional<XCOFF::DwarfSectionSubtypeFlags> DwarfSubtypeFlags =
           std::nullopt);
+
+  MCSectionRGB9 *getRGB9Section(StringRef Section, SectionKind Kind);
 
   // Create and save a copy of STI and return a reference to the copy.
   MCSubtargetInfo &getSubtargetCopy(const MCSubtargetInfo &STI);

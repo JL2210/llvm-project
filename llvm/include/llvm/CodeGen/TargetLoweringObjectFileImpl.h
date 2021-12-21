@@ -316,6 +316,17 @@ public:
                                const TargetMachine &TM) const override;
 };
 
+class TargetLoweringObjectFileRGB9 : public TargetLoweringObjectFile {
+public:
+  TargetLoweringObjectFileRGB9();
+  ~TargetLoweringObjectFileRGB9() override = default;
+
+  MCSection *SelectSectionForGlobal(const GlobalObject *GO, SectionKind Kind,
+                                    const TargetMachine &TM) const override;
+  MCSection *getExplicitSectionGlobal(const GlobalObject *GO, SectionKind Kind,
+                                      const TargetMachine &TM) const override;
+};
+
 } // end namespace llvm
 
 #endif // LLVM_CODEGEN_TARGETLOWERINGOBJECTFILEIMPL_H

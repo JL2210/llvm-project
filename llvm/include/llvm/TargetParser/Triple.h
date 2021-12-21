@@ -306,6 +306,7 @@ public:
     GOFF,
     MachO,
     SPIRV,
+    RGB9,
     Wasm,
     XCOFF,
   };

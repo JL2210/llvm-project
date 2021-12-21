@@ -1582,6 +1582,7 @@ TEST(TripleTest, BitWidthChecks) {
   EXPECT_TRUE(T.isArch16Bit());
   EXPECT_FALSE(T.isArch32Bit());
   EXPECT_FALSE(T.isArch64Bit());
+  EXPECT_TRUE(T.isSM83());
 }
 
 TEST(TripleTest, BitWidthArchVariants) {

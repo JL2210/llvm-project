@@ -50,6 +50,8 @@ CCAssignFn *SM83TargetLowering::CCAssignFnForCall(CallingConv::ID CC,
   case CallingConv::C:
   case CallingConv::Fast:
     return CC_SM83;
+  case CallingConv::PreserveAll:
+    return CC_SM83_Interrupt;
   }
 }
 
