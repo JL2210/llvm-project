@@ -64,8 +64,11 @@ def GR8 : RegisterClass<"SM83", [i8], 8, (add RA, L, H, E, D, C, B)>;
 // ditto for HL
 def RHL : RegisterClass<"SM83", [i16], 8, (add HL)>;
 
+// 16-bit registers that can be accessed as memory with A
+def M16 : RegisterClass<"SM83", [i16], 8, (add DE, BC)>;
+
 // General-purpose 16-bit registers
-def GR16 : RegisterClass<"SM83", [i16], 8, (add RHL, DE, BC)>;
+def GR16 : RegisterClass<"SM83", [i16], 8, (add RHL, M16)>;
 
 // special regs
 let isAllocatable = 0, CopyCost = -1 in

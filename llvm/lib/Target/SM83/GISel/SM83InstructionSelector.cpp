@@ -16,6 +16,7 @@
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelector.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelectorImpl.h"
+#include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
 
 #define DEBUG_TYPE "sm83-isel"
 
@@ -42,9 +43,11 @@ private:
   const SM83RegisterInfo &TRI;
   const SM83RegisterBankInfo &RBI;
 
-  bool selectCopy(MachineInstr &I, MachineRegisterInfo &MRI);
+  bool selectCopy(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectImpl(MachineInstr &I, CodeGenCoverage &CoverageInfo) const;
-  bool selectConstant(MachineInstr &I, MachineRegisterInfo &MRI);
+  bool selectConstant(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  bool selectMergeValues(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  bool selectUnmergeValues(MachineInstr &I, MachineRegisterInfo &MRI) const;
 
 #define GET_GLOBALISEL_PREDICATES_DECL
 #include "SM83GenGlobalISel.inc"
@@ -89,7 +92,7 @@ SM83InstructionSelector::SM83InstructionSelector(const SM83TargetMachine &TM,
 }
 
 bool SM83InstructionSelector::selectCopy(MachineInstr &I,
-                                         MachineRegisterInfo &MRI) {
+                                         MachineRegisterInfo &MRI) const {
   // constrain destination register
   Register DstReg = I.getOperand(0).getReg();
   unsigned DstSize = RBI.getSizeInBits(DstReg, MRI, TRI);
@@ -116,7 +119,7 @@ bool SM83InstructionSelector::selectCopy(MachineInstr &I,
 }
 
 bool SM83InstructionSelector::selectConstant(MachineInstr &I,
-                                             MachineRegisterInfo &MRI) {
+                                             MachineRegisterInfo &MRI) const {
   const auto DefReg = I.getOperand(0).getReg();
   auto Ty = MRI.getType(DefReg);
 
@@ -135,6 +138,51 @@ bool SM83InstructionSelector::selectConstant(MachineInstr &I,
 
   I.setDesc(TII.get(Opc));
   return constrainSelectedInstRegOperands(I, TII, TRI, RBI);
+}
+
+bool SM83InstructionSelector::selectMergeValues(MachineInstr &I,
+                                                MachineRegisterInfo &MRI) const {
+  assert(I.getOpcode() == TargetOpcode::G_MERGE_VALUES &&
+         "unexpected instruction");
+  MachineIRBuilder MIB(I);
+  Register DstReg = I.getOperand(0).getReg();
+
+  assert(I.getNumOperands() == 3 &&
+         MRI.getType(I.getOperand(1).getReg()) == LLT::scalar(8) &&
+         MRI.getType(I.getOperand(2).getReg()) == LLT::scalar(8) &&
+         "Illegal instruction");
+  auto Merge = MIB.buildInstr(TargetOpcode::REG_SEQUENCE, {DstReg},
+                              {I.getOperand(1), int64_t(SM83::sub_low),
+                               I.getOperand(2), int64_t(SM83::sub_high)});
+  if (!constrainSelectedInstRegOperands(*Merge, TII, TRI, RBI))
+    return false;
+  I.eraseFromParent();
+  return RBI.constrainGenericRegister(DstReg, SM83::GR16RegClass, MRI);
+}
+
+bool SM83InstructionSelector::selectUnmergeValues(MachineInstr &I,
+                                                  MachineRegisterInfo &MRI) const {
+  assert(I.getOpcode() == TargetOpcode::G_UNMERGE_VALUES &&
+         "unexpected instruction");
+  MachineIRBuilder MIB(I);
+  Register LoReg = I.getOperand(0).getReg();
+  Register HiReg = I.getOperand(1).getReg();
+  Register SrcReg = I.getOperand(2).getReg();
+
+  assert(I.getNumOperands() == 3 &&
+         MRI.getType(LoReg) == LLT::scalar(8) &&
+         MRI.getType(HiReg) == LLT::scalar(8) &&
+         MRI.getType(SrcReg) == LLT::scalar(16) &&
+         "Illegal instruction");
+  MIB.buildInstr(TargetOpcode::COPY, {LoReg}, {})
+     .addReg(SrcReg, 0, SM83::sub_low);
+  MIB.buildInstr(TargetOpcode::COPY, {HiReg}, {})
+     .addReg(SrcReg, 0, SM83::sub_high);
+
+  I.eraseFromParent();
+  return RBI.constrainGenericRegister(LoReg, SM83::GR8RegClass, MRI) &&
+         RBI.constrainGenericRegister(HiReg, SM83::GR8RegClass, MRI) &&
+         RBI.constrainGenericRegister(SrcReg, SM83::GR16RegClass, MRI);
 }
 
 bool SM83InstructionSelector::select(MachineInstr &I) {
@@ -161,6 +209,10 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
     return false;
   case TargetOpcode::G_GLOBAL_VALUE:
     return selectConstant(I, MRI);
+  case TargetOpcode::G_MERGE_VALUES:
+    return selectMergeValues(I, MRI);
+  case TargetOpcode::G_UNMERGE_VALUES:
+    return selectUnmergeValues(I, MRI);
   }
 }
 
