@@ -45,7 +45,7 @@ void MCSectionRGB9::PrintSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
                                          raw_ostream &OS,
                                          const MCExpr *Subsection) const {
   OS << "\tSECTION\t\"" << getName() << "\", ";
-  OS << MCSectionRGB9::getTypeStr(getType());
+  OS << MCSectionRGB9::getTypeStr(getType()) << '\n';
   if(Subsection) {
     report_fatal_error("PrintSwitchToSection can't handle subsections");
   }

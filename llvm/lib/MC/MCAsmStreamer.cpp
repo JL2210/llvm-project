@@ -1287,7 +1287,14 @@ void MCAsmStreamer::emitBytes(StringRef Data) {
       return false;
     }
 
-    PrintQuotedString(Data, OS);
+    // TODO: FIXME: SM83 hack
+    if(Data.back() == 0) {
+      Data = Data.substr(0, Data.size() - 1);
+      PrintQuotedString(Data, OS);
+      OS << ", 0";
+    } else {
+      PrintQuotedString(Data, OS);
+    }
     EmitEOL();
     return true;
   };

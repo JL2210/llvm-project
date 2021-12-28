@@ -6637,7 +6637,7 @@ ConstantAddress CodeGenModule::GetAddrOfConstantCString(
 
   // Get the default prefix if a name wasn't specified.
   if (!GlobalName)
-    GlobalName = ".str";
+    GlobalName = "str"; // TODO: FIXME: SM83 hack
   // Create a global variable for this.
   auto GV = GenerateStringLiteral(C, llvm::GlobalValue::PrivateLinkage, *this,
                                   GlobalName, Alignment);

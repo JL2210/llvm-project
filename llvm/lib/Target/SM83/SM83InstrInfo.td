@@ -64,6 +64,25 @@ def direct16 : Operand<i16>, ImmLeaf<i16, [{
 }]> {
 }
 
+// LLVM likes to select instructions in the order it sees them
+let mayStore = 1 in
+def LDd16A : SM83Inst24<(outs), (ins direct16:$addr, RA:$a), "ld [$addr], $a",
+                        [(store RA:$a, direct16:$addr)]> {
+  bits<16> addr;
+
+  let Inst{7-0} = 0xea;
+  let Inst{23-8} = addr;
+}
+
+let mayLoad = 1 in
+def LDAd16 : SM83Inst24<(outs RA:$a), (ins direct16:$addr), "ld $a, [$addr]",
+                        [(set RA:$a, (load direct16:$addr))]> {
+  bits<16> addr;
+
+  let Inst{7-0} = 0xfa;
+  let Inst{23-8} = addr;
+}
+
 def NOP : I8<0x00, "nop">;
 let hasSideEffects = 1 in
 def STOP : SM83Inst16<(outs), (ins), "stop", []> {
@@ -98,26 +117,42 @@ def LDSPnn : SM83Inst24<(outs), (ins imm16:$imm), "ld sp, $imm",
   let Inst{23-8} = imm;
 }
 
-let mayStore = 1 in {
-  let Uses = [BC, A] in
-  def LDdBCA : I8<0x02, "ld [bc], a", [(store A, BC)]>;
-  let Uses = [DE, A] in
-  def LDdDEA : I8<0x12, "ld [de], a", [(store A, DE)]>;
+/*
+let mayStore = 1 in
+def LDdrrA : SM83Inst8<(outs), (ins RA:$a, M16:$dstp), "ld [$dstp], $a",
+                       [(store RA:$a, M16:$dstp)]> {
+  bits<2> dstp;
+
+  let Inst{7-6} = 0b00;
+  let Inst{5-4} = dstp;
+  let Inst{3-0} = 0b0010;
 }
-let mayStore = 1, Uses = [HL, A], Defs = [HL] in {
-  def LDdHLIA : I8<0x22, "ld [hli], a", [(set HL, (post_store A, HL, 1))]>;
-  def LDdHLDA : I8<0x32, "ld [hld], a", [(set HL, (post_store A, HL, 1))]>;
+*/
+
+let mayStore = 1 in {
+  def LDdHLIA : I8<0x22, "ld [hli], $a", [(set RHL:$hl, (post_store RA:$a, RHL:$dstp, 1))],
+                   (outs RHL:$hl), (ins RHL:$dstp, RA:$a)>;
+  def LDdHLDA : I8<0x32, "ld [hld], $a", [(set RHL:$hl, (post_store RA:$a, RHL:$dstp, -1))],
+                   (outs RHL:$hl), (ins RHL:$dstp, RA:$a)>;
 }
 
-let mayLoad = 1, Defs = [A] in {
-  let Uses = [BC] in
-  def LDAdBC : I8<0x0a, "ld a, [bc]", [(set A, (load BC))]>;
-  let Uses = [DE] in
-  def LDAdDE : I8<0x1a, "ld a, [de]", [(set A, (load DE))]>;
+/*
+let mayLoad = 1 in
+def LDAdrr : SM83Inst8<(outs RA:$a), (ins M16:$srcp), "ld $a, [$srcp]",
+                       [(set RA:$a, (load M16:$srcp))]> {
+  bits<2> dstp;
+
+  let Inst{7-6} = 0b00;
+  let Inst{5-4} = dstp;
+  let Inst{3-0} = 0b1010;
 }
+*/
+
 let mayLoad = 1, Uses = [HL], Defs = [HL, A] in {
-  def LDAdHLI : I8<0x2a, "ld a, [hli]", [/*(set A, (load HL)), (set HL, (add HL, 1))*/]>;
-  def LDAdHLD : I8<0x3a, "ld a, [hld]", [/*(set A, (load HL)), (set HL, (sub HL, 1))*/]>;
+  // patterns can't have two outputs, so these will have to be selected manually
+  // therefore, no reason to bother putting them into a form that suits automatic selection
+  def LDAdHLI : I8<0x2a, "ld a, [hli]", []>;
+  def LDAdHLD : I8<0x3a, "ld a, [hld]", []>;
 }
 
 let Constraints = "$dst = $src" in
@@ -156,8 +191,10 @@ def INCr : INC_DECr<"inc", 0, add>;
 def DECr : INC_DECr<"dec", 1, sub>;
 
 let Uses = [HL], Defs = [FLAGS], mayLoad = 1, mayStore = 1 in {
-  def INCdHL : I8<0x34, "inc [hl]", [(store (add (i8 (load HL)), 1), HL)]>;
-  def DECdHL : I8<0x35, "dec [hl]", [(store (sub (i8 (load HL)), 1), HL)]>;
+  def INCdHL : I8<0x34, "inc [$hl]", [(store (add (i8 (load RHL:$hl)), 1), RHL:$hl)],
+                  (outs), (ins RHL:$hl)>;
+  def DECdHL : I8<0x35, "dec [$hl]", [(store (sub (i8 (load RHL:$hl)), 1), RHL:$hl)],
+                  (outs), (ins RHL:$hl)>;
 }
 
 let isMoveImm = 1 in
@@ -173,9 +210,10 @@ def LDri : SM83Inst16<(outs GR8:$dst), (ins imm8:$imm), "ld $dst, $imm",
   let Inst{15-8} = imm;
 }
 
-let mayStore = 1, Uses = [HL] in
-def LDdHLi : SM83Inst16<(outs), (ins imm8:$imm), "ld [hl], $imm",
-                        [(store imm8:$imm, HL)]> {
+/*
+let mayStore = 1 in
+def LDdHLi : SM83Inst16<(outs), (ins RHL:$hl, imm8:$imm), "ld [$hl], $imm",
+                        [(store imm8:$imm, RHL:$hl)]> {
   bits<8> imm;
 
   let Inst{7-6} = 0b00;
@@ -184,10 +222,13 @@ def LDdHLi : SM83Inst16<(outs), (ins imm8:$imm), "ld [hl], $imm",
 
   let Inst{15-8} = imm;
 }
+*/
 
-let Uses = [A], Defs = [A, FLAGS], AddedComplexity = 1 in {
-  def RLCA : I8<0x07, "rlca", [(set A, (rotl A, (i8 1)))]>;
-  def RRCA : I8<0x0f, "rrca", [(set A, (rotr A, (i8 1)))]>;
+let Defs = [FLAGS], AddedComplexity = 1, Constraints = "$dst = $a" in {
+  def RLCA : I8<0x07, "rlca", [(set RA:$dst, (rotl RA:$a, (i8 1)))],
+                (outs RA:$dst), (ins RA:$a)>;
+  def RRCA : I8<0x0f, "rrca", [(set RA:$dst, (rotr RA:$a, (i8 1)))],
+                (outs RA:$dst), (ins RA:$a)>;
 }
 let Uses = [A], Defs = [A, FLAGS] in {
   def RLA : I8<0x17, "rla">;
@@ -206,6 +247,9 @@ let Defs = [FLAGS] in {
 
 let Defs = [FLAGS], isReMaterializable = 1 in
 def NEGA : Pseudo<(outs RA:$dst), (ins RA:$a), [(set RA:$dst, (ineg RA:$a))]>;
+
+let Defs = [A, FLAGS], isReMaterializable = 1 in
+def CPLrr : Pseudo<(outs GR16:$dst), (ins GR16:$src), [(set GR16:$dst, (not GR16:$src))]>;
 
 let mayStore = 1, Uses = [SP] in
 def LDd16SP : SM83Inst24<(outs), (ins direct16:$addr), "ld [$addr], sp",
@@ -234,7 +278,7 @@ def JRccr8 : SM83Inst16<(outs), (ins condition:$cc, rel8:$off),
 }
 
 let Defs = [FLAGS], Constraints = "$dst = $hl" in
-def ADDHLrr : SM83Inst8<(outs RHL:$dst), (ins RHL:$hl, GR16:$src), "add hl, $src",
+def ADDHLrr : SM83Inst8<(outs RHL:$dst), (ins RHL:$hl, GR16:$src), "add $hl, $src",
                         [(set RHL:$dst, (add RHL:$hl, GR16:$src))]> {
   bits<2> src;
 
@@ -255,9 +299,10 @@ def LDrr : SM83Inst8<(outs GR8:$dst), (ins GR8:$src), "ld $dst, $src",
   let Inst{2-0} = src;
 }
 
-let Uses = [HL], mayStore = 1 in
-def LDdHLr : SM83Inst8<(outs), (ins GR8:$src), "ld [hl], $src",
-                       [(store GR8:$src, HL)]> {
+/*
+let mayStore = 1 in
+def LDdHLr : SM83Inst8<(outs), (ins GR8:$src, RHL:$hl), "ld [$hl], $src",
+                       [(store GR8:$src, RHL:$hl)]> {
   bits<3> src;
 
   let Inst{7-6} = 0b01;
@@ -265,15 +310,16 @@ def LDdHLr : SM83Inst8<(outs), (ins GR8:$src), "ld [hl], $src",
   let Inst{2-0} = src;
 }
 
-let Uses = [HL], mayLoad = 1 in
-def LDrdHL : SM83Inst8<(outs GR8:$dst), (ins), "ld $dst, [hl]",
-                       [(set GR8:$dst, (load HL))]> {
+let mayLoad = 1 in
+def LDrdHL : SM83Inst8<(outs GR8:$dst), (ins RHL:$hl), "ld $dst, [$hl]",
+                       [(set GR8:$dst, (load RHL:$hl))]> {
   bits<3> dst;
 
   let Inst{7-6} = 0b01;
   let Inst{5-3} = dst;
   let Inst{2-0} = 0b110;
 }
+*/
 
 // not ld [hl], [hl]
 let hasSideEffects = 1 in
@@ -281,7 +327,7 @@ def HALT : I8<0x76, "halt">;
 
 multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
   let Constraints = "$dst = $a" in
-  def r : SM83Inst8<(outs RA:$dst), (ins RA:$a, GR8:$src), opstr # " a, $src",
+  def r : SM83Inst8<(outs RA:$dst), (ins RA:$a, GR8:$src), opstr # " $a, $src",
                     [(set RA:$dst, (op RA:$a, GR8:$src))]> {
     bits<3> src;
 
@@ -290,7 +336,7 @@ multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
     let Inst{2-0} = src;
   }
   let Constraints = "$dst = $a" in
-  def i : SM83Inst16<(outs RA:$dst), (ins RA:$a, imm8:$imm), opstr # " a, $imm",
+  def i : SM83Inst16<(outs RA:$dst), (ins RA:$a, imm8:$imm), opstr # " $a, $imm",
                      [(set RA:$dst, (op RA:$a, imm8:$imm))]> {
     bits<8> imm;
 
@@ -301,7 +347,7 @@ multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
   }
 
   let mayLoad = 1, Constraints = "$dst = $a" in
-  def dHL : SM83Inst8<(outs RA:$dst), (ins RA:$a, RHL:$hl), opstr # " a, [hl]",
+  def dHL : SM83Inst8<(outs RA:$dst), (ins RA:$a, RHL:$hl), opstr # " $a, [$hl]",
                       [(set RA:$dst, (op RA:$a, (load RHL:$hl)))]> {
     let Inst{7-6} = 0b10;
     let Inst{5-3} = opc;
@@ -339,23 +385,22 @@ let isReturn = 1, isTerminator = 1, isBarrier = 1 in {
   def RETI : I8<0xd9, "reti">;
 }
 
-let AddedComplexity = 1 in
-class ldhd8<bit reverse, string asmstr, list<dag> pattern>
-  : SM83Inst16<(outs), (ins direct8:$addr), asmstr, pattern> {
+let mayStore = 1, AddedComplexity = 1 in
+def LDHd8A : SM83Inst16<(outs), (ins RA:$a, direct8:$addr), "ldh [$addr], $a",
+                        [(store RA:$a, direct8:$addr)]> {
   bits<8> addr;
-
-  let Inst{7-5} = 0b111;
-  let Inst{4} = reverse;
-  let Inst{3-0} = 0b0000;
-
+  let Inst{7-0} = 0b11100000;
+  let Inst{15-8} = addr;
+}
+let mayLoad = 1, AddedComplexity = 1 in
+def LDHAd8 : SM83Inst16<(outs RA:$a), (ins direct8:$addr), "ldh $a, [$addr]",
+                        [(set RA:$a, (load direct8:$addr))]> {
+  bits<8> addr;
+  let Inst{7-0} = 0b11110000;
   let Inst{15-8} = addr;
 }
 
-let Uses = [A], mayStore = 1 in
-def LDHd8A : ldhd8<0, "ldh [$addr], a", [(store A, direct8:$addr)]>;
-let Defs = [A], mayLoad = 1 in
-def LDHAd8 : ldhd8<1, "ldh a, [$addr]", [(set A, (load direct8:$addr))]>;
-
+// TODO: clean up *this* mess vvv
 let Uses = [C, A], mayStore = 1 in
 def LDHdCA : I8<0xe2, "ldh [c], a", [(store A, (i16 (or 0xff00, C)))]>;
 let Uses = [C], Defs = [A], mayLoad = 1 in
@@ -474,8 +519,8 @@ multiclass mBIT<string opstr, bits<3> opc, SDPatternOperator op = null_frag, int
   }
 
   let Uses = [HL], Defs = [FLAGS], mayLoad = 1, mayStore = 1 in
-  def dHL : CB<(outs), (ins), opstr # " [hl]",        
-             [(store (op (i8 (load HL)), (i8 n)), HL)]> {
+  def dHL : CB<(outs), (ins RHL:$hl), opstr # " [$hl]",
+             [(store (op (i8 (load RHL:$hl)), (i8 n)), RHL:$hl)]> {
     let Inst{7-6} = 0b00;
     let Inst{5-3} = opc;
     let Inst{2-0} = 0b110;
@@ -510,8 +555,8 @@ multiclass mBRS<string opstr, bits<2> opc, SDPatternOperator op> {
   }
 
   let Uses = [HL], mayLoad = 1, mayStore = 1 in
-  def dHL : CB<(outs), (ins uimm3:$idx), opstr # " $idx, [hl]",
-               [(store (op (i8 (load HL)), uimm3:$idx), HL)]> {
+  def dHL : CB<(outs), (ins uimm3:$idx, RHL:$hl), opstr # " $idx, [$hl]",
+               [(store (op (i8 (load RHL:$hl)), uimm3:$idx), RHL:$hl)]> {
     bits<3> idx;
 
     let Inst{7-6} = opc;
@@ -534,7 +579,7 @@ def BITr : CB<(outs), (ins uimm3:$idx, GR8:$src), "bit $idx, $src", []> {
 }
 
 let Uses = [HL], Defs = [FLAGS], mayLoad = 1 in
-def BITdHL : CB<(outs), (ins uimm3:$idx), "bit $idx, [hl]", []> {
+def BITdHL : CB<(outs), (ins uimm3:$idx, RHL:$hl), "bit $idx, [$hl]", []> {
   bits<3> idx;
 
   let Inst{7-6} = 0b01;

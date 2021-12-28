@@ -49,10 +49,13 @@ void SM83InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
     MCRegister SrcHiReg = RI.getSubReg(SrcReg, SM83::sub_high);
     copyPhysReg(MBB, MI, DL, DstLoReg, SrcLoReg, KillSrc);
     copyPhysReg(MBB, MI, DL, DstHiReg, SrcHiReg, KillSrc);
-    --MI;
-    MI->addRegisterDefined(DstReg, &RI);
-    if (KillSrc)
+    --MI; // set attributes on last copy
+    MI->addRegisterDefined(DstReg, &RI); // the destination is always defined
+    if (KillSrc) {
+      // the source is only killed if we're told it is
+      // TODO: find out when this is even reasonable
       MI->addRegisterKilled(SrcReg, &RI, true);
+    }
   } else {
     report_fatal_error("reg not in r8 or r16");
   }
@@ -72,13 +75,38 @@ bool SM83InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
       }
       break;
     case SM83::NEGA: {
-      Register Reg = MIB.getReg(0);
-      BuildMI(MBB, MI, DL, get(SM83::CPL), Reg)
-        .addReg(Reg);
-      MI.setDesc(get(SM83::INCr));
-      MIB.addReg(Reg);
-    }
-    break;
+        Register Reg = MIB.getReg(0);
+        BuildMI(MBB, MI, DL, get(SM83::CPL), Reg)
+          .addReg(Reg);
+        MI.setDesc(get(SM83::INCr));
+        MIB.addReg(Reg);
+      }
+      break;
+    case SM83::CPLrr: { // defs = a
+        Register DstReg = MIB.getReg(0);
+        Register SrcReg = MIB.getReg(1);
+        bool KillSrc = (DstReg == SrcReg);
+        MCRegister DstLoReg = RI.getSubReg(DstReg, SM83::sub_low);
+        MCRegister SrcLoReg = RI.getSubReg(SrcReg, SM83::sub_low);
+        MCRegister DstHiReg = RI.getSubReg(DstReg, SM83::sub_high);
+        MCRegister SrcHiReg = RI.getSubReg(SrcReg, SM83::sub_high);
+
+        copyPhysReg(MBB, MI, DL, SM83::A, SrcLoReg, /*KillSrc=*/false);
+        BuildMI(MBB, MI, DL, get(SM83::CPL), SM83::A)
+          .addReg(SM83::A, RegState::ImplicitDefine);
+	copyPhysReg(MBB, MI, DL, DstLoReg, SM83::A, /*KillSrc=*/false);
+
+        copyPhysReg(MBB, MI, DL, SM83::A, SrcHiReg, /*KillSrc=*/false);
+        BuildMI(MBB, MI, DL, get(SM83::CPL), SM83::A)
+          .addReg(SM83::A, RegState::ImplicitDefine);
+        copyPhysReg(MBB, MI, DL, DstHiReg, SM83::A, /*KillSrc=*/false);
+
+        MBB.back().addRegisterDefined(DstReg, &RI);
+        if (KillSrc)
+          MBB.back().addRegisterKilled(SrcReg, &RI, true);
+        MI.eraseFromParent();
+      }
+      break;
     default:
       return false;
   }
