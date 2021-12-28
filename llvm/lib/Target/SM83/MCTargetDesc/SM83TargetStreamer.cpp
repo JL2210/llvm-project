@@ -37,3 +37,4 @@ void SM83TargetAsmStreamer::emitGlobal(MCSymbol *Symbol) {
   Symbol->print(OS, MAI);
   OS << "::\n";
 }
+
