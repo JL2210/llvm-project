@@ -31,12 +31,14 @@ SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT, const MCTargetOptions &Options) {
   HasSingleParameterDotFile = false;
   HiddenVisibilityAttr = HiddenDeclarationVisibilityAttr =
       ProtectedVisibilityAttr = MCSA_Invalid;
-  GlobalDirective = "GLOBAL ";
-  PrivateGlobalPrefix = PrivateLabelPrefix = ".L";
+  GlobalDirective = "EXPORT ";
+  PrivateGlobalPrefix = "";
+  PrivateLabelPrefix = "";
   WeakDirective = "";
   InlineAsmStart = InlineAsmEnd = "";
   ZeroDirective = "\tds\t";
-  AsciiDirective = AscizDirective = nullptr;
+  AsciiDirective = "\tdb\t";
+  AscizDirective = nullptr;
   ByteListDirective = Data8bitsDirective = "\tdb\t";
   Data16bitsDirective = "\tdw\t";
   Data32bitsDirective = "\tdl\t";

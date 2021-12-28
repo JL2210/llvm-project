@@ -24,22 +24,32 @@ SM83LegalizerInfo::SM83LegalizerInfo(const DataLayout DL)
   getActionDefinitionsBuilder({G_IMPLICIT_DEF, G_CONSTANT})
     .legalFor({p0, s1, s8, s16, s32});
 
-  getActionDefinitionsBuilder({G_GLOBAL_VALUE})
+  getActionDefinitionsBuilder(G_GLOBAL_VALUE)
     .legalFor({p0});
 
   getActionDefinitionsBuilder(G_PHI)
     .legalFor({s8, s16});
 
-  getActionDefinitionsBuilder(G_ADD)
+  getActionDefinitionsBuilder({G_ADD, G_XOR})
     .legalFor({s8, s16});
-  getActionDefinitionsBuilder({G_SUB, G_AND, G_XOR, G_OR})
-    .legalFor({s8});
+  getActionDefinitionsBuilder({G_SUB, G_AND, G_OR})
+    .legalFor({s8})
+    .maxScalar(0, s8);
 
-  getActionDefinitionsBuilder({G_ABS})
+  getActionDefinitionsBuilder(G_UNMERGE_VALUES)
+    .legalForCartesianProduct({s8}, {s16});
+
+  getActionDefinitionsBuilder(G_MERGE_VALUES)
+    .legalForCartesianProduct({s16}, {s8});
+
+  getActionDefinitionsBuilder(G_ABS)
     .lower();
 
-  getActionDefinitionsBuilder({G_ASHR})
+  getActionDefinitionsBuilder(G_ASHR)
     .customFor({s8});
+
+  getActionDefinitionsBuilder({G_LOAD, G_STORE})
+    .legalForCartesianProduct({s8, s16}, {p0});
 
   getActionDefinitionsBuilder({G_FRAME_INDEX, G_BLOCK_ADDR})
     .legalFor({p0});
