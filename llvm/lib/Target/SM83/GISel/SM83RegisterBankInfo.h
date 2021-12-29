@@ -32,22 +32,36 @@ protected:
   };
 
   enum ValueMappingIdx {
-    InvalidIdx = 0,
-    First3OpsIdx = PMI_FirstGPR * 3 + 1,
-    Last3OpsIdx = PMI_LastGPR * 3 + 1,
+    VMI_None = -1,
     DistanceBetweenRegBanks = 3,
+    VMI_3OpsGr8Idx =  PMI_GR8 * DistanceBetweenRegBanks,
+    VMI_3OpsGr16Idx = PMI_GR16 * DistanceBetweenRegBanks,
+    VMI_First3OpsIdx = PMI_FirstGPR * DistanceBetweenRegBanks,
+    VMI_Last3OpsIdx = PMI_LastGPR * DistanceBetweenRegBanks,
   };
 
   static RegisterBankInfo::PartialMapping PartMappings[];
   static RegisterBankInfo::ValueMapping ValMappings[];
 
-  static unsigned getRegBankBaseIdxOffset(unsigned RBIdx, unsigned Size);
-
+  static PartialMappingIdx getPartialMappingIdx(const LLT &Ty);
   static const RegisterBankInfo::ValueMapping *
-  getValueMapping(PartialMappingIdx RBIdx, unsigned Size);
+  getValueMapping(PartialMappingIdx Idx, unsigned NumOperands);
 };
 
 class SM83RegisterBankInfo final : public SM83GenRegisterBankInfo {
+  /// Track the bank of each instruction operand(register)
+  static void
+  getInstrPartialMappingIdxs(const MachineInstr &MI,
+                             const MachineRegisterInfo &MRI,
+                             SmallVectorImpl<PartialMappingIdx> &OpRegBankIdx);
+
+  /// Construct the instruction ValueMapping from PartialMappingIdxs
+  /// \return true if mapping succeeded.
+  static bool
+  getInstrValueMapping(const MachineInstr &MI,
+                       const SmallVectorImpl<PartialMappingIdx> &OpRegBankIdx,
+                       SmallVectorImpl<const ValueMapping *> &OpdsMapping);
+
 public:
   SM83RegisterBankInfo(const TargetRegisterInfo &TRI)
     : SM83GenRegisterBankInfo() {}
