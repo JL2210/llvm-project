@@ -36,17 +36,17 @@ SM83LegalizerInfo::SM83LegalizerInfo(const DataLayout DL)
     .legalFor({s8})
     .maxScalar(0, s8);
 
+  getActionDefinitionsBuilder(G_SEXT)
+    .legalForCartesianProduct({s8}, {s1});
+
+  getActionDefinitionsBuilder(G_ICMP)
+    .legalForCartesianProduct({s1}, {p0, s8, s16});
+
   getActionDefinitionsBuilder(G_UNMERGE_VALUES)
     .legalForCartesianProduct({s8}, {s16});
 
   getActionDefinitionsBuilder(G_MERGE_VALUES)
     .legalForCartesianProduct({s16}, {s8});
-
-  getActionDefinitionsBuilder(G_ABS)
-    .lower();
-
-  getActionDefinitionsBuilder(G_ASHR)
-    .customFor({s8});
 
   getActionDefinitionsBuilder({G_LOAD, G_STORE})
     .legalForCartesianProduct({s8, s16}, {p0});

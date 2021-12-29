@@ -37,6 +37,7 @@ def E : SM83Reg<"e", 3>;
 def H : SM83Reg<"h", 4>;
 def L : SM83Reg<"l", 5>;
 def A : SM83Reg<"a", 7>;
+
 def FLAGS : SM83Reg<"f">;
 
 let SubRegIndices = [sub_high, sub_low], CoveredBySubRegs = 1 in {
@@ -74,6 +75,6 @@ def GR16 : RegisterClass<"SM83", [i16], 8, (add RHL, M16)>;
 let isAllocatable = 0, CopyCost = -1 in
 def S16 : RegisterClass<"SM83", [i16], 8, (add SP, AF)>;
 
-// flags
+// flag reg
 let isAllocatable = 0, CopyCost = -1 in
 def F8 : RegisterClass<"SM83", [i8], 8, (add FLAGS)>;

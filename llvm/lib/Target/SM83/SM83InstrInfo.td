@@ -55,7 +55,7 @@ def rel8 : Operand<i8>, ImmLeaf<i8, [{
   return isInt<8>(Imm);
 }]> {
 }
-def direct8 : Operand<i8>, ImmLeaf<i16, [{
+def direct8 : Operand<i16>, ImmLeaf<i16, [{
   return Imm >= 0xff00 && Imm <= 0xffff;
 }]> {
 }
@@ -64,7 +64,9 @@ def direct16 : Operand<i16>, ImmLeaf<i16, [{
 }]> {
 }
 
-// LLVM likes to select instructions in the order it sees them
+// LLVM likes to select instructions in the order it sees them;
+// but apparently it just doesn't like to load or
+// store via immediate addresses so these are useless
 let mayStore = 1 in
 def LDd16A : SM83Inst24<(outs), (ins direct16:$addr, RA:$a), "ld [$addr], $a",
                         [(store RA:$a, direct16:$addr)]> {
@@ -117,36 +119,12 @@ def LDSPnn : SM83Inst24<(outs), (ins imm16:$imm), "ld sp, $imm",
   let Inst{23-8} = imm;
 }
 
-/*
-let mayStore = 1 in
-def LDdrrA : SM83Inst8<(outs), (ins RA:$a, M16:$dstp), "ld [$dstp], $a",
-                       [(store RA:$a, M16:$dstp)]> {
-  bits<2> dstp;
-
-  let Inst{7-6} = 0b00;
-  let Inst{5-4} = dstp;
-  let Inst{3-0} = 0b0010;
-}
-*/
-
 let mayStore = 1 in {
   def LDdHLIA : I8<0x22, "ld [hli], $a", [(set RHL:$hl, (post_store RA:$a, RHL:$dstp, 1))],
                    (outs RHL:$hl), (ins RHL:$dstp, RA:$a)>;
   def LDdHLDA : I8<0x32, "ld [hld], $a", [(set RHL:$hl, (post_store RA:$a, RHL:$dstp, -1))],
                    (outs RHL:$hl), (ins RHL:$dstp, RA:$a)>;
 }
-
-/*
-let mayLoad = 1 in
-def LDAdrr : SM83Inst8<(outs RA:$a), (ins M16:$srcp), "ld $a, [$srcp]",
-                       [(set RA:$a, (load M16:$srcp))]> {
-  bits<2> dstp;
-
-  let Inst{7-6} = 0b00;
-  let Inst{5-4} = dstp;
-  let Inst{3-0} = 0b1010;
-}
-*/
 
 let mayLoad = 1, Uses = [HL], Defs = [HL, A] in {
   // patterns can't have two outputs, so these will have to be selected manually
@@ -210,7 +188,6 @@ def LDri : SM83Inst16<(outs GR8:$dst), (ins imm8:$imm), "ld $dst, $imm",
   let Inst{15-8} = imm;
 }
 
-/*
 let mayStore = 1 in
 def LDdHLi : SM83Inst16<(outs), (ins RHL:$hl, imm8:$imm), "ld [$hl], $imm",
                         [(store imm8:$imm, RHL:$hl)]> {
@@ -222,7 +199,6 @@ def LDdHLi : SM83Inst16<(outs), (ins RHL:$hl, imm8:$imm), "ld [$hl], $imm",
 
   let Inst{15-8} = imm;
 }
-*/
 
 let Defs = [FLAGS], AddedComplexity = 1, Constraints = "$dst = $a" in {
   def RLCA : I8<0x07, "rlca", [(set RA:$dst, (rotl RA:$a, (i8 1)))],
@@ -299,7 +275,6 @@ def LDrr : SM83Inst8<(outs GR8:$dst), (ins GR8:$src), "ld $dst, $src",
   let Inst{2-0} = src;
 }
 
-/*
 let mayStore = 1 in
 def LDdHLr : SM83Inst8<(outs), (ins GR8:$src, RHL:$hl), "ld [$hl], $src",
                        [(store GR8:$src, RHL:$hl)]> {
@@ -319,7 +294,26 @@ def LDrdHL : SM83Inst8<(outs GR8:$dst), (ins RHL:$hl), "ld $dst, [$hl]",
   let Inst{5-3} = dst;
   let Inst{2-0} = 0b110;
 }
-*/
+
+let mayStore = 1 in
+def LDdrrA : SM83Inst8<(outs), (ins RA:$a, M16:$dstp), "ld [$dstp], $a",
+                       [(store RA:$a, M16:$dstp)]> {
+  bits<2> dstp;
+
+  let Inst{7-6} = 0b00;
+  let Inst{5-4} = dstp;
+  let Inst{3-0} = 0b0010;
+}
+
+let mayLoad = 1 in
+def LDAdrr : SM83Inst8<(outs RA:$a), (ins M16:$srcp), "ld $a, [$srcp]",
+                       [(set RA:$a, (load M16:$srcp))]> {
+  bits<2> dstp;
+
+  let Inst{7-6} = 0b00;
+  let Inst{5-4} = dstp;
+  let Inst{3-0} = 0b1010;
+}
 
 // not ld [hl], [hl]
 let hasSideEffects = 1 in
@@ -388,16 +382,16 @@ let isReturn = 1, isTerminator = 1, isBarrier = 1 in {
 let mayStore = 1, AddedComplexity = 1 in
 def LDHd8A : SM83Inst16<(outs), (ins RA:$a, direct8:$addr), "ldh [$addr], $a",
                         [(store RA:$a, direct8:$addr)]> {
-  bits<8> addr;
+  bits<16> addr;
   let Inst{7-0} = 0b11100000;
-  let Inst{15-8} = addr;
+  let Inst{15-8} = addr{7-0};
 }
 let mayLoad = 1, AddedComplexity = 1 in
 def LDHAd8 : SM83Inst16<(outs RA:$a), (ins direct8:$addr), "ldh $a, [$addr]",
                         [(set RA:$a, (load direct8:$addr))]> {
-  bits<8> addr;
+  bits<16> addr;
   let Inst{7-0} = 0b11110000;
-  let Inst{15-8} = addr;
+  let Inst{15-8} = addr{7-0};
 }
 
 // TODO: clean up *this* mess vvv

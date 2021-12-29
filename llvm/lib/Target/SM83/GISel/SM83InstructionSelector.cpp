@@ -48,6 +48,7 @@ private:
   bool selectConstant(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectMergeValues(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectUnmergeValues(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  bool selectSignedExtend(MachineInstr &I, MachineRegisterInfo &MRI) const;
 
 #define GET_GLOBALISEL_PREDICATES_DECL
 #include "SM83GenGlobalISel.inc"
@@ -91,6 +92,38 @@ SM83InstructionSelector::SM83InstructionSelector(const SM83TargetMachine &TM,
 {
 }
 
+bool SM83InstructionSelector::select(MachineInstr &I) {
+  unsigned Opcode = I.getOpcode();
+
+  MachineBasicBlock &MBB = *I.getParent();
+  MachineFunction &MF = *MBB.getParent();
+  MachineRegisterInfo &MRI = MF.getRegInfo();
+
+  if (!isPreISelGenericOpcode(Opcode)) {
+    if (I.isCopy()) {
+      return selectCopy(I, MRI);
+    }
+
+    return true;
+  }
+
+  if(selectImpl(I, *CoverageInfo))
+    return true;
+
+  switch(I.getOpcode()) {
+  default:
+    return false;
+  case TargetOpcode::G_GLOBAL_VALUE:
+    return selectConstant(I, MRI);
+  case TargetOpcode::G_MERGE_VALUES:
+    return selectMergeValues(I, MRI);
+  case TargetOpcode::G_UNMERGE_VALUES:
+    return selectUnmergeValues(I, MRI);
+  case TargetOpcode::G_SEXT:
+    return selectSignedExtend(I, MRI);
+  }
+}
+
 bool SM83InstructionSelector::selectCopy(MachineInstr &I,
                                          MachineRegisterInfo &MRI) const {
   // constrain destination register
@@ -114,6 +147,8 @@ bool SM83InstructionSelector::selectCopy(MachineInstr &I,
     return false;
   }
 
+  // the register allocator will handle the actual copy
+  // copyPhysReg
   I.setDesc(TII.get(SM83::COPY));
   return true;
 }
@@ -185,35 +220,28 @@ bool SM83InstructionSelector::selectUnmergeValues(MachineInstr &I,
          RBI.constrainGenericRegister(SrcReg, SM83::GR16RegClass, MRI);
 }
 
-bool SM83InstructionSelector::select(MachineInstr &I) {
-  // the register allocator will handle copies
-  unsigned Opcode = I.getOpcode();
+bool SM83InstructionSelector::selectSignedExtend(MachineInstr &I,
+                                                 MachineRegisterInfo &MRI) const {
+  assert(I.getOpcode() == TargetOpcode::G_SEXT &&
+         "unexpected instruction");
+  MachineIRBuilder MIB(I);
+  Register DstReg = I.getOperand(0).getReg();
+  Register SrcReg = I.getOperand(1).getReg();
 
-  MachineBasicBlock &MBB = *I.getParent();
-  MachineFunction &MF = *MBB.getParent();
-  MachineRegisterInfo &MRI = MF.getRegInfo();
-
-  if (!isPreISelGenericOpcode(Opcode)) {
-    if (I.isCopy()) {
-      return selectCopy(I, MRI);
-    }
-
-    return true;
-  }
-
-  if(selectImpl(I, *CoverageInfo))
-    return true;
-
-  switch(I.getOpcode()) {
-  default:
+  assert(I.getNumOperands() == 3 &&
+         MRI.getType(DstReg) == LLT::scalar(8) &&
+         MRI.getType(SrcReg) == LLT::scalar(1) &&
+         "Illegal instruction");
+  MIB.buildCopy(SM83::A, SrcReg);
+  MIB.buildInstr(SM83::RRCA
+  auto Fill = MIB.buildInstr(SM83::SBCr)
+                .addReg(SM83::A, RegState::Undef);
+  Fill->findRegisterUseOperand(SM83::A)->setIsUndef();
+  if (!constrainSelectedInstRegOperands(*Fill, TII, TRI, RBI))
     return false;
-  case TargetOpcode::G_GLOBAL_VALUE:
-    return selectConstant(I, MRI);
-  case TargetOpcode::G_MERGE_VALUES:
-    return selectMergeValues(I, MRI);
-  case TargetOpcode::G_UNMERGE_VALUES:
-    return selectUnmergeValues(I, MRI);
-  }
+  
+  I.eraseFromParent();
+  return true;
 }
 
 InstructionSelector *
