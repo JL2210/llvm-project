@@ -27,41 +27,66 @@ const RegisterBank &SM83RegisterBankInfo::getRegBankFromRegClass(
   return getRegBank(SM83::GPRRegBankID);
 }
 
+void SM83RegisterBankInfo::getInstrPartialMappingIdxs(
+    const MachineInstr &MI, const MachineRegisterInfo &MRI,
+    SmallVectorImpl<PartialMappingIdx> &OpRegBankIdx) {
+
+  unsigned NumOperands = MI.getNumOperands();
+  for (unsigned Idx = 0; Idx < NumOperands; ++Idx) {
+    auto &MO = MI.getOperand(Idx);
+    if (!MO.isReg())
+      OpRegBankIdx[Idx] = PMI_None;
+    else
+      OpRegBankIdx[Idx] = getPartialMappingIdx(MRI.getType(MO.getReg()));
+  }
+}
+
+bool SM83RegisterBankInfo::getInstrValueMapping(
+    const MachineInstr &MI,
+    const SmallVectorImpl<PartialMappingIdx> &OpRegBankIdx,
+    SmallVectorImpl<const ValueMapping *> &OpdsMapping) {
+
+  unsigned NumOperands = MI.getNumOperands();
+  for (unsigned Idx = 0; Idx < NumOperands; ++Idx) {
+    if (!MI.getOperand(Idx).isReg())
+      continue;
+
+    auto Mapping = getValueMapping(OpRegBankIdx[Idx], 1);
+    if (!Mapping->isValid())
+      return false;
+
+    OpdsMapping[Idx] = Mapping;
+  }
+  return true;
+}
+
 const RegisterBankInfo::InstructionMapping &SM83RegisterBankInfo::getInstrMapping(
     const MachineInstr &MI) const {
-  const auto &Mapping = getInstrMappingImpl(MI);
+  const MachineFunction &MF = *MI.getParent()->getParent();
+  const MachineRegisterInfo &MRI = MF.getRegInfo();
+  unsigned Opc = MI.getOpcode();
+  unsigned NumOperands = MI.getNumOperands();
 
+  const auto &Mapping = getInstrMappingImpl(MI);
   if (Mapping.isValid())
     return Mapping;
 
-  const unsigned Opcode = MI.getOpcode();
-  const unsigned Cost = 1;
-  unsigned NumOperands = MI.getNumOperands();
-
-  const MachineFunction &MF = *MI.getParent()->getParent();
-  const MachineRegisterInfo &MRI = MF.getRegInfo();
-
-  switch (Opcode) {
-  default: { // generic mapping
-    SmallVector<const ValueMapping *, 4> OpdsMapping(NumOperands);
-    for (unsigned Idx = 0; Idx < NumOperands; ++Idx) {
-      auto &MO = MI.getOperand(Idx);
-      if (!MO.isReg() || !MO.getReg())
-        continue;
-
-      LLT Ty = MRI.getType(MO.getReg());
-
-      auto Mapping = getValueMapping(PMI_FirstGPR, Ty.getSizeInBits());
-      if (!Mapping->isValid())
-        return getInvalidInstructionMapping();
-
-      OpdsMapping[Idx] = Mapping;
-    }
-
-    return getInstructionMapping(DefaultMappingID, Cost,
-                                 getOperandsMapping(OpdsMapping), NumOperands);
+  switch(Opc) {
+  default:
+    break;
   }
-  }
+
+  // Track the bank of each register.
+  SmallVector<PartialMappingIdx, 4> OpRegBankIdx(NumOperands);
+  getInstrPartialMappingIdxs(MI, MRI, OpRegBankIdx);
+
+  // Finally construct the computed mapping.
+  SmallVector<const ValueMapping *, 8> OpdsMapping(NumOperands);
+  if (!getInstrValueMapping(MI, OpRegBankIdx, OpdsMapping))
+    return getInvalidInstructionMapping();
+
+  return getInstructionMapping(DefaultMappingID, /* Cost */ 1,
+                               getOperandsMapping(OpdsMapping), NumOperands);
 }
 
 RegisterBankInfo::InstructionMappings SM83RegisterBankInfo::getInstrAlternativeMappings(
