@@ -67,18 +67,18 @@ def direct16 : Operand<i16>, ImmLeaf<i16, [{
 // LLVM likes to select instructions in the order it sees them;
 // but apparently it just doesn't like to load or
 // store via immediate addresses so these are useless
-let mayStore = 1 in
-def LDd16A : SM83Inst24<(outs), (ins direct16:$addr, RA:$a), "ld [$addr], $a",
-                        [(store RA:$a, direct16:$addr)]> {
+let mayStore = 1, Uses = [A] in
+def LDd16A : SM83Inst24<(outs), (ins direct16:$addr, A), "ld [$addr], a",
+                        [(store A, direct16:$addr)]> {
   bits<16> addr;
 
   let Inst{7-0} = 0xea;
   let Inst{23-8} = addr;
 }
 
-let mayLoad = 1 in
-def LDAd16 : SM83Inst24<(outs RA:$a), (ins direct16:$addr), "ld $a, [$addr]",
-                        [(set RA:$a, (load direct16:$addr))]> {
+let mayLoad = 1, Uses = [A] in
+def LDAd16 : SM83Inst24<(outs A), (ins direct16:$addr), "ld a, [$addr]",
+                        [(set A, (load direct16:$addr))]> {
   bits<16> addr;
 
   let Inst{7-0} = 0xfa;
