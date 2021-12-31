@@ -49,6 +49,7 @@ private:
   bool selectMergeValues(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectUnmergeValues(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectSignedExtend(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  bool selectCompare(MachineInstr &I, MachineRegisterInfo &MRI) const;
 
 #define GET_GLOBALISEL_PREDICATES_DECL
 #include "SM83GenGlobalISel.inc"
@@ -121,6 +122,8 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
     return selectUnmergeValues(I, MRI);
   case TargetOpcode::G_SEXT:
     return selectSignedExtend(I, MRI);
+  case TargetOpcode::G_ICMP:
+    return selectCompare(I, MRI);
   }
 }
 
@@ -228,20 +231,41 @@ bool SM83InstructionSelector::selectSignedExtend(MachineInstr &I,
   Register DstReg = I.getOperand(0).getReg();
   Register SrcReg = I.getOperand(1).getReg();
 
-  assert(I.getNumOperands() == 3 &&
+  assert(I.getNumOperands() == 2 &&
          MRI.getType(DstReg) == LLT::scalar(8) &&
          MRI.getType(SrcReg) == LLT::scalar(1) &&
          "Illegal instruction");
-  MIB.buildCopy(SM83::A, SrcReg);
-  MIB.buildInstr(SM83::RRCA
+
+  auto CopyToA = MIB.buildCopy(SM83::A, SrcReg);
+  if (!constrainSelectedInstRegOperands(*CopyToA, TII, TRI, RBI))
+    return false;
+
+  auto Rotate = MIB.buildInstr(SM83::RRCA)
+                 .addDef(SM83::A)
+                 .addUse(SM83::A);
+  if (!constrainSelectedInstRegOperands(*Rotate, TII, TRI, RBI))
+    return false;
+
   auto Fill = MIB.buildInstr(SM83::SBCr)
-                .addReg(SM83::A, RegState::Undef);
-  Fill->findRegisterUseOperand(SM83::A)->setIsUndef();
+                .addDef(SM83::A)
+                .addUse(SM83::A, RegState::Undef);
   if (!constrainSelectedInstRegOperands(*Fill, TII, TRI, RBI))
+    return false;
+
+  auto CopyFromA = MIB.buildCopy(DstReg, Register(SM83::A));
+  if (!RBI.constrainGenericRegister(CopyFromA.getReg(0), SM83::GR8RegClass, MRI))
     return false;
   
   I.eraseFromParent();
   return true;
+}
+
+bool SM83InstructionSelector::selectCompare(MachineInstr &I,
+                                            MachineRegisterInfo &MRI) const {
+  assert(I.getOpcode() == TargetOpcode::G_ICMP &&
+         "unexpected instruction");
+  Register DstReg = I.getOperand(0).getReg();
+  auto Pred = CmpInst::Predicate(I.getOperand(1).getPredicate());
 }
 
 InstructionSelector *
