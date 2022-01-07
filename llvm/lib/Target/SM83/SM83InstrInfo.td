@@ -12,6 +12,10 @@
 
 include "SM83InstrFormats.td"
 
+def SDT_SM83Cp : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>]>;
+
+def SM83cp : SDNode<"SM83ISD::CP", SDT_SM83Cp, [SDNPOutGlue]>;
+
 class ImmAsmOperand<string name> : AsmOperandClass {
   let Name = name;
   let RenderMethod = "addImmOperands";
@@ -67,18 +71,18 @@ def direct16 : Operand<i16>, ImmLeaf<i16, [{
 // LLVM likes to select instructions in the order it sees them;
 // but apparently it just doesn't like to load or
 // store via immediate addresses so these are useless
-let mayStore = 1, Uses = [A] in
-def LDd16A : SM83Inst24<(outs), (ins direct16:$addr, A), "ld [$addr], a",
-                        [(store A, direct16:$addr)]> {
+let mayStore = 1 in
+def LDd16A : SM83Inst24<(outs), (ins direct16:$addr, RA:$a), "ld [$addr], $a",
+                        [(store RA:$a, direct16:$addr)]> {
   bits<16> addr;
 
   let Inst{7-0} = 0xea;
   let Inst{23-8} = addr;
 }
 
-let mayLoad = 1, Uses = [A] in
-def LDAd16 : SM83Inst24<(outs A), (ins direct16:$addr), "ld a, [$addr]",
-                        [(set A, (load direct16:$addr))]> {
+let mayLoad = 1 in
+def LDAd16 : SM83Inst24<(outs RA:$a), (ins direct16:$addr), "ld $a, [$addr]",
+                        [(set RA:$a, (load direct16:$addr))]> {
   bits<16> addr;
 
   let Inst{7-0} = 0xfa;
@@ -168,7 +172,7 @@ class INC_DECr<string opstr, bit dec, SDPatternOperator op>
 def INCr : INC_DECr<"inc", 0, add>;
 def DECr : INC_DECr<"dec", 1, sub>;
 
-let Uses = [HL], Defs = [FLAGS], mayLoad = 1, mayStore = 1 in {
+let Defs = [FLAGS], mayLoad = 1, mayStore = 1 in {
   def INCdHL : I8<0x34, "inc [$hl]", [(store (add (i8 (load RHL:$hl)), 1), RHL:$hl)],
                   (outs), (ins RHL:$hl)>;
   def DECdHL : I8<0x35, "dec [$hl]", [(store (sub (i8 (load RHL:$hl)), 1), RHL:$hl)],
@@ -212,7 +216,7 @@ let Uses = [A], Defs = [A, FLAGS] in {
   def DAA : I8<0x27, "daa">;
 }
 
-let Constraints = "$dst = $a" in
+let Defs = [FLAGS], Constraints = "$dst = $a" in
 def CPL : I8<0x2f, "cpl", [(set RA:$dst, (not RA:$a))],
              (outs RA:$dst), (ins RA:$a)>;
 
@@ -221,11 +225,13 @@ let Defs = [FLAGS] in {
   def CCF : I8<0x3f, "ccf">;
 }
 
+/*
 let Defs = [FLAGS], isReMaterializable = 1 in
 def NEGA : Pseudo<(outs RA:$dst), (ins RA:$a), [(set RA:$dst, (ineg RA:$a))]>;
 
 let Defs = [A, FLAGS], isReMaterializable = 1 in
 def CPLrr : Pseudo<(outs GR16:$dst), (ins GR16:$src), [(set GR16:$dst, (not GR16:$src))]>;
+*/
 
 let mayStore = 1, Uses = [SP] in
 def LDd16SP : SM83Inst24<(outs), (ins direct16:$addr), "ld [$addr], sp",
@@ -243,7 +249,7 @@ def JRr8 : SM83Inst16<(outs), (ins rel8:$off), "jr $off", []> {
   let Inst{7-0} = 0x18;
   let Inst{15-8} = off;
 }
-let isTerminator = 1, isBranch = 1 in
+let Uses = [FLAGS], isTerminator = 1, isBranch = 1 in
 def JRccr8 : SM83Inst16<(outs), (ins condition:$cc, rel8:$off),
                         "jr $cc, $off", []> {
   bits<2> cc;
@@ -357,13 +363,15 @@ let Defs = [FLAGS] in {
   defm OR : mALU<"or", 0b110, or>;
 
   let Uses = [FLAGS] in {
-    defm ADC : mALU<"adc", 0b001>;
-    defm SBC : mALU<"sbc", 0b011>;
+    defm ADC : mALU<"adc", 0b001, adde>;
+    defm SBC : mALU<"sbc", 0b011, sube>;
   }
 }
 
+/*
 let Defs = [FLAGS], isMoveImm = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 in
 def LDaz : Pseudo<(outs RA:$a), (ins), [(set RA:$a, 0)]>;
+*/
 
 let isReturn = 1, isTerminator = 1 in
 def RETcc : SM83Inst8<(outs), (ins condition:$cc), "ret $cc", []> {

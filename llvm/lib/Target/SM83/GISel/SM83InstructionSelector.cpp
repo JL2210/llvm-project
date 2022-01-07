@@ -14,6 +14,7 @@
 #include "SM83RegisterBankInfo.h"
 
 #include "llvm/CodeGen/MachineInstr.h"
+#include "llvm/CodeGen/GlobalISel/GISelKnownBits.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelector.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelectorImpl.h"
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
@@ -135,11 +136,13 @@ bool SM83InstructionSelector::selectCopy(MachineInstr &I,
   // constrain destination register
   Register DstReg = I.getOperand(0).getReg();
   unsigned DstSize = RBI.getSizeInBits(DstReg, MRI, TRI);
+  if(DstSize == 1) DstSize = 8;
   const RegisterBank &DstRegBank = *RBI.getRegBank(DstReg, MRI, TRI);
   const TargetRegisterClass *DstRC = getMinClassForRegBank(DstRegBank, DstSize);
 
   Register SrcReg = I.getOperand(1).getReg();
   unsigned SrcSize = RBI.getSizeInBits(SrcReg, MRI, TRI);
+  if(SrcSize == 1) SrcSize = 8;
   const RegisterBank &SrcRegBank = *RBI.getRegBank(SrcReg, MRI, TRI);
 
   if (!Register::isPhysicalRegister(DstReg) &&
@@ -249,6 +252,7 @@ bool SM83InstructionSelector::selectSignedExtend(MachineInstr &I,
 
   MIB.buildInstr(SM83::SBCr)
      .addDef(SM83::A)
+     .addUse(SM83::A)
      .addUse(SM83::A);
 
   auto CopyFromA = MIB.buildCopy(DstReg, Register(SM83::A));
@@ -273,6 +277,9 @@ bool SM83InstructionSelector::selectTruncate(MachineInstr &I,
   assert(I.getOpcode() == TargetOpcode::G_TRUNC &&
          "unexpected instruction");
   MachineIRBuilder MIB(I);
+  MachineBasicBlock &MBB = *I.getParent();
+  MachineFunction &MF = *MBB.getParent();
+
   const Register DstReg = I.getOperand(0).getReg();
   unsigned DstSize = RBI.getSizeInBits(DstReg, MRI, TRI);
   const RegisterBank &DstRegBank = *RBI.getRegBank(DstReg, MRI, TRI);
@@ -280,26 +287,27 @@ bool SM83InstructionSelector::selectTruncate(MachineInstr &I,
 
   const Register SrcReg = I.getOperand(1).getReg();
   unsigned SrcSize = RBI.getSizeInBits(SrcReg, MRI, TRI);
-  const RegisterBank &SrcRegBank = *RBI.getRegBank(SrcReg, MRI, TRI);
-  const TargetRegisterClass *SrcRC = getMinClassForRegBank(SrcRegBank, SrcSize);
 
-  if (!DstRC || !SrcRC)
-    return false;
-
-  if(DstSize != 1 || SrcSize != 8) {
+  if (!DstRC) {
+    LLVM_DEBUG(dbgs() << "no dstrc\n");
     return false;
   }
 
-  if (!RBI.constrainGenericRegister(SrcReg, *SrcRC, MRI) ||
-      !RBI.constrainGenericRegister(DstReg, *DstRC, MRI)) {
-    LLVM_DEBUG(dbgs() << "Failed to constrain " << TII.getName(I.getOpcode())
-                      << "\n");
+  if (!RBI.constrainGenericRegister(DstReg, *DstRC, MRI)) {
+    LLVM_DEBUG(dbgs() << "could not constrain dest reg\n");
+    return false;
+  }
+
+  if (DstSize >= 8 || SrcSize != 8) {
+    LLVM_DEBUG(dbgs() << "wrong size\n");
     return false;
   }
 
   auto CopyToA = MIB.buildCopy(SM83::A, SrcReg);
-  if (!constrainSelectedInstRegOperands(*CopyToA, TII, TRI, RBI))
+  if (!constrainSelectedInstRegOperands(*CopyToA, TII, TRI, RBI)) {
+    LLVM_DEBUG(dbgs() << "could not constrain copy to A\n");
     return false;
+  }
 
   MIB.buildInstr(SM83::ANDi)
      .addDef(SM83::A)
@@ -309,6 +317,7 @@ bool SM83InstructionSelector::selectTruncate(MachineInstr &I,
   MIB.buildCopy(DstReg, Register(SM83::A));
 
   I.eraseFromParent();
+  LLVM_DEBUG(dbgs() << "success\n");
   return true;
 }
 
