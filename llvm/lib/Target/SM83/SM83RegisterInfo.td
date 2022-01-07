@@ -56,14 +56,12 @@ def PC : SM83Reg<"pc">;
 // Register class definitions...
 //
 
-// the A register, since globalisel can't handle defs
-//def RA : RegisterClass<"SM83", [i8], 8, (add A)>;
+def RA : RegisterClass<"SM83", [i8], 8, (add A)>;
 
 // General-purpose 8-bit registers
 def GR8 : RegisterClass<"SM83", [i8], 8, (add A, L, H, E, D, C, B)>;
 
-// ditto for HL
-//def RHL : RegisterClass<"SM83", [i16], 8, (add HL)>;
+def RHL : RegisterClass<"SM83", [i16], 8, (add HL)>;
 
 // 16-bit registers that can be accessed as memory with A
 def M16 : RegisterClass<"SM83", [i16], 8, (add DE, BC)>;

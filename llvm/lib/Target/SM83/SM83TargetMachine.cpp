@@ -12,6 +12,7 @@
 
 #include "SM83TargetMachine.h"
 #include "TargetInfo/SM83TargetInfo.h"
+#include "GISel/SM83CombinerPasses.h"
 
 #include "llvm/InitializePasses.h"
 #include "llvm/PassRegistry.h"
@@ -22,6 +23,7 @@
 #include "llvm/CodeGen/GlobalISel/IRTranslator.h"
 #include "llvm/CodeGen/GlobalISel/Legalizer.h"
 #include "llvm/CodeGen/GlobalISel/Localizer.h"
+#include "llvm/CodeGen/GlobalISel/LoadStoreOpt.h"
 #include "llvm/CodeGen/GlobalISel/RegBankSelect.h"
 #include "llvm/Support/CodeGen.h"
 #include "llvm/MC/TargetRegistry.h"
@@ -33,6 +35,8 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83Target() {
   RegisterTargetMachine<SM83TargetMachine> X(getTheSM83Target());
   auto PR = PassRegistry::getPassRegistry();
   initializeGlobalISel(*PR);
+  initializeSM83O0PreLegalizerCombinerPass(*PR);
+  initializeSM83CombinerPass(*PR);
 }
 
 static const char SM83DataLayout[] =
@@ -66,7 +70,9 @@ public:
   }
 
   bool addIRTranslator() override;
+  void addPreLegalizeMachineIR() override;
   bool addLegalizeMachineIR() override;
+  void addPreRegBankSelect() override;
   bool addRegBankSelect() override;
   void addPreGlobalInstructionSelect() override;
   bool addGlobalInstructionSelect() override;
@@ -76,10 +82,28 @@ bool SM83PassConfig::addIRTranslator() {
   addPass(new IRTranslator(getOptLevel()));
   return false;
 }
+
+void SM83PassConfig::addPreLegalizeMachineIR() {
+  if (getOptLevel() == CodeGenOpt::None) {
+    addPass(createSM83O0PreLegalizerCombiner());
+  } else {
+    addPass(createSM83Combiner());
+    addPass(new LoadStoreOpt());
+  }
+}
+
 bool SM83PassConfig::addLegalizeMachineIR() {
   addPass(new Legalizer());
   return false;
 }
+
+void SM83PassConfig::addPreRegBankSelect() {
+  if (getOptLevel() != CodeGenOpt::None) {
+    addPass(createSM83Combiner());
+    addPass(new LoadStoreOpt());
+  }
+}
+
 bool SM83PassConfig::addRegBankSelect() {
   addPass(new RegBankSelect());
   return false;

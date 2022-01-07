@@ -30,6 +30,12 @@ public:
         .getReg(0);
   }
 
+  void assignValueToReg(Register ValVReg, Register PhysReg,
+                        CCValAssign VA) override {
+    markPhysRegUsed(PhysReg);
+    IncomingValueHandler::assignValueToReg(ValVReg, PhysReg, VA);
+  }
+
   void assignValueToAddress(Register ValVReg, Register Addr, LLT MemTy,
                             MachinePointerInfo &MPO, CCValAssign &VA) override {
     MachineFunction &MF = MIRBuilder.getMF();
@@ -37,6 +43,11 @@ public:
         MPO, MachineMemOperand::MOLoad | MachineMemOperand::MOInvariant, MemTy,
         inferAlignFromPtrInfo(MF, MPO));
     MIRBuilder.buildLoad(ValVReg, Addr, *MMO);
+  }
+
+  virtual void markPhysRegUsed(MCRegister PhysReg) {
+    MIRBuilder.getMRI()->addLiveIn(PhysReg);
+    MIRBuilder.getMBB().addLiveIn(PhysReg);
   }
 }; // struct IncomingArgHandler
 
@@ -47,6 +58,10 @@ public:
   CallReturnHandler(MachineIRBuilder &MIRBuilder, MachineRegisterInfo &MRI,
                     MachineInstrBuilder &MIB)
       : IncomingArgHandler(MIRBuilder, MRI), MIB(MIB) {}
+
+  void markPhysRegUsed(MCRegister PhysReg) override {
+    MIB.addDef(PhysReg, RegState::Implicit);
+  }
 };
 
 struct IncomingArgAssigner : public CallLowering::IncomingValueAssigner {

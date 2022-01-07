@@ -19,10 +19,9 @@ SM83LegalizerInfo::SM83LegalizerInfo(const DataLayout DL)
   const LLT s1 = LLT::scalar(1);
   const LLT s8 = LLT::scalar(8);
   const LLT s16 = LLT::scalar(16);
-  const LLT s32 = LLT::scalar(32);
 
   getActionDefinitionsBuilder({G_IMPLICIT_DEF, G_CONSTANT})
-    .legalFor({p0, s1, s8, s16, s32});
+    .legalFor({p0, s1, s8, s16});
 
   getActionDefinitionsBuilder(G_GLOBAL_VALUE)
     .legalFor({p0});
@@ -38,6 +37,11 @@ SM83LegalizerInfo::SM83LegalizerInfo(const DataLayout DL)
 
   getActionDefinitionsBuilder(G_SEXT)
     .legalForCartesianProduct({s8}, {s1});
+
+  getActionDefinitionsBuilder(G_ANYEXT)
+    .widenScalarToNextPow2(0)
+    .clampScalar(0, s8, s16)
+    .maxScalar(1, s16);
 
   getActionDefinitionsBuilder(G_ICMP)
     .legalForCartesianProduct({s1}, {p0, s8, s16});
