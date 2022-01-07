@@ -68,6 +68,7 @@ bool SM83InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   MachineInstrBuilder MIB(MF, MI);
 
   switch (unsigned Opc = MI.getOpcode()) {
+#if 0
     case SM83::LDaz: {
         Register Reg = MIB.getReg(0);
         MI.setDesc(get(SM83::XORr));
@@ -107,6 +108,7 @@ bool SM83InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
         MI.eraseFromParent();
       }
       break;
+#endif /* 0 */
     default:
       return false;
   }

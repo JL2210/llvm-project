@@ -21,6 +21,8 @@
 
 namespace llvm {
 
+class SM83Subtarget;
+
 class SM83TargetMachine : public LLVMTargetMachine {
   std::unique_ptr<TargetLoweringObjectFile> TLOF;
   SM83Subtarget Subtarget;
