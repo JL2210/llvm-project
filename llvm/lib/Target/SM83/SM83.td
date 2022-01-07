@@ -20,6 +20,7 @@ include "SM83RegisterInfo.td"
 include "SM83RegisterBanks.td"
 include "SM83CallingConv.td"
 include "SM83InstrInfo.td"
+include "SM83Combine.td"
 
 def : ProcessorModel<"sm83", NoSchedModel, []>;
 
