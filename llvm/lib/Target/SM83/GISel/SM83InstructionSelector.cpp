@@ -39,6 +39,8 @@ public:
   bool select(MachineInstr &I) override;
   static const char *getName() { return DEBUG_TYPE; }
 
+  const TargetRegisterClass *getRegClass(Register R, MachineRegisterInfo &MRI) const;
+
 private:
   const SM83InstrInfo &TII;
   const SM83RegisterInfo &TRI;
@@ -51,7 +53,7 @@ private:
   bool selectUnmergeValues(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectSignedExtend(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectCompare(MachineInstr &I, MachineRegisterInfo &MRI) const;
-  bool selectTruncate(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  bool selectPHI(MachineInstr &I, MachineRegisterInfo &MRI) const;
 
 #define GET_GLOBALISEL_PREDICATES_DECL
 #include "SM83GenGlobalISel.inc"
@@ -64,14 +66,18 @@ private:
 
 }
 
-static const TargetRegisterClass *
-getMinClassForRegBank(const RegisterBank &RB, unsigned SizeInBits) {
-  assert(RB.getID() == SM83::GPRRegBankID);
+const TargetRegisterClass *
+SM83InstructionSelector::getRegClass(Register R,
+                                     MachineRegisterInfo &MRI) const {
+  const RegisterBank &RegBank = *RBI.getRegBank(R, MRI, TRI);
+  assert(RegBank.getID() == SM83::GPRRegBankID);
 
-  if (SizeInBits <= 8)
+  unsigned Size = RBI.getSizeInBits(R, MRI, TRI);
+
+  if(Size <= 8)
     return &SM83::GR8RegClass;
 
-  if (SizeInBits == 16)
+  if (Size == 16)
     return &SM83::GR16RegClass;
 
   return nullptr;
@@ -126,24 +132,37 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
     return selectSignedExtend(I, MRI);
   case TargetOpcode::G_ICMP:
     return selectCompare(I, MRI);
-  case TargetOpcode::G_TRUNC:
-    return selectTruncate(I, MRI);
+  case TargetOpcode::G_PHI:
+    return selectPHI(I, MRI);
+  case TargetOpcode::G_INTTOPTR:
+    return selectCopy(I, MRI);
   }
 }
 
 bool SM83InstructionSelector::selectCopy(MachineInstr &I,
                                          MachineRegisterInfo &MRI) const {
-  // constrain destination register
   Register DstReg = I.getOperand(0).getReg();
-  unsigned DstSize = RBI.getSizeInBits(DstReg, MRI, TRI);
-  if(DstSize == 1) DstSize = 8;
-  const RegisterBank &DstRegBank = *RBI.getRegBank(DstReg, MRI, TRI);
-  const TargetRegisterClass *DstRC = getMinClassForRegBank(DstRegBank, DstSize);
+  const TargetRegisterClass *DstRC = getRegClass(DstReg, MRI);
 
-  Register SrcReg = I.getOperand(1).getReg();
-  unsigned SrcSize = RBI.getSizeInBits(SrcReg, MRI, TRI);
-  if(SrcSize == 1) SrcSize = 8;
-  const RegisterBank &SrcRegBank = *RBI.getRegBank(SrcReg, MRI, TRI);
+  if(!DstRC) {
+    LLVM_DEBUG(dbgs() << "Could not determine destination register class\n");
+    return false;
+  }
+
+  if(/*I.isCopy()*/1) {
+    Register SrcReg = I.getOperand(1).getReg();
+    const TargetRegisterClass *SrcRC = getRegClass(SrcReg, MRI);
+    if(!SrcRC) {
+      LLVM_DEBUG(dbgs() << "Could not determine source register class\n");
+      return false;
+    }
+    unsigned SrcSize = TRI.getRegSizeInBits(*SrcRC);
+    unsigned DstSize = TRI.getRegSizeInBits(*DstRC);
+    if(SrcSize != DstSize) {
+      LLVM_DEBUG(dbgs() << "Mismatched copy sizes\n");
+      return false;
+    }
+  }
 
   if (!Register::isPhysicalRegister(DstReg) &&
       !RBI.constrainGenericRegister(DstReg, *DstRC, MRI)) {
@@ -152,12 +171,6 @@ bool SM83InstructionSelector::selectCopy(MachineInstr &I,
     return false;
   }
 
-  if (SrcSize != DstSize || SrcRegBank != DstRegBank) {
-    return false;
-  }
-
-  // the register allocator will handle the actual copy
-  // copyPhysReg
   I.setDesc(TII.get(SM83::COPY));
   return true;
 }
@@ -267,58 +280,21 @@ bool SM83InstructionSelector::selectCompare(MachineInstr &I,
                                             MachineRegisterInfo &MRI) const {
   assert(I.getOpcode() == TargetOpcode::G_ICMP &&
          "unexpected instruction");
-  Register DstReg = I.getOperand(0).getReg();
-  auto Pred = CmpInst::Predicate(I.getOperand(1).getPredicate());
+//  Register DstReg = I.getOperand(0).getReg();
+//  auto Pred = CmpInst::Predicate(I.getOperand(1).getPredicate());
   return false;
 }
 
-bool SM83InstructionSelector::selectTruncate(MachineInstr &I,
-                                             MachineRegisterInfo &MRI) const {
-  assert(I.getOpcode() == TargetOpcode::G_TRUNC &&
+bool SM83InstructionSelector::selectPHI(MachineInstr &I,
+                                        MachineRegisterInfo &MRI) const {
+  assert(I.getOpcode() == TargetOpcode::G_PHI &&
          "unexpected instruction");
-  MachineIRBuilder MIB(I);
-  MachineBasicBlock &MBB = *I.getParent();
-  MachineFunction &MF = *MBB.getParent();
 
-  const Register DstReg = I.getOperand(0).getReg();
-  unsigned DstSize = RBI.getSizeInBits(DstReg, MRI, TRI);
-  const RegisterBank &DstRegBank = *RBI.getRegBank(DstReg, MRI, TRI);
-  const TargetRegisterClass *DstRC = getMinClassForRegBank(DstRegBank, DstSize);
+  I.setDesc(TII.get(TargetOpcode::PHI));
 
-  const Register SrcReg = I.getOperand(1).getReg();
-  unsigned SrcSize = RBI.getSizeInBits(SrcReg, MRI, TRI);
-
-  if (!DstRC) {
-    LLVM_DEBUG(dbgs() << "no dstrc\n");
-    return false;
-  }
-
-  if (!RBI.constrainGenericRegister(DstReg, *DstRC, MRI)) {
-    LLVM_DEBUG(dbgs() << "could not constrain dest reg\n");
-    return false;
-  }
-
-  if (DstSize >= 8 || SrcSize != 8) {
-    LLVM_DEBUG(dbgs() << "wrong size\n");
-    return false;
-  }
-
-  auto CopyToA = MIB.buildCopy(SM83::A, SrcReg);
-  if (!constrainSelectedInstRegOperands(*CopyToA, TII, TRI, RBI)) {
-    LLVM_DEBUG(dbgs() << "could not constrain copy to A\n");
-    return false;
-  }
-
-  MIB.buildInstr(SM83::ANDi)
-     .addDef(SM83::A)
-     .addUse(SM83::A)
-     .addImm((1U << DstSize) - 1);
-
-  MIB.buildCopy(DstReg, Register(SM83::A));
-
-  I.eraseFromParent();
-  LLVM_DEBUG(dbgs() << "success\n");
-  return true;
+  Register DstReg = I.getOperand(0).getReg();
+  const TargetRegisterClass *DstRC = getRegClass(DstReg, MRI);
+  return RBI.constrainGenericRegister(DstReg, *DstRC, MRI);
 }
 
 InstructionSelector *

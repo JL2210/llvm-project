@@ -11,16 +11,21 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83FrameLowering.h"
+#include "SM83InstrInfo.h"
+#include "MCTargetDesc/SM83MCTargetDesc.h"
 
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/CodeGen/MachineRegisterInfo.h"
 
 using namespace llvm;
 
 bool SM83FrameLowering::hasFP(const MachineFunction &MF) const { return false; }
 
 void SM83FrameLowering::emitPrologue(MachineFunction &MF,
-                                     MachineBasicBlock &MBB) const {}
+                                     MachineBasicBlock &MBB) const {
+}
 
 void SM83FrameLowering::emitEpilogue(MachineFunction &MF,
-                                     MachineBasicBlock &MBB) const {}
+                                     MachineBasicBlock &MBB) const {
+}

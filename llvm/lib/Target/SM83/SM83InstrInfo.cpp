@@ -13,12 +13,15 @@
 #include "SM83InstrInfo.h"
 #include "SM83RegisterInfo.h"
 #include "SM83Subtarget.h"
+#include "MCTargetDesc/SM83InstPrinter.h"
 #include "MCTargetDesc/SM83MCTargetDesc.h"
 #include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
 
 #define GET_INSTRINFO_CTOR_DTOR
 #include "SM83GenInstrInfo.inc"
+
+#define DEBUG_TYPE "sm83-instrinfo"
 
 using namespace llvm;
 
@@ -113,4 +116,30 @@ bool SM83InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
       return false;
   }
   return true;
+}
+
+void SM83InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
+                            MachineBasicBlock::iterator MI,
+                            Register DestReg, int FrameIndex,
+                            const TargetRegisterClass *RC,
+                            const TargetRegisterInfo *TRI) const {
+  bool isVirtReg = Register::isVirtualRegister(DestReg);
+  unsigned RegNo = isVirtReg ? DestReg.virtRegIndex() : DestReg.id();
+  BuildMI(MBB, MI, DebugLoc(), get(SM83::POPrr), DestReg);
+  LLVM_DEBUG(dbgs() << "load register " << (isVirtReg ? "%" : "") << RegNo
+                    << " from FrameIndex " << FrameIndex << "\n");
+}
+
+void SM83InstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
+                            MachineBasicBlock::iterator MI,
+                            Register SrcReg, bool isKill, int FrameIndex,
+                            const TargetRegisterClass *RC,
+                            const TargetRegisterInfo *TRI) const {
+  bool isVirtReg = Register::isVirtualRegister(SrcReg);
+  unsigned RegNo = isVirtReg ? SrcReg.virtRegIndex() : SrcReg.id();
+  BuildMI(MBB, MI, DebugLoc(), get(SM83::PUSHrr))
+    .addReg(SrcReg);
+  LLVM_DEBUG(dbgs() << "store register " << (isVirtReg ? "%" : "") << RegNo
+                    << " to FrameIndex " << FrameIndex
+                    << " with kill " << isKill << "\n");
 }

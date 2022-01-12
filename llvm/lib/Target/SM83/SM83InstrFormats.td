@@ -19,8 +19,8 @@ class SM83Instruction<dag outs, dag ins, string asmstr, list<dag> pattern>
 }
 
 let isPseudo = 1, isCodeGenOnly = 1 in
-class Pseudo<dag outs, dag ins, list<dag> pattern>
-  : SM83Instruction<outs, ins, "", pattern> {
+class Pseudo<dag outs, dag ins, list<dag> pattern, string asmstr = "">
+  : SM83Instruction<outs, ins, asmstr, pattern> {
 }
 
 class SM83Inst8<dag outs, dag ins, string asmstr, list<dag> pattern>
