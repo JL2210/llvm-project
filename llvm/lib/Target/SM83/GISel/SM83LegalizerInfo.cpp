@@ -52,10 +52,19 @@ SM83LegalizerInfo::SM83LegalizerInfo(const DataLayout DL)
   getActionDefinitionsBuilder(G_MERGE_VALUES)
     .legalForCartesianProduct({s16}, {s8});
 
+  getActionDefinitionsBuilder(G_INTTOPTR)
+    .legalForCartesianProduct({p0}, {s16});
+
+  getActionDefinitionsBuilder(G_PTRTOINT)
+    .legalForCartesianProduct({s16}, {p0});
+
   getActionDefinitionsBuilder({G_LOAD, G_STORE})
     .legalForCartesianProduct({s8, s16}, {p0});
 
   getActionDefinitionsBuilder({G_FRAME_INDEX, G_BLOCK_ADDR})
+    .legalFor({p0});
+
+  getActionDefinitionsBuilder(G_BRINDIRECT)
     .legalFor({p0});
 
   getLegacyLegalizerInfo().computeTables();
