@@ -12,8 +12,8 @@
 
 def CC_SM83 : CallingConv <[
   CCIfType<[i1], CCPromoteToType<i8>>,
-  CCIfType<[i8], CCAssignToReg<[A, L, H, E, D]>>,
   CCIfType<[i16], CCAssignToReg<[HL, DE]>>,
+  CCIfType<[i8], CCAssignToReg<[A, E, D, L, H]>>,
   CCAssignToStack<0, 0>,
 ]>;
 
@@ -26,4 +26,4 @@ def CC_SM83_Interrupt : CallingConv <[
 
 def CSR_NoRegs : CalleeSavedRegs<(add)>;
 def CSR : CalleeSavedRegs<(add)>;
-def CSR_Interrupt : CalleeSavedRegs<(add AF, BC, DE, HL, SP)>;
+def CSR_Interrupt : CalleeSavedRegs<(add AF, BC, DE, HL)>;

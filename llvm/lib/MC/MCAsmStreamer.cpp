@@ -1198,7 +1198,14 @@ static void PrintByteList(StringRef Data, raw_ostream &OS,
   llvm_unreachable("Invalid AsmCharLiteralSyntax value!");
 }
 
+#if 1 // SM83 hack
+static bool isTriviallyPrintable(unsigned char c) {
+  return c == '\n' || c == '\r' || c == '\t' || isPrint(c);
+}
+#endif
+
 void MCAsmStreamer::PrintQuotedString(StringRef Data, raw_ostream &OS) const {
+#if 0 // SM83 hack
   OS << '"';
 
   if (MAI->hasPairedDoubleQuoteStringConstants()) {
@@ -1247,6 +1254,63 @@ void MCAsmStreamer::PrintQuotedString(StringRef Data, raw_ostream &OS) const {
   }
 
   OS << '"';
+#else
+  if(isTriviallyPrintable((unsigned char)Data.front())) {
+    OS << '"';
+  }
+
+  for (auto i = Data.begin(); i != Data.end(); i++) {
+    unsigned char C = *i;
+    if (C == '"' || C == '\\' || C == '{' || C == '}') {
+      OS << '\\' << (char)C;
+      continue;
+    }
+
+    if (isPrint((unsigned char)C)) {
+      OS << (char)C;
+      continue;
+    }
+
+    switch(C) {
+    case '\n':
+      OS << "\\n";
+      continue;
+    case '\r':
+      OS << "\\r";
+      continue;
+    case '\t':
+      OS << "\\t";
+      continue;
+    default:
+      break;
+    }
+
+    // unprintable
+    // if it's not the first char and the previous character was printable
+    if(i != Data.begin() && isTriviallyPrintable((unsigned char)i[-1])) {
+      // end the string and print it as a number
+      OS << "\", " << (int)C;
+    } else {
+      // the last char was printable or this is the first char, so print it
+      OS << (int)C;
+    }
+
+    // if it's not the last char
+    if(i != Data.end()) {
+      // get ready for the next
+      OS << ", ";
+      // and if the next one is printable
+      if(isTriviallyPrintable((unsigned char)i[1])) {
+        // start another string
+        OS << '"';
+      }
+    }
+  }
+
+  if(isTriviallyPrintable((unsigned char)Data.back())) {
+    OS << '"';
+  }
+#endif // SM83 hack
 }
 
 void MCAsmStreamer::emitBytes(StringRef Data) {
@@ -1287,14 +1351,7 @@ void MCAsmStreamer::emitBytes(StringRef Data) {
       return false;
     }
 
-    // TODO: FIXME: SM83 hack
-    if(Data.back() == 0) {
-      Data = Data.substr(0, Data.size() - 1);
-      PrintQuotedString(Data, OS);
-      OS << ", 0";
-    } else {
-      PrintQuotedString(Data, OS);
-    }
+    PrintQuotedString(Data, OS);
     EmitEOL();
     return true;
   };

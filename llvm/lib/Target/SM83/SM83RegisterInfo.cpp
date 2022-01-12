@@ -23,6 +23,8 @@
 #define GET_REGINFO_TARGET_DESC
 #include "SM83GenRegisterInfo.inc"
 
+#define DEBUG_TYPE "sm83-reginfo"
+
 using namespace llvm;
 
 SM83RegisterInfo::SM83RegisterInfo(const Triple &TT)
@@ -68,6 +70,8 @@ const uint32_t *SM83RegisterInfo::getNoPreservedMask() const {
 void SM83RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                                            int SPAdj, unsigned FIOperandNum,
                                            RegScavenger *RS) const {
+  LLVM_DEBUG(dbgs() << "nop eliminateFrameIndex\n");
+  return;
   report_fatal_error("eliminateFrameIndex not implemented!");
   llvm_unreachable("Subroutines not supported yet!");
 }
