@@ -23,8 +23,8 @@
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
-#include "llvm/Target/TargetMachine.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Target/TargetMachine.h"
 
 #define DEBUG_TYPE "sm83-combiner"
 
@@ -35,8 +35,7 @@ protected:
   CombinerHelper &Helper;
 
 public:
-  SM83CombinerHelperState(CombinerHelper &Helper)
-      : Helper(Helper) {}
+  SM83CombinerHelperState(CombinerHelper &Helper) : Helper(Helper) {}
 };
 
 #define SM83COMBINERHELPER_GENCOMBINERHELPER_DEPS
@@ -113,8 +112,7 @@ void SM83Combiner::getAnalysisUsage(AnalysisUsage &AU) const {
   MachineFunctionPass::getAnalysisUsage(AU);
 }
 
-SM83Combiner::SM83Combiner()
-    : MachineFunctionPass(ID) {
+SM83Combiner::SM83Combiner() : MachineFunctionPass(ID) {
   initializeSM83CombinerPass(*PassRegistry::getPassRegistry());
 }
 
@@ -134,25 +132,20 @@ bool SM83Combiner::runOnMachineFunction(MachineFunction &MF) {
       MF.getTarget().getOptLevel() != CodeGenOpt::None && !skipFunction(F);
   GISelKnownBits *KB = &getAnalysis<GISelKnownBitsAnalysis>().get(MF);
   MachineDominatorTree *MDT = &getAnalysis<MachineDominatorTree>();
-  SM83CombinerInfo PCInfo(EnableOpt, F.hasOptSize(),
-                                         F.hasMinSize(), KB, MDT);
+  SM83CombinerInfo PCInfo(EnableOpt, F.hasOptSize(), F.hasMinSize(), KB, MDT);
   Combiner C(PCInfo, &TPC);
   return C.combineMachineInstrs(MF, CSEInfo);
 }
 
 char SM83Combiner::ID = 0;
-INITIALIZE_PASS_BEGIN(SM83Combiner, DEBUG_TYPE,
-                      "Combine SM83 machine instrs",
+INITIALIZE_PASS_BEGIN(SM83Combiner, DEBUG_TYPE, "Combine SM83 machine instrs",
                       false, false)
 INITIALIZE_PASS_DEPENDENCY(TargetPassConfig)
 INITIALIZE_PASS_DEPENDENCY(GISelKnownBitsAnalysis)
 INITIALIZE_PASS_DEPENDENCY(GISelCSEAnalysisWrapperPass)
-INITIALIZE_PASS_END(SM83Combiner, DEBUG_TYPE,
-                    "Combine SM83 machine instrs", false,
-                    false)
+INITIALIZE_PASS_END(SM83Combiner, DEBUG_TYPE, "Combine SM83 machine instrs",
+                    false, false)
 
 namespace llvm {
-FunctionPass *createSM83Combiner() {
-  return new SM83Combiner();
-}
+FunctionPass *createSM83Combiner() { return new SM83Combiner(); }
 } // end namespace llvm

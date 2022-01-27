@@ -11,22 +11,22 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83TargetMachine.h"
-#include "TargetInfo/SM83TargetInfo.h"
 #include "GISel/SM83CombinerPasses.h"
+#include "TargetInfo/SM83TargetInfo.h"
 
-#include "llvm/InitializePasses.h"
-#include "llvm/PassRegistry.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/CodeGen/GlobalISel/IRTranslator.h"
+#include "llvm/CodeGen/GlobalISel/InstructionSelect.h"
+#include "llvm/CodeGen/GlobalISel/Legalizer.h"
+#include "llvm/CodeGen/GlobalISel/LoadStoreOpt.h"
+#include "llvm/CodeGen/GlobalISel/Localizer.h"
+#include "llvm/CodeGen/GlobalISel/RegBankSelect.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
-#include "llvm/CodeGen/GlobalISel/InstructionSelect.h"
-#include "llvm/CodeGen/GlobalISel/IRTranslator.h"
-#include "llvm/CodeGen/GlobalISel/Legalizer.h"
-#include "llvm/CodeGen/GlobalISel/Localizer.h"
-#include "llvm/CodeGen/GlobalISel/LoadStoreOpt.h"
-#include "llvm/CodeGen/GlobalISel/RegBankSelect.h"
-#include "llvm/Support/CodeGen.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/MC/TargetRegistry.h"
+#include "llvm/PassRegistry.h"
+#include "llvm/Support/CodeGen.h"
 #include "llvm/Target/TargetOptions.h"
 
 namespace llvm {
@@ -39,8 +39,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83Target() {
   initializeSM83CombinerPass(*PR);
 }
 
-static const char SM83DataLayout[] =
-    "e-p:16:8-i16:8-i32:8-i64:8-a:0:8-n8:16";
+static const char SM83DataLayout[] = "e-p:16:8-i16:8-i32:8-i64:8-a:0:8-n8:16";
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {
   return RM.hasValue() ? *RM : Reloc::Static;
@@ -106,10 +105,10 @@ bool SM83PassConfig::addLegalizeMachineIR() {
 
 void SM83PassConfig::addPreRegBankSelect() {
   if (getOptLevel() != CodeGenOpt::None) {
-/*
-    addPass(createSM83Combiner());
-    addPass(new LoadStoreOpt());
-*/
+    /*
+        addPass(createSM83Combiner());
+        addPass(new LoadStoreOpt());
+    */
   }
 }
 
@@ -126,11 +125,11 @@ bool SM83PassConfig::addGlobalInstructionSelect() {
 }
 
 void SM83PassConfig::addPreRegAlloc() {
-/*
-  if (TM->getOptLevel() != CodeGenOpt::None) {
-    addPass(&PeepholeOptimizerID);
-  }
-*/
+  /*
+    if (TM->getOptLevel() != CodeGenOpt::None) {
+      addPass(&PeepholeOptimizerID);
+    }
+  */
 }
 
 void SM83PassConfig::addFastRegAlloc() {

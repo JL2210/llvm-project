@@ -14,14 +14,14 @@
 #define LLVM_LIB_TARGET_SM83_SM83SUBTARGET_H
 
 #include "SM83FrameLowering.h"
+#include "SM83ISelLowering.h"
 #include "SM83InstrInfo.h"
 #include "SM83RegisterInfo.h"
-#include "SM83ISelLowering.h"
 
 #include "llvm/CodeGen/GlobalISel/CallLowering.h"
-#include "llvm/CodeGen/GlobalISel/RegisterBankInfo.h"
-#include "llvm/CodeGen/GlobalISel/LegalizerInfo.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelector.h"
+#include "llvm/CodeGen/GlobalISel/LegalizerInfo.h"
+#include "llvm/CodeGen/GlobalISel/RegisterBankInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 
 #define GET_SUBTARGETINFO_HEADER

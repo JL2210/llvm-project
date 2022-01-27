@@ -21,8 +21,8 @@
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
-#include "llvm/Target/TargetMachine.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Target/TargetMachine.h"
 
 #define DEBUG_TYPE "SM83-O0-prelegalizer-combiner"
 
@@ -53,8 +53,7 @@ class SM83O0PreLegalizerCombinerInfo : public CombinerInfo {
 
 public:
   SM83O0PreLegalizerCombinerInfo(bool EnableOpt, bool OptSize, bool MinSize,
-                                    GISelKnownBits *KB,
-                                    MachineDominatorTree *MDT)
+                                 GISelKnownBits *KB, MachineDominatorTree *MDT)
       : CombinerInfo(/*AllowIllegalOps*/ true, /*ShouldLegalizeIllegal*/ false,
                      /*LegalizerInfo*/ nullptr, EnableOpt, OptSize, MinSize),
         KB(KB), MDT(MDT) {
@@ -127,16 +126,16 @@ bool SM83O0PreLegalizerCombiner::runOnMachineFunction(MachineFunction &MF) {
   bool EnableOpt =
       MF.getTarget().getOptLevel() != CodeGenOpt::None && !skipFunction(F);
   GISelKnownBits *KB = &getAnalysis<GISelKnownBitsAnalysis>().get(MF);
-  SM83O0PreLegalizerCombinerInfo PCInfo(EnableOpt,
-      F.hasOptSize(), F.hasMinSize(), KB, nullptr /* MDT */);
+  SM83O0PreLegalizerCombinerInfo PCInfo(EnableOpt, F.hasOptSize(),
+                                        F.hasMinSize(), KB, nullptr /* MDT */);
   Combiner C(PCInfo, &TPC);
   return C.combineMachineInstrs(MF, nullptr /* CSEInfo */);
 }
 
 char SM83O0PreLegalizerCombiner::ID = 0;
 INITIALIZE_PASS_BEGIN(SM83O0PreLegalizerCombiner, DEBUG_TYPE,
-                      "Combine SM83 machine instrs before legalization",
-                      false, false)
+                      "Combine SM83 machine instrs before legalization", false,
+                      false)
 INITIALIZE_PASS_DEPENDENCY(TargetPassConfig)
 INITIALIZE_PASS_DEPENDENCY(GISelKnownBitsAnalysis)
 INITIALIZE_PASS_DEPENDENCY(GISelCSEAnalysisWrapperPass)
