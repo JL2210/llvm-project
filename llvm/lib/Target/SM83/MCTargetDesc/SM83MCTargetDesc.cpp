@@ -69,7 +69,7 @@ static MCInstPrinter *createSM83MCInstPrinter(const Triple &T,
 
 static MCTargetStreamer *
 createSM83AsmTargetStreamer(MCStreamer &S, formatted_raw_ostream &OS,
-                            MCInstPrinter */*InstPrint*/,
+                            MCInstPrinter * /*InstPrint*/,
                             bool /*isVerboseAsm*/) {
   return new SM83TargetAsmStreamer(S, OS);
 }

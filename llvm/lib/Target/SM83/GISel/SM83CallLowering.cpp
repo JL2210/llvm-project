@@ -1,9 +1,9 @@
 #include "SM83CallLowering.h"
-#include "SM83Subtarget.h"
 #include "MCTargetDesc/SM83MCTargetDesc.h"
+#include "SM83Subtarget.h"
 
-#include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
 #include "llvm/CodeGen/Analysis.h"
+#include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
 
 using namespace llvm;
 
@@ -20,7 +20,8 @@ public:
         DL(MIRBuilder.getMF().getDataLayout()) {}
 
   Register getStackAddress(uint64_t Size, int64_t Offset,
-                           MachinePointerInfo &MPO, ISD::ArgFlagsTy Flags) override {
+                           MachinePointerInfo &MPO,
+                           ISD::ArgFlagsTy Flags) override {
     auto &MFI = MIRBuilder.getMF().getFrameInfo();
     int FI = MFI.CreateFixedObject(Size, Offset, true);
     MPO = MachinePointerInfo::getFixedStack(MIRBuilder.getMF(), FI);
@@ -66,14 +67,12 @@ public:
 
 struct IncomingArgAssigner : public CallLowering::IncomingValueAssigner {
 public:
-  IncomingArgAssigner(CCAssignFn *AssignFn)
-      : IncomingValueAssigner(AssignFn) {}
+  IncomingArgAssigner(CCAssignFn *AssignFn) : IncomingValueAssigner(AssignFn) {}
 }; // struct IncomingArgAssigner
 
 struct OutgoingArgAssigner : public CallLowering::OutgoingValueAssigner {
 public:
-  OutgoingArgAssigner(CCAssignFn *AssignFn)
-      : OutgoingValueAssigner(AssignFn) {}
+  OutgoingArgAssigner(CCAssignFn *AssignFn) : OutgoingValueAssigner(AssignFn) {}
 }; // struct OutgoingArgAssigner
 
 struct OutgoingArgHandler : public CallLowering::OutgoingValueHandler {
@@ -88,7 +87,8 @@ public:
         DL(MIRBuilder.getMF().getDataLayout()),
         STI(MIRBuilder.getMF().getSubtarget<SM83Subtarget>()) {}
 
-  void assignValueToReg(Register ValVReg, Register PhysReg, CCValAssign VA) override {
+  void assignValueToReg(Register ValVReg, Register PhysReg,
+                        CCValAssign VA) override {
     Register ExtReg = extendRegister(ValVReg, VA);
     MIRBuilder.buildCopy(PhysReg, ExtReg);
     MIB.addUse(PhysReg, RegState::Implicit);
@@ -116,18 +116,17 @@ public:
   }
 };
 
-}
+} // namespace
 
 bool SM83CallLowering::lowerReturn(MachineIRBuilder &MIRBuilder,
-                                   const Value *Val,
-                                   ArrayRef<Register> VRegs,
+                                   const Value *Val, ArrayRef<Register> VRegs,
                                    FunctionLoweringInfo &FLI) const {
   auto MIB = MIRBuilder.buildInstrNoInsert(SM83::RET);
   assert(((Val && !VRegs.empty()) || (!Val && VRegs.empty())) &&
          "Return value without a vreg");
 
   bool Success = true;
-  if(!VRegs.empty()) {
+  if (!VRegs.empty()) {
     MachineFunction &MF = MIRBuilder.getMF();
     const Function &F = MF.getFunction();
     const DataLayout &DL = F.getParent()->getDataLayout();
@@ -144,17 +143,18 @@ bool SM83CallLowering::lowerReturn(MachineIRBuilder &MIRBuilder,
 
     OutgoingArgAssigner Assigner(AssignFn);
     OutgoingArgHandler Handler(MIRBuilder, MF.getRegInfo(), MIB);
-    Success = determineAndHandleAssignments(Handler, Assigner, SplitRetInfos, MIRBuilder, CC, F.isVarArg());
+    Success = determineAndHandleAssignments(Handler, Assigner, SplitRetInfos,
+                                            MIRBuilder, CC, F.isVarArg());
   }
 
   MIRBuilder.insertInstr(MIB);
   return Success;
 }
 
-bool SM83CallLowering::lowerFormalArguments(
-    MachineIRBuilder &MIRBuilder, const Function &F,
-    ArrayRef<ArrayRef<Register>> VRegs,
-    FunctionLoweringInfo &FLI) const {
+bool SM83CallLowering::lowerFormalArguments(MachineIRBuilder &MIRBuilder,
+                                            const Function &F,
+                                            ArrayRef<ArrayRef<Register>> VRegs,
+                                            FunctionLoweringInfo &FLI) const {
   const auto &DL = F.getParent()->getDataLayout();
   CallingConv::ID CC = F.getCallingConv();
 
@@ -172,7 +172,8 @@ bool SM83CallLowering::lowerFormalArguments(
   CCAssignFn *AssignFn = TLI.CCAssignFnForCall(CC, F.isVarArg());
   IncomingArgAssigner Assigner(AssignFn);
   IncomingArgHandler Handler(MIRBuilder, MIRBuilder.getMF().getRegInfo());
-  return determineAndHandleAssignments(Handler, Assigner, SplitArgs, MIRBuilder, CC, F.isVarArg());
+  return determineAndHandleAssignments(Handler, Assigner, SplitArgs, MIRBuilder,
+                                       CC, F.isVarArg());
 }
 
 bool SM83CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
@@ -183,7 +184,7 @@ bool SM83CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
   const DataLayout &DL = F.getParent()->getDataLayout();
   const SM83TargetLowering &TLI = *getTLI<SM83TargetLowering>();
 
-  if(Info.Callee.isReg()) {
+  if (Info.Callee.isReg()) {
     // no way
     return false;
   }
@@ -200,8 +201,7 @@ bool SM83CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
     splitToValueTypes(Info.OrigRet, InArgs, DL, Info.CallConv);
   }
 
-  auto MIB = MIRBuilder.buildInstrNoInsert(SM83::CALLd16)
-                       .add(Info.Callee);
+  auto MIB = MIRBuilder.buildInstrNoInsert(SM83::CALLd16).add(Info.Callee);
 
   const auto &STI = MF.getSubtarget<SM83Subtarget>();
   const auto *TRI = STI.getRegisterInfo();
@@ -218,7 +218,8 @@ bool SM83CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
     return false;
 
   const uint32_t *Mask = TRI->getCallPreservedMask(MF, Info.CallConv);
-  if(Mask) MIB.addRegMask(Mask);
+  if (Mask)
+    MIB.addRegMask(Mask);
 
   MIRBuilder.insertInstr(MIB);
 

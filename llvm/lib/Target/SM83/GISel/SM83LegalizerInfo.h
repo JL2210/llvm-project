@@ -21,5 +21,5 @@ public:
   SM83LegalizerInfo(const DataLayout DL);
 };
 
-}
+} // namespace llvm
 #endif

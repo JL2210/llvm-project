@@ -34,7 +34,7 @@ protected:
   enum ValueMappingIdx {
     VMI_None = -1,
     DistanceBetweenRegBanks = 3,
-    VMI_3OpsGr8Idx =  PMI_GR8 * DistanceBetweenRegBanks,
+    VMI_3OpsGr8Idx = PMI_GR8 * DistanceBetweenRegBanks,
     VMI_3OpsGr16Idx = PMI_GR16 * DistanceBetweenRegBanks,
     VMI_First3OpsIdx = PMI_FirstGPR * DistanceBetweenRegBanks,
     VMI_Last3OpsIdx = PMI_LastGPR * DistanceBetweenRegBanks,
@@ -64,16 +64,16 @@ class SM83RegisterBankInfo final : public SM83GenRegisterBankInfo {
 
 public:
   SM83RegisterBankInfo(const TargetRegisterInfo &TRI)
-    : SM83GenRegisterBankInfo() {}
+      : SM83GenRegisterBankInfo() {}
 
-  const RegisterBank &getRegBankFromRegClass(
-      const TargetRegisterClass &RC, LLT Ty) const override;
+  const RegisterBank &getRegBankFromRegClass(const TargetRegisterClass &RC,
+                                             LLT Ty) const override;
 
-  const InstructionMapping &getInstrMapping(
-      const MachineInstr &MI) const override;
+  const InstructionMapping &
+  getInstrMapping(const MachineInstr &MI) const override;
 
-  InstructionMappings getInstrAlternativeMappings(
-      const MachineInstr &MI) const override;
+  InstructionMappings
+  getInstrAlternativeMappings(const MachineInstr &MI) const override;
 };
-}
+} // namespace llvm
 #endif

@@ -8,11 +8,11 @@
 
 #include "SM83RegisterBankInfo.h"
 
+#include "llvm/CodeGen/GlobalISel/RegisterBank.h"
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
-#include "llvm/CodeGen/GlobalISel/RegisterBank.h"
 
 #define GET_TARGET_REGBANK_IMPL
 #include "SM83GenRegisterBank.inc"
@@ -21,8 +21,9 @@
 
 using namespace llvm;
 
-const RegisterBank &SM83RegisterBankInfo::getRegBankFromRegClass(
-    const TargetRegisterClass &RC, LLT Ty) const {
+const RegisterBank &
+SM83RegisterBankInfo::getRegBankFromRegClass(const TargetRegisterClass &RC,
+                                             LLT Ty) const {
   // only one register bank
   return getRegBank(SM83::GPRRegBankID);
 }
@@ -60,8 +61,8 @@ bool SM83RegisterBankInfo::getInstrValueMapping(
   return true;
 }
 
-const RegisterBankInfo::InstructionMapping &SM83RegisterBankInfo::getInstrMapping(
-    const MachineInstr &MI) const {
+const RegisterBankInfo::InstructionMapping &
+SM83RegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
   const MachineFunction &MF = *MI.getParent()->getParent();
   const MachineRegisterInfo &MRI = MF.getRegInfo();
   unsigned Opc = MI.getOpcode();
@@ -71,7 +72,7 @@ const RegisterBankInfo::InstructionMapping &SM83RegisterBankInfo::getInstrMappin
   if (Mapping.isValid())
     return Mapping;
 
-  switch(Opc) {
+  switch (Opc) {
   default:
     break;
   }
@@ -89,7 +90,8 @@ const RegisterBankInfo::InstructionMapping &SM83RegisterBankInfo::getInstrMappin
                                getOperandsMapping(OpdsMapping), NumOperands);
 }
 
-RegisterBankInfo::InstructionMappings SM83RegisterBankInfo::getInstrAlternativeMappings(
+RegisterBankInfo::InstructionMappings
+SM83RegisterBankInfo::getInstrAlternativeMappings(
     const MachineInstr &MI) const {
   // no alternative mappings
   return InstructionMappings();

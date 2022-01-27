@@ -77,7 +77,7 @@ void SM83InstPrinter::printCondition(const MCInst *MI, unsigned OpNo,
 void SM83InstPrinter::printMemOp(const MCInst *MI, unsigned OpNo,
                                  raw_ostream &O) {
   const MCOperand &Base = MI->getOperand(OpNo);
-  const MCOperand &Disp = MI->getOperand(OpNo+1);
+  const MCOperand &Disp = MI->getOperand(OpNo + 1);
 
   printMCOperand(Disp, O);
   O << '(';

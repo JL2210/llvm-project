@@ -16,15 +16,14 @@
 
 using namespace llvm;
 
-SM83TargetStreamer::SM83TargetStreamer(MCStreamer &S)
-    : MCTargetStreamer(S) {}
+SM83TargetStreamer::SM83TargetStreamer(MCStreamer &S) : MCTargetStreamer(S) {}
 
 SM83TargetAsmStreamer::SM83TargetAsmStreamer(MCStreamer &S,
                                              formatted_raw_ostream &OS)
     : SM83TargetStreamer(S), MAI(S.getContext().getAsmInfo()), OS(OS) {}
 
 void SM83TargetAsmStreamer::emitAlign(Align Alignment) {
-  if(Log2(Alignment))
+  if (Log2(Alignment))
     OS << "\talign " << Log2(Alignment) << '\n';
 }
 
@@ -37,4 +36,3 @@ void SM83TargetAsmStreamer::emitGlobal(MCSymbol *Symbol) {
   Symbol->print(OS, MAI);
   OS << "::\n";
 }
-

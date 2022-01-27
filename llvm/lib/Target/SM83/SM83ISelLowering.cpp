@@ -11,12 +11,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83ISelLowering.h"
-#include "SM83Subtarget.h"
 #include "MCTargetDesc/SM83MCTargetDesc.h"
+#include "SM83Subtarget.h"
 
 #include "llvm/CodeGen/TargetCallingConv.h"
-#include "llvm/Target/TargetMachine.h"
 #include "llvm/Support/MachineValueType.h"
+#include "llvm/Target/TargetMachine.h"
 
 using namespace llvm;
 
@@ -32,7 +32,7 @@ SM83TargetLowering::SM83TargetLowering(const TargetMachine &TM,
   // Compute derived properties from the register classes.
   computeRegisterProperties(STI.getRegisterInfo());
 
-  //setSchedulingPreference(Sched::RegPressure);
+  // setSchedulingPreference(Sched::RegPressure);
 
   setStackPointerRegisterToSaveRestore(SM83::SP);
 
@@ -57,7 +57,6 @@ CCAssignFn *SM83TargetLowering::CCAssignFnForCall(CallingConv::ID CC,
   }
 }
 
-CCAssignFn *
-SM83TargetLowering::CCAssignFnForReturn(CallingConv::ID CC) const {
+CCAssignFn *SM83TargetLowering::CCAssignFnForReturn(CallingConv::ID CC) const {
   return RetCC_SM83;
 }
