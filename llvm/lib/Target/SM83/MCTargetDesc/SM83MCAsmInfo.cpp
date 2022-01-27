@@ -20,6 +20,7 @@ SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT, const MCTargetOptions &Options) {
   CodePointerSize = 2;
   CalleeSaveStackSlotSize = 2;
   AlignmentIsInBytes = false;
+  UseDotAlignForAlignment = true; // see sm83 hack in mcasmstreamer
   IsLittleEndian = true;
   MaxInstLength = 3;
   UseIntegratedAssembler = false;

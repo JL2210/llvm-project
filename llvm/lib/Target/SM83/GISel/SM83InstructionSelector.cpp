@@ -45,7 +45,10 @@ private:
   const SM83InstrInfo &TII;
   const SM83RegisterInfo &TRI;
   const SM83RegisterBankInfo &RBI;
-
+#if 0
+  bool convertPtrAddToAdd(MachineInstr &I, MachineRegisterInfo &MRI);
+  bool preISelLower(MachineInstr &I);
+#endif
   bool selectCopy(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectImpl(MachineInstr &I, CodeGenCoverage &CoverageInfo) const;
   bool selectConstant(MachineInstr &I, MachineRegisterInfo &MRI) const;
@@ -54,6 +57,7 @@ private:
   bool selectSignedExtend(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectCompare(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectPHI(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  //bool selectGEP(MachineInstr &I, MachineRegisterInfo &MRI) const;
 
 #define GET_GLOBALISEL_PREDICATES_DECL
 #include "SM83GenGlobalISel.inc"
@@ -101,6 +105,51 @@ SM83InstructionSelector::SM83InstructionSelector(const SM83TargetMachine &TM,
 {
 }
 
+#if 0
+bool SM83InstructionSelector::convertPtrAddToAdd(
+    MachineInstr &I, MachineRegisterInfo &MRI) {
+  assert(I.getOpcode() == TargetOpcode::G_PTR_ADD && "Expected G_PTR_ADD");
+  MachineIRBuilder MIB(I);
+
+  Register DstReg = I.getOperand(0).getReg();
+  Register AddOp1Reg = I.getOperand(1).getReg();
+
+  const LLT PtrTy = MRI.getType(DstReg);
+  if (PtrTy.getAddressSpace() != 0)
+    return false;
+  const LLT CastPtrTy = LLT::scalar(16);
+
+  auto PtrToInt = MIB.buildPtrToInt(CastPtrTy, AddOp1Reg);
+  MRI.setRegBank(PtrToInt.getReg(0), RBI.getRegBank(SM83::GPRRegBankID));
+
+  I.setDesc(TII.get(TargetOpcode::G_ADD));
+  MRI.setType(DstReg, CastPtrTy);
+  I.getOperand(1).setReg(PtrToInt.getReg(0));
+
+  LLVM_DEBUG(dbgs() << "selecting PtrToInt for G_PTR_ADD\n");
+
+  if (!select(*PtrToInt)) {
+    report_fatal_error("Failed to select G_PTRTOINT in convertPtrAddToAdd");
+    return false;
+  }
+
+  return true;
+}
+
+bool SM83InstructionSelector::preISelLower(MachineInstr &I) {
+  MachineBasicBlock &MBB = *I.getParent();
+  MachineFunction &MF = *MBB.getParent();
+  MachineRegisterInfo &MRI = MF.getRegInfo();
+
+  switch (I.getOpcode()) {
+  case TargetOpcode::G_PTR_ADD:
+    return convertPtrAddToAdd(I, MRI);
+  default:
+    return false;
+  }
+}
+#endif
+
 bool SM83InstructionSelector::select(MachineInstr &I) {
   unsigned Opcode = I.getOpcode();
 
@@ -115,6 +164,12 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
 
     return true;
   }
+
+#if 0
+  if (preISelLower(I)) {
+    Opcode = I.getOpcode();
+  }
+#endif
 
   if(selectImpl(I, *CoverageInfo))
     return true;
@@ -135,7 +190,21 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
   case TargetOpcode::G_PHI:
     return selectPHI(I, MRI);
   case TargetOpcode::G_INTTOPTR:
+  case TargetOpcode::G_PTRTOINT:
     return selectCopy(I, MRI);
+  case TargetOpcode::G_PTR_ADD: {
+      I.setDesc(TII.get(SM83::LDrrii));
+      Register Off = I.getOperand(2).getReg();
+      auto &OffDefMI = *MRI.getVRegDef(Off);
+      LLVM_DEBUG(dbgs() << "type: " << (int)OffDefMI.getOperand(1).getType() << '\n');
+      auto OffImm = OffDefMI.getOperand(1).getCImm()->getSExtValue();
+      Register Base = I.getOperand(1).getReg();
+      auto &BaseDefMI = *MRI.getVRegDef(Base);
+      auto *GA = BaseDefMI.getOperand(1).getGlobal();
+      I.getOperand(1).ChangeToGA(GA, OffImm);
+      I.RemoveOperand(2);
+      return true;
+    }
   }
 }
 
@@ -149,7 +218,6 @@ bool SM83InstructionSelector::selectCopy(MachineInstr &I,
     return false;
   }
 
-  if(/*I.isCopy()*/1) {
     Register SrcReg = I.getOperand(1).getReg();
     const TargetRegisterClass *SrcRC = getRegClass(SrcReg, MRI);
     if(!SrcRC) {
@@ -162,7 +230,6 @@ bool SM83InstructionSelector::selectCopy(MachineInstr &I,
       LLVM_DEBUG(dbgs() << "Mismatched copy sizes\n");
       return false;
     }
-  }
 
   if (!Register::isPhysicalRegister(DstReg) &&
       !RBI.constrainGenericRegister(DstReg, *DstRC, MRI)) {
@@ -296,6 +363,42 @@ bool SM83InstructionSelector::selectPHI(MachineInstr &I,
   const TargetRegisterClass *DstRC = getRegClass(DstReg, MRI);
   return RBI.constrainGenericRegister(DstReg, *DstRC, MRI);
 }
+
+#if 0 // unused mess
+bool SM83InstructionSelector::selectGEP(MachineInstr &I,
+                                        MachineRegisterInfo &MRI) const {
+  assert(I.getOpcode() == TargetOpcode::G_PTR_ADD &&
+         "unexpected instruction");
+  MachineBasicBlock &MBB = *I.getParent();
+  MachineFunction &MF = *MBB.getParent();
+  MachineIRBuilder MIB(I);
+  auto Base = I.getOperand(1).getReg();
+
+  LLVM_DEBUG(dbgs() << "trying getvregdef\n");
+
+  GISelKnownBits GKB(MF);
+
+  auto KnownBits = GKB.getKnownBits(I.getOperand(2).getReg());
+  if(KnownBits.isConstant()) {
+    auto Value = KnownBits.getConstant();
+    if(Value.abs().ule(4)) {
+      unsigned Opc = Value.isNegative() ? SM83::DECrr : SM83::INCrr;
+      for(auto v = Value.abs(); !v.isZero(); --v) {
+        MIB.buildInstr(Opc)
+           .addDef(Base)
+           .addReg(Base);
+      }
+
+      I.eraseFromParent();
+      return true;
+    }
+  }
+
+  I.setDesc(TII.get(TargetOpcode::G_ADD));
+  LLVM_DEBUG(dbgs() << "trying to select G_PTR_ADD using G_ADD\n");
+  return selectImpl(I, *CoverageInfo);
+}
+#endif
 
 InstructionSelector *
 llvm::createSM83InstructionSelector(const SM83TargetMachine &TM,

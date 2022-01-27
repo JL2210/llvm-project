@@ -43,7 +43,6 @@
 
 namespace llvm {
 
-<<<<<<< HEAD
 class CodeViewContext;
 class MCAsmInfo;
 class MCDataFragment;

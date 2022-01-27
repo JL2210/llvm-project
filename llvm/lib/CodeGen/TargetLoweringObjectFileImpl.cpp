@@ -2752,32 +2752,40 @@ TargetLoweringObjectFileRGB9::TargetLoweringObjectFileRGB9()
 
 MCSection *TargetLoweringObjectFileRGB9::getExplicitSectionGlobal(
     const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {
-  return SelectSectionForGlobal(GO, Kind, TM);
+  report_fatal_error("explicit section globals not supported in RGB9 yet");
 }
 
 MCSection *TargetLoweringObjectFileRGB9::SelectSectionForGlobal(
     const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {
+  bool UniqueSectionName = false;
   if (Kind.isText()) {
-    if (TM.getFunctionSections()) {
-      report_fatal_error("-ffunction-sections not implemented for RGB9");
+    UniqueSectionName = TM.getFunctionSections();
+    if (!TM.getFunctionSections()) {
+      report_fatal_error("-ffunction-sections required for RGB9");
     }
   } else {
-    if (TM.getDataSections()) {
-      report_fatal_error("-fdata-sections not implemented for RGB9");
-    }
+    UniqueSectionName = TM.getDataSections();
   }
 
-  if (Kind.isReadOnly())
-    return getContext().getObjectFileInfo()->getReadOnlySection();
+  SmallString<128> Name = getSectionPrefixForGlobal(Kind);
 
-  if (Kind.isText())
-    return getContext().getObjectFileInfo()->getTextSection();
+   bool HasPrefix = false;
+   if (const auto *F = dyn_cast<Function>(GO)) {
+     if (Optional<StringRef> Prefix = F->getSectionPrefix()) {
+       raw_svector_ostream(Name) << '.' << *Prefix;
+       HasPrefix = true;
+     }
+   }
 
-  if (Kind.isData())
-    return getContext().getObjectFileInfo()->getDataSection();
-
-  if (Kind.isBSS() || Kind.isCommon())
-    return getContext().getObjectFileInfo()->getBSSSection();
+   if (UniqueSectionName) {
+     Name.push_back('.');
+     TM.getNameWithPrefix(Name, GO, getMangler(), /*MayAlwaysUsePrivate*/true);
+   } else if (HasPrefix) {
+     // For distinguishing between .text.${text-section-prefix}. (with trailing
+     // dot) and .text.${function-name}
+     Name.push_back('.');
+   }
+  return getContext().getRGB9Section(Name, Kind);
 
   report_fatal_error("Section kind unsupported!");
   return nullptr;
