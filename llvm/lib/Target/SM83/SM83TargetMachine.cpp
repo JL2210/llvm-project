@@ -58,6 +58,9 @@ SM83TargetMachine::SM83TargetMachine(const Target &T, const Triple &TT,
       TLOF(std::make_unique<TargetLoweringObjectFileRGB9>()),
       Subtarget(TT, std::string(CPU), std::string(FS), *this) {
   initAsmInfo();
+
+  setGlobalISel(true);
+  setGlobalISelAbort(GlobalISelAbortMode::Enable);
 }
 
 class SM83PassConfig : public TargetPassConfig {
@@ -76,6 +79,10 @@ public:
   bool addRegBankSelect() override;
   void addPreGlobalInstructionSelect() override;
   bool addGlobalInstructionSelect() override;
+  void addPreRegAlloc() override;
+  void addFastRegAlloc() override;
+
+  std::unique_ptr<CSEConfigBase> getCSEConfig() const override;
 };
 
 bool SM83PassConfig::addIRTranslator() {
@@ -99,8 +106,10 @@ bool SM83PassConfig::addLegalizeMachineIR() {
 
 void SM83PassConfig::addPreRegBankSelect() {
   if (getOptLevel() != CodeGenOpt::None) {
+/*
     addPass(createSM83Combiner());
     addPass(new LoadStoreOpt());
+*/
   }
 }
 
@@ -116,8 +125,28 @@ bool SM83PassConfig::addGlobalInstructionSelect() {
   return false;
 }
 
+void SM83PassConfig::addPreRegAlloc() {
+/*
+  if (TM->getOptLevel() != CodeGenOpt::None) {
+    addPass(&PeepholeOptimizerID);
+  }
+*/
+}
+
+void SM83PassConfig::addFastRegAlloc() {
+  // FastRegAlloc can't handle the register pressure
+  if (usingDefaultRegAlloc())
+    addOptimizedRegAlloc();
+  else
+    TargetPassConfig::addFastRegAlloc();
+}
+
 TargetPassConfig *SM83TargetMachine::createPassConfig(PassManagerBase &PM) {
   return new SM83PassConfig(*this, PM);
+}
+
+std::unique_ptr<CSEConfigBase> SM83PassConfig::getCSEConfig() const {
+  return getStandardCSEConfigForOpt(TM->getOptLevel());
 }
 
 } // end namespace llvm

@@ -32,6 +32,8 @@ SM83TargetLowering::SM83TargetLowering(const TargetMachine &TM,
   // Compute derived properties from the register classes.
   computeRegisterProperties(STI.getRegisterInfo());
 
+  //setSchedulingPreference(Sched::RegPressure);
+
   setStackPointerRegisterToSaveRestore(SM83::SP);
 
   // TODO: add all necessary setOperationAction calls.

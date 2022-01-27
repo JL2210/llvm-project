@@ -59,7 +59,7 @@ def PC : SM83Reg<"pc">;
 def RA : RegisterClass<"SM83", [i8], 8, (add A)>;
 
 // General-purpose 8-bit registers
-def GR8 : RegisterClass<"SM83", [i8], 8, (add A, L, H, E, D, C, B)>;
+def GR8 : RegisterClass<"SM83", [i8], 8, (add RA, L, H, E, D, C, B)>;
 
 def RHL : RegisterClass<"SM83", [i16], 8, (add HL)>;
 
@@ -67,7 +67,7 @@ def RHL : RegisterClass<"SM83", [i16], 8, (add HL)>;
 def M16 : RegisterClass<"SM83", [i16], 8, (add DE, BC)>;
 
 // General-purpose 16-bit registers
-def GR16 : RegisterClass<"SM83", [i16], 8, (add HL, M16)>;
+def GR16 : RegisterClass<"SM83", [i16], 8, (add RHL, M16)>;
 
 // special regs
 let CopyCost = -1 in
@@ -76,3 +76,4 @@ def S16 : RegisterClass<"SM83", [i16], 8, (add SP, AF)>;
 // flag reg
 let CopyCost = -1 in
 def F8 : RegisterClass<"SM83", [i8], 8, (add FLAGS)>;
+

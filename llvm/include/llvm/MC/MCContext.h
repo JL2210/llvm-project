@@ -292,6 +292,19 @@ namespace llvm {
       }
     };
 
+    struct RGB9SectionKey {
+      // exists for the sole purpose of caching the section name
+      std::string SectionName;
+
+      RGB9SectionKey(StringRef SectionName)
+          : SectionName(SectionName) {
+      }
+
+      bool operator<(const RGB9SectionKey &Other) const {
+        return SectionName < Other.SectionName;
+      }
+    };
+
     struct XCOFFSectionKey {
       // Section name.
       std::string SectionName;
@@ -331,7 +344,7 @@ namespace llvm {
     std::map<std::string, MCSectionGOFF *> GOFFUniquingMap;
     std::map<WasmSectionKey, MCSectionWasm *> WasmUniquingMap;
     std::map<XCOFFSectionKey, MCSectionXCOFF *> XCOFFUniquingMap;
-    std::map<std::string, MCSectionRGB9 *> RGB9UniquingMap;
+    std::map<RGB9SectionKey, MCSectionRGB9 *> RGB9UniquingMap;
     StringMap<bool> RelSecNames;
 
     SpecificBumpPtrAllocator<MCSubtargetInfo> MCSubtargetAllocator;
@@ -656,7 +669,8 @@ namespace llvm {
         bool MultiSymbolsAllowed = false, const char *BeginSymName = nullptr,
         Optional<XCOFF::DwarfSectionSubtypeFlags> DwarfSubtypeFlags = None);
 
-    MCSectionRGB9 *getRGB9Section(StringRef Section, SectionKind Kind);
+    MCSectionRGB9 *getRGB9Section(StringRef Section, SectionKind Kind,
+                                  const char *BeginSymName = nullptr);
 
     // Create and save a copy of STI and return a reference to the copy.
     MCSubtargetInfo &getSubtargetCopy(const MCSubtargetInfo &STI);

@@ -64,14 +64,27 @@ def direct16 : Operand<i16>, ImmLeaf<i16, [{
 }]> {
 }
 
+def frameidx : Operand<iPTR> {
+  let MIOperandInfo = (ops ptr_rc/*base*/, i16imm/*disp*/);
+  let PrintMethod = "printMemOp";
+  let OperandType = "OPERAND_MEMORY";
+}
+
 def off : Operand<iPTR>;
 
 def relbrtarget : Operand<OtherVT>;
 def brtarget : Operand<OtherVT>;
 
+let isMoveImm = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 in
+def FakeLEA : Pseudo<(outs GR16:$dstaddr), (ins direct16:$addr, imm16:$off), [], "ld $dstaddr, $addr+$off">;
+
 let mayStore = 1 in {
-def LDor : Pseudo<(outs), (ins off:$addr, GR8:$src), [], "LDor $addr, $src">;
-def LDorr : Pseudo<(outs), (ins off:$addr, GR16:$src), [], "LDorr $addr, $src">;
+def LDor : Pseudo<(outs), (ins frameidx:$addr, GR8:$src), [], "LDor $addr, $src">;
+def LDorr : Pseudo<(outs), (ins frameidx:$addr, GR16:$src), [], "LDorr $addr, $src">;
+}
+let mayLoad = 1 in {
+def LDro : Pseudo<(outs GR8:$dst), (ins frameidx:$addr), [], "LDro $dst, $addr">;
+def LDrro : Pseudo<(outs GR16:$dst), (ins frameidx:$addr), [], "LDrro $dst, $addr">;
 }
 
 // LLVM likes to select instructions in the order it sees them;
@@ -104,7 +117,7 @@ def STOP : SM83Inst16<(outs), (ins), "stop", []> {
   let Inst{15-8} = 0x00;
 }
 
-let isMoveImm = 1 in
+let isMoveImm = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 in
 def LDrrii : SM83Inst24<(outs GR16:$dst), (ins imm16:$imm),
              "ld $dst, $imm", [(set GR16:$dst, imm16:$imm)]> {
   bits<2> dst;
@@ -117,7 +130,7 @@ def LDrrii : SM83Inst24<(outs GR16:$dst), (ins imm16:$imm),
   let Inst{23-8} = imm;
 }
 
-let Defs = [SP] in
+let Defs = [SP], isReMaterializable = 1 in
 def LDSPnn : SM83Inst24<(outs), (ins imm16:$imm), "ld sp, $imm",
                         [(set SP, imm16:$imm)]> {
   bits<16> imm;
@@ -130,10 +143,12 @@ def LDSPnn : SM83Inst24<(outs), (ins imm16:$imm), "ld sp, $imm",
 }
 
 let mayStore = 1 in {
+/*
   def LDdHLIA : I8<0x22, "ld [hli], $a", [(set RHL:$hl, (post_store RA:$a, RHL:$dstp, 1))],
                    (outs RHL:$hl), (ins RHL:$dstp, RA:$a)>;
   def LDdHLDA : I8<0x32, "ld [hld], $a", [(set RHL:$hl, (post_store RA:$a, RHL:$dstp, -1))],
                    (outs RHL:$hl), (ins RHL:$dstp, RA:$a)>;
+*/
 }
 
 let mayLoad = 1, Uses = [HL], Defs = [HL, A] in {
@@ -185,7 +200,11 @@ let Defs = [FLAGS], mayLoad = 1, mayStore = 1 in {
                   (outs), (ins RHL:$hl)>;
 }
 
-let isMoveImm = 1 in
+// somehow this makes it worse?
+//let isMoveImm = 1, Defs = [FLAGS] in
+//def LDaz : Pseudo<(outs RA:$a), (ins), [(set RA:$a, 0)], "LDaz $a, 0">;
+
+let isMoveImm = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 in
 def LDri : SM83Inst16<(outs GR8:$dst), (ins imm8:$imm), "ld $dst, $imm",
                       [(set GR8:$dst, imm8:$imm)]> {
   bits<3> dst;
@@ -198,7 +217,7 @@ def LDri : SM83Inst16<(outs GR8:$dst), (ins imm8:$imm), "ld $dst, $imm",
   let Inst{15-8} = imm;
 }
 
-let mayStore = 1 in
+let mayStore = 1, isMoveImm = 1 in
 def LDdHLi : SM83Inst16<(outs), (ins RHL:$hl, imm8:$imm), "ld [$hl], $imm",
                         [(store imm8:$imm, RHL:$hl)]> {
   bits<8> imm;
@@ -230,14 +249,6 @@ let Defs = [FLAGS] in {
   def SCF : I8<0x37, "scf">;
   def CCF : I8<0x3f, "ccf">;
 }
-
-/*
-let Defs = [FLAGS], isReMaterializable = 1 in
-def NEGA : Pseudo<(outs RA:$dst), (ins RA:$a), [(set RA:$dst, (ineg RA:$a))]>;
-
-let Defs = [A, FLAGS], isReMaterializable = 1 in
-def CPLrr : Pseudo<(outs GR16:$dst), (ins GR16:$src), [(set GR16:$dst, (not GR16:$src))]>;
-*/
 
 let mayStore = 1, Uses = [SP] in
 def LDd16SP : SM83Inst24<(outs), (ins direct16:$addr), "ld [$addr], sp",
@@ -361,6 +372,15 @@ multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
   }
 }
 
+let Defs = [A, FLAGS] in {
+def XORri : Pseudo<(outs GR8:$dst), (ins GR8:$src, imm8:$imm),
+                   [(set GR8:$dst, (xor GR8:$src, imm8:$imm))],
+                   "XORri $dst, $src, $imm">;
+def ADDri : Pseudo<(outs GR8:$dst), (ins GR8:$src, imm8:$imm),
+                   [(set GR8:$dst, (add GR8:$src, imm8:$imm))],
+                   "ADDri $dst, $src, $imm">;
+}
+
 let Defs = [FLAGS] in {
   defm ADD : mALU<"add", 0b000, add>;
   defm SUB : mALU<"sub", 0b010, sub>;
@@ -373,11 +393,6 @@ let Defs = [FLAGS] in {
     defm SBC : mALU<"sbc", 0b011, sube>;
   }
 }
-
-/*
-let Defs = [FLAGS], isMoveImm = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 in
-def LDaz : Pseudo<(outs RA:$a), (ins), [(set RA:$a, 0)]>;
-*/
 
 let isReturn = 1, isTerminator = 1 in
 def RETcc : SM83Inst8<(outs), (ins condition:$cc), "ret $cc", []> {
