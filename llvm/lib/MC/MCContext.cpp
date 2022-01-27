@@ -700,13 +700,24 @@ MCSectionGOFF *MCContext::getGOFFSection(StringRef Section, SectionKind Kind,
   return GOFFSection;
 }
 
-MCSectionRGB9 *MCContext::getRGB9Section(StringRef Section, SectionKind Kind) {
-  // Do the lookup. If we don't have a hit, return a new section.
-  auto &RGB9Section = RGB9UniquingMap[Section.str()];
-  if (!RGB9Section)
-    RGB9Section = new (RGB9Allocator.Allocate()) MCSectionRGB9(Section, Kind);
+MCSectionRGB9 *MCContext::getRGB9Section(StringRef Section, SectionKind Kind,
+                                         const char *BeginSymName) {
+  // Do the lookup. If we have a hit, return it.
+  RGB9SectionKey T{Section};
+  auto IterBool = RGB9UniquingMap.insert(std::make_pair(T, nullptr));
+  auto Iter = IterBool.first;
+  if (!IterBool.second)
+    return Iter->second;
 
-  return RGB9Section;
+  StringRef CachedName = Iter->first.SectionName;
+
+  MCSymbol *Begin = nullptr;
+  if (BeginSymName)
+    Begin = createTempSymbol(BeginSymName, false);
+
+  MCSectionRGB9 *Result = new (RGB9Allocator.Allocate()) MCSectionRGB9(CachedName, Kind, Begin);
+  Iter->second = Result;
+  return Result;
 }
 
 MCSectionCOFF *MCContext::getCOFFSection(StringRef Section,

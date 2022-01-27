@@ -15,6 +15,7 @@
 #include "MCTargetDesc/SM83MCTargetDesc.h"
 
 #include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/Register.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
@@ -70,10 +71,27 @@ const uint32_t *SM83RegisterInfo::getNoPreservedMask() const {
 void SM83RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                                            int SPAdj, unsigned FIOperandNum,
                                            RegScavenger *RS) const {
-  LLVM_DEBUG(dbgs() << "nop eliminateFrameIndex\n");
-  return;
-  report_fatal_error("eliminateFrameIndex not implemented!");
-  llvm_unreachable("Subroutines not supported yet!");
+  assert(SPAdj == 0 && "Unexpected");
+ 
+  MachineInstr &MI = *II;
+  MachineBasicBlock &MBB = *MI.getParent();
+  MachineFunction &MF = *MBB.getParent();
+
+   int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  
+   unsigned BasePtr = SM83::SP;
+   int Offset = MF.getFrameInfo().getObjectOffset(FrameIndex);
+
+   // Skip the saved PC
+   Offset += 2;
+
+  Offset += MF.getFrameInfo().getStackSize();
+
+   // Fold imm into offset
+   Offset += MI.getOperand(FIOperandNum + 1).getImm();
+
+   MI.getOperand(FIOperandNum).ChangeToRegister(BasePtr, false);
+   MI.getOperand(FIOperandNum + 1).ChangeToImmediate(Offset);
 }
 
 Register SM83RegisterInfo::getFrameRegister(const MachineFunction &MF) const {

@@ -49,6 +49,9 @@ public:
                            const TargetRegisterClass *RC,
                            const TargetRegisterInfo *TRI) const override;
 
+  bool isReallyTriviallyReMaterializable(const MachineInstr &MI,
+                                         AAResults *AA) const override;
+
   bool expandPostRAPseudo(MachineInstr &MI) const override;
 };
 
