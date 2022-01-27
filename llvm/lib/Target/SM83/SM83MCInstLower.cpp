@@ -36,10 +36,10 @@ MCOperand SM83MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
                                               MCSymbol *Sym) const {
   const MCExpr *Expr = MCSymbolRefExpr::create(Sym, Ctx);
 
-   if (!MO.isJTI() && MO.getOffset()) {
-     Expr = MCBinaryExpr::createAdd(
-         Expr, MCConstantExpr::create(MO.getOffset(), Ctx), Ctx);
-   }
+  if (!MO.isJTI() && MO.getOffset()) {
+    Expr = MCBinaryExpr::createAdd(
+        Expr, MCConstantExpr::create(MO.getOffset(), Ctx), Ctx);
+  }
 
   return MCOperand::createExpr(Expr);
 }
