@@ -1484,7 +1484,11 @@ void MCAsmStreamer::emitAlignmentDirective(unsigned ByteAlignment,
     if (!isPowerOf2_32(ByteAlignment))
       report_fatal_error("Only power-of-two alignments are supported "
                          "with .align.");
+#if 0 // FIXME rgbasm
     OS << "\t.align\t";
+#else
+    OS << "\tALIGN\t";
+#endif
     OS << Log2_32(ByteAlignment);
     EmitEOL();
     return;

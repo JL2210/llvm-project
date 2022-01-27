@@ -35,8 +35,8 @@ public:
     LastSectionType
   };
 
-  MCSectionRGB9(StringRef Name, SectionKind K)
-    : MCSection(SV_RGB9, Name, K, nullptr) {
+  MCSectionRGB9(StringRef Name, SectionKind K, MCSymbol *Begin)
+    : MCSection(SV_RGB9, Name, K, Begin) {
     if(K.isText() || K.isReadOnly()) {
       Type = ROM0; // TODO: select between ROM0 and ROMX
     } else if(K.isBSS() || K.isCommon() || K.isData()) {

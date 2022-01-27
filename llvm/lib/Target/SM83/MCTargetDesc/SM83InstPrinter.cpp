@@ -36,11 +36,7 @@ void SM83InstPrinter::printRegName(raw_ostream &O, unsigned RegNo) const {
   O << getRegisterName(RegNo);
 }
 
-void SM83InstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
-                                   raw_ostream &O, const char *Modifier) {
-  assert((Modifier == 0 || Modifier[0] == 0) && "No modifiers supported");
-  const MCOperand &MO = MI->getOperand(OpNo);
-
+void SM83InstPrinter::printMCOperand(const MCOperand &MO, raw_ostream &O) {
   if (MO.isReg()) {
     printRegName(O, MO.getReg());
     return;
@@ -51,8 +47,16 @@ void SM83InstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
     return;
   }
 
-  assert(MO.isExpr() && "Unknown operand kind in printOperand");
+  assert(MO.isExpr() && "Unknown operand kind in printMCOperand");
   MO.getExpr()->print(O, &MAI);
+}
+
+void SM83InstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
+                                   raw_ostream &O, const char *Modifier) {
+  assert((Modifier == 0 || Modifier[0] == 0) && "No modifiers supported");
+  const MCOperand &MO = MI->getOperand(OpNo);
+
+  printMCOperand(MO, O);
 }
 
 void SM83InstPrinter::printCondition(const MCInst *MI, unsigned OpNo,
@@ -68,4 +72,15 @@ void SM83InstPrinter::printCondition(const MCInst *MI, unsigned OpNo,
     O << "c";
   else
     llvm_unreachable("invalid condition");
+}
+
+void SM83InstPrinter::printMemOp(const MCInst *MI, unsigned OpNo,
+                                 raw_ostream &O) {
+  const MCOperand &Base = MI->getOperand(OpNo);
+  const MCOperand &Disp = MI->getOperand(OpNo+1);
+
+  printMCOperand(Disp, O);
+  O << '(';
+  printMCOperand(Base, O);
+  O << ')';
 }
