@@ -9,9 +9,9 @@ class PassRegistry;
 FunctionPass *createSM83Combiner();
 FunctionPass *createSM83O0PreLegalizerCombiner();
 
-void initializeSM83CombinerPass(PassRegistry&);
+void initializeSM83CombinerPass(PassRegistry &);
 void initializeSM83O0PreLegalizerCombinerPass(PassRegistry &);
 
-}
+} // namespace llvm
 
 #endif

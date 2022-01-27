@@ -9,15 +9,15 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83InstructionSelector.h"
-#include "SM83TargetMachine.h"
-#include "SM83Subtarget.h"
 #include "SM83RegisterBankInfo.h"
+#include "SM83Subtarget.h"
+#include "SM83TargetMachine.h"
 
-#include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/GlobalISel/GISelKnownBits.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelector.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelectorImpl.h"
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
+#include "llvm/CodeGen/MachineInstr.h"
 
 #define DEBUG_TYPE "sm83-isel"
 
@@ -31,15 +31,14 @@ namespace {
 
 class SM83InstructionSelector : public InstructionSelector {
 public:
-  SM83InstructionSelector(const SM83TargetMachine &TM,
-                          const SM83Subtarget &STI,
+  SM83InstructionSelector(const SM83TargetMachine &TM, const SM83Subtarget &STI,
                           const SM83RegisterBankInfo &RBI);
-
 
   bool select(MachineInstr &I) override;
   static const char *getName() { return DEBUG_TYPE; }
 
-  const TargetRegisterClass *getRegClass(Register R, MachineRegisterInfo &MRI) const;
+  const TargetRegisterClass *getRegClass(Register R,
+                                         MachineRegisterInfo &MRI) const;
 
 private:
   const SM83InstrInfo &TII;
@@ -57,7 +56,7 @@ private:
   bool selectSignedExtend(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectCompare(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectPHI(MachineInstr &I, MachineRegisterInfo &MRI) const;
-  //bool selectGEP(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  // bool selectGEP(MachineInstr &I, MachineRegisterInfo &MRI) const;
 
 #define GET_GLOBALISEL_PREDICATES_DECL
 #include "SM83GenGlobalISel.inc"
@@ -68,7 +67,7 @@ private:
 #undef GET_GLOBALISEL_TEMPORARIES_DECL
 };
 
-}
+} // namespace
 
 const TargetRegisterClass *
 SM83InstructionSelector::getRegClass(Register R,
@@ -78,7 +77,7 @@ SM83InstructionSelector::getRegClass(Register R,
 
   unsigned Size = RBI.getSizeInBits(R, MRI, TRI);
 
-  if(Size <= 8)
+  if (Size <= 8)
     return &SM83::GR8RegClass;
 
   if (Size == 16)
@@ -91,9 +90,9 @@ SM83InstructionSelector::getRegClass(Register R,
 #include "SM83GenGlobalISel.inc"
 #undef GET_GLOBALISEL_IMPL
 
-SM83InstructionSelector::SM83InstructionSelector(const SM83TargetMachine &TM,
-                          const SM83Subtarget &STI,
-                          const SM83RegisterBankInfo &RBI)
+SM83InstructionSelector::SM83InstructionSelector(
+    const SM83TargetMachine &TM, const SM83Subtarget &STI,
+    const SM83RegisterBankInfo &RBI)
     : InstructionSelector(), /*TM(TM), STI(STI),*/ TII(*STI.getInstrInfo()),
       TRI(*STI.getRegisterInfo()), RBI(RBI),
 #define GET_GLOBALISEL_PREDICATES_INIT
@@ -171,10 +170,10 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
   }
 #endif
 
-  if(selectImpl(I, *CoverageInfo))
+  if (selectImpl(I, *CoverageInfo))
     return true;
 
-  switch(I.getOpcode()) {
+  switch (I.getOpcode()) {
   default:
     return false;
   case TargetOpcode::G_GLOBAL_VALUE:
@@ -193,18 +192,19 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
   case TargetOpcode::G_PTRTOINT:
     return selectCopy(I, MRI);
   case TargetOpcode::G_PTR_ADD: {
-      I.setDesc(TII.get(SM83::LDrrii));
-      Register Off = I.getOperand(2).getReg();
-      auto &OffDefMI = *MRI.getVRegDef(Off);
-      LLVM_DEBUG(dbgs() << "type: " << (int)OffDefMI.getOperand(1).getType() << '\n');
-      auto OffImm = OffDefMI.getOperand(1).getCImm()->getSExtValue();
-      Register Base = I.getOperand(1).getReg();
-      auto &BaseDefMI = *MRI.getVRegDef(Base);
-      auto *GA = BaseDefMI.getOperand(1).getGlobal();
-      I.getOperand(1).ChangeToGA(GA, OffImm);
-      I.RemoveOperand(2);
-      return true;
-    }
+    I.setDesc(TII.get(SM83::LDrrii));
+    Register Off = I.getOperand(2).getReg();
+    auto &OffDefMI = *MRI.getVRegDef(Off);
+    LLVM_DEBUG(dbgs() << "type: " << (int)OffDefMI.getOperand(1).getType()
+                      << '\n');
+    auto OffImm = OffDefMI.getOperand(1).getCImm()->getSExtValue();
+    Register Base = I.getOperand(1).getReg();
+    auto &BaseDefMI = *MRI.getVRegDef(Base);
+    auto *GA = BaseDefMI.getOperand(1).getGlobal();
+    I.getOperand(1).ChangeToGA(GA, OffImm);
+    I.RemoveOperand(2);
+    return true;
+  }
   }
 }
 
@@ -213,23 +213,23 @@ bool SM83InstructionSelector::selectCopy(MachineInstr &I,
   Register DstReg = I.getOperand(0).getReg();
   const TargetRegisterClass *DstRC = getRegClass(DstReg, MRI);
 
-  if(!DstRC) {
+  if (!DstRC) {
     LLVM_DEBUG(dbgs() << "Could not determine destination register class\n");
     return false;
   }
 
-    Register SrcReg = I.getOperand(1).getReg();
-    const TargetRegisterClass *SrcRC = getRegClass(SrcReg, MRI);
-    if(!SrcRC) {
-      LLVM_DEBUG(dbgs() << "Could not determine source register class\n");
-      return false;
-    }
-    unsigned SrcSize = TRI.getRegSizeInBits(*SrcRC);
-    unsigned DstSize = TRI.getRegSizeInBits(*DstRC);
-    if(SrcSize != DstSize) {
-      LLVM_DEBUG(dbgs() << "Mismatched copy sizes\n");
-      return false;
-    }
+  Register SrcReg = I.getOperand(1).getReg();
+  const TargetRegisterClass *SrcRC = getRegClass(SrcReg, MRI);
+  if (!SrcRC) {
+    LLVM_DEBUG(dbgs() << "Could not determine source register class\n");
+    return false;
+  }
+  unsigned SrcSize = TRI.getRegSizeInBits(*SrcRC);
+  unsigned DstSize = TRI.getRegSizeInBits(*DstRC);
+  if (SrcSize != DstSize) {
+    LLVM_DEBUG(dbgs() << "Mismatched copy sizes\n");
+    return false;
+  }
 
   if (!Register::isPhysicalRegister(DstReg) &&
       !RBI.constrainGenericRegister(DstReg, *DstRC, MRI)) {
@@ -248,7 +248,7 @@ bool SM83InstructionSelector::selectConstant(MachineInstr &I,
   auto Ty = MRI.getType(DefReg);
 
   unsigned Opc = 0;
-  switch(Ty.getSizeInBits()) {
+  switch (Ty.getSizeInBits()) {
   default:
     report_fatal_error("Unsupported type in selectConstant");
     return false;
@@ -264,8 +264,8 @@ bool SM83InstructionSelector::selectConstant(MachineInstr &I,
   return constrainSelectedInstRegOperands(I, TII, TRI, RBI);
 }
 
-bool SM83InstructionSelector::selectMergeValues(MachineInstr &I,
-                                                MachineRegisterInfo &MRI) const {
+bool SM83InstructionSelector::selectMergeValues(
+    MachineInstr &I, MachineRegisterInfo &MRI) const {
   assert(I.getOpcode() == TargetOpcode::G_MERGE_VALUES &&
          "unexpected instruction");
   MachineIRBuilder MIB(I);
@@ -284,8 +284,8 @@ bool SM83InstructionSelector::selectMergeValues(MachineInstr &I,
   return RBI.constrainGenericRegister(DstReg, SM83::GR16RegClass, MRI);
 }
 
-bool SM83InstructionSelector::selectUnmergeValues(MachineInstr &I,
-                                                  MachineRegisterInfo &MRI) const {
+bool SM83InstructionSelector::selectUnmergeValues(
+    MachineInstr &I, MachineRegisterInfo &MRI) const {
   assert(I.getOpcode() == TargetOpcode::G_UNMERGE_VALUES &&
          "unexpected instruction");
   MachineIRBuilder MIB(I);
@@ -293,15 +293,13 @@ bool SM83InstructionSelector::selectUnmergeValues(MachineInstr &I,
   Register HiReg = I.getOperand(1).getReg();
   Register SrcReg = I.getOperand(2).getReg();
 
-  assert(I.getNumOperands() == 3 &&
-         MRI.getType(LoReg) == LLT::scalar(8) &&
+  assert(I.getNumOperands() == 3 && MRI.getType(LoReg) == LLT::scalar(8) &&
          MRI.getType(HiReg) == LLT::scalar(8) &&
-         MRI.getType(SrcReg) == LLT::scalar(16) &&
-         "Illegal instruction");
+         MRI.getType(SrcReg) == LLT::scalar(16) && "Illegal instruction");
   MIB.buildInstr(TargetOpcode::COPY, {LoReg}, {})
-     .addReg(SrcReg, 0, SM83::sub_low);
+      .addReg(SrcReg, 0, SM83::sub_low);
   MIB.buildInstr(TargetOpcode::COPY, {HiReg}, {})
-     .addReg(SrcReg, 0, SM83::sub_high);
+      .addReg(SrcReg, 0, SM83::sub_high);
 
   I.eraseFromParent();
   return RBI.constrainGenericRegister(LoReg, SM83::GR8RegClass, MRI) &&
@@ -309,53 +307,44 @@ bool SM83InstructionSelector::selectUnmergeValues(MachineInstr &I,
          RBI.constrainGenericRegister(SrcReg, SM83::GR16RegClass, MRI);
 }
 
-bool SM83InstructionSelector::selectSignedExtend(MachineInstr &I,
-                                                 MachineRegisterInfo &MRI) const {
-  assert(I.getOpcode() == TargetOpcode::G_SEXT &&
-         "unexpected instruction");
+bool SM83InstructionSelector::selectSignedExtend(
+    MachineInstr &I, MachineRegisterInfo &MRI) const {
+  assert(I.getOpcode() == TargetOpcode::G_SEXT && "unexpected instruction");
   MachineIRBuilder MIB(I);
   Register DstReg = I.getOperand(0).getReg();
   Register SrcReg = I.getOperand(1).getReg();
 
-  assert(I.getNumOperands() == 2 &&
-         MRI.getType(DstReg) == LLT::scalar(8) &&
-         MRI.getType(SrcReg) == LLT::scalar(1) &&
-         "Illegal instruction");
+  assert(I.getNumOperands() == 2 && MRI.getType(DstReg) == LLT::scalar(8) &&
+         MRI.getType(SrcReg) == LLT::scalar(1) && "Illegal instruction");
 
   auto CopyToA = MIB.buildCopy(SM83::A, SrcReg);
   if (!constrainSelectedInstRegOperands(*CopyToA, TII, TRI, RBI))
     return false;
 
-  MIB.buildInstr(SM83::RRCA)
-     .addDef(SM83::A)
-     .addUse(SM83::A);
+  MIB.buildInstr(SM83::RRCA).addDef(SM83::A).addUse(SM83::A);
 
-  MIB.buildInstr(SM83::SBCr)
-     .addDef(SM83::A)
-     .addUse(SM83::A)
-     .addUse(SM83::A);
+  MIB.buildInstr(SM83::SBCr).addDef(SM83::A).addUse(SM83::A).addUse(SM83::A);
 
   auto CopyFromA = MIB.buildCopy(DstReg, Register(SM83::A));
-  if (!RBI.constrainGenericRegister(CopyFromA.getReg(0), SM83::GR8RegClass, MRI))
+  if (!RBI.constrainGenericRegister(CopyFromA.getReg(0), SM83::GR8RegClass,
+                                    MRI))
     return false;
-  
+
   I.eraseFromParent();
   return true;
 }
 
 bool SM83InstructionSelector::selectCompare(MachineInstr &I,
                                             MachineRegisterInfo &MRI) const {
-  assert(I.getOpcode() == TargetOpcode::G_ICMP &&
-         "unexpected instruction");
-//  Register DstReg = I.getOperand(0).getReg();
-//  auto Pred = CmpInst::Predicate(I.getOperand(1).getPredicate());
+  assert(I.getOpcode() == TargetOpcode::G_ICMP && "unexpected instruction");
+  //  Register DstReg = I.getOperand(0).getReg();
+  //  auto Pred = CmpInst::Predicate(I.getOperand(1).getPredicate());
   return false;
 }
 
 bool SM83InstructionSelector::selectPHI(MachineInstr &I,
                                         MachineRegisterInfo &MRI) const {
-  assert(I.getOpcode() == TargetOpcode::G_PHI &&
-         "unexpected instruction");
+  assert(I.getOpcode() == TargetOpcode::G_PHI && "unexpected instruction");
 
   I.setDesc(TII.get(TargetOpcode::PHI));
 

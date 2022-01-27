@@ -11,11 +11,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83Subtarget.h"
-#include "SM83TargetMachine.h"
 #include "GISel/SM83CallLowering.h"
-#include "GISel/SM83RegisterBankInfo.h"
-#include "GISel/SM83LegalizerInfo.h"
 #include "GISel/SM83InstructionSelector.h"
+#include "GISel/SM83LegalizerInfo.h"
+#include "GISel/SM83RegisterBankInfo.h"
+#include "SM83TargetMachine.h"
 
 #include "llvm/IR/DataLayout.h"
 #include "llvm/Target/TargetMachine.h"
@@ -39,7 +39,7 @@ SM83Subtarget::SM83Subtarget(const Triple &TT, const std::string &CPU,
   auto *RBI = new SM83RegisterBankInfo(*getRegisterInfo());
 
   InstSelector.reset(createSM83InstructionSelector(
-    *static_cast<const SM83TargetMachine *>(&TM), *this, *RBI));
+      *static_cast<const SM83TargetMachine *>(&TM), *this, *RBI));
 
   RegBankInfo.reset(RBI);
 }
