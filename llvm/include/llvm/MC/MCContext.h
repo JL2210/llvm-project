@@ -55,11 +55,11 @@ class MCSectionCOFF;
 class MCSectionDXContainer;
 class MCSectionELF;
 class MCSectionGOFF;
+class MCSectionRGB9;
 class MCSectionMachO;
 class MCSectionSPIRV;
 class MCSectionWasm;
 class MCSectionXCOFF;
-class MCSectionRGB9;
 class MCStreamer;
 class MCSubtargetInfo;
 class MCSymbol;
@@ -96,7 +96,7 @@ public:
     IsWasm,
     IsXCOFF,
     IsDXContainer,
-    IsRgb9
+    IsRGB9,
   };
 
 
@@ -657,7 +657,8 @@ public:
       std::optional<XCOFF::DwarfSectionSubtypeFlags> DwarfSubtypeFlags =
           std::nullopt);
 
-  MCSectionRGB9 *getRGB9Section(StringRef Section, SectionKind Kind);
+  MCSectionRGB9 *getRGB9Section(StringRef Section, SectionKind Kind,
+                                const char *BeginSymName = nullptr);
 
   // Create and save a copy of STI and return a reference to the copy.
   MCSubtargetInfo &getSubtargetCopy(const MCSubtargetInfo &STI);
