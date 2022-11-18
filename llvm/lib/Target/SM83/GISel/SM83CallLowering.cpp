@@ -3,6 +3,7 @@
 #include "SM83Subtarget.h"
 
 #include "llvm/CodeGen/Analysis.h"
+#include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
 
 using namespace llvm;

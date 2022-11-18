@@ -10,7 +10,7 @@
 #define LLVM_LIB_TARGET_SM83_GISEL_SM83REGISTERBANKINFO_H
 
 #include "MCTargetDesc/SM83MCTargetDesc.h"
-#include "llvm/CodeGen/GlobalISel/RegisterBankInfo.h"
+#include "llvm/CodeGen/RegisterBankInfo.h"
 
 #define GET_REGBANK_DECLARATIONS
 #include "SM83GenRegisterBank.inc"

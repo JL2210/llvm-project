@@ -41,7 +41,7 @@ bool MCSectionRGB9::isVirtualSection() const {
   }
 }
 
-void MCSectionRGB9::PrintSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
+void MCSectionRGB9::printSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
                                          raw_ostream &OS,
                                          const MCExpr *Subsection) const {
   OS << "\tSECTION\t\"" << getName() << "\", ";
