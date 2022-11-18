@@ -15,6 +15,7 @@
 #include "MCTargetDesc/SM83MCTargetDesc.h"
 #include "SM83RegisterInfo.h"
 #include "SM83Subtarget.h"
+#include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
 
@@ -175,8 +176,7 @@ void SM83InstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
       .addReg(SrcReg, getKillRegState(isKill));
 }
 
-bool SM83InstrInfo::isReallyTriviallyReMaterializable(const MachineInstr &MI,
-                                                      AAResults *AA) const {
+bool SM83InstrInfo::isReallyTriviallyReMaterializable(const MachineInstr &MI) const {
   switch (MI.getOpcode()) {
   case SM83::LDri:
   case SM83::LDrrii:
