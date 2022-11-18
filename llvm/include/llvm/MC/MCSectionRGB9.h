@@ -46,14 +46,14 @@ public:
     }
   }
 
-  void PrintSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
+  void printSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
                             raw_ostream &OS,
                             const MCExpr *Subsection) const override;
 
   SectionTypeRGB9 getType() const { return Type; }
   static const char *getTypeStr(SectionTypeRGB9 T) { return StrSectionTypeRGB9[T]; }
 
-  bool UseCodeAlign() const override { return false; }
+  bool useCodeAlign() const override { return false; }
   bool isVirtualSection() const override;
 
   static bool classof(const MCSection *S) { return S->getVariant() == SV_RGB9; }

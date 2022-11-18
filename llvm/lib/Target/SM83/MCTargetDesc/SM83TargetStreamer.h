@@ -20,6 +20,7 @@
 
 namespace llvm {
 class formatted_raw_ostream;
+class MCAsmInfo;
 
 class SM83TargetStreamer : public MCTargetStreamer {
 public:

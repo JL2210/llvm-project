@@ -70,7 +70,7 @@ public:
 bool SM83O0PreLegalizerCombinerInfo::combine(GISelChangeObserver &Observer,
                                              MachineInstr &MI,
                                              MachineIRBuilder &B) const {
-  CombinerHelper Helper(Observer, B, KB, MDT);
+  CombinerHelper Helper(Observer, B, /*IsPreLegalize=*/true, KB, MDT);
   SM83GenO0PreLegalizerCombinerHelper Generated(GeneratedRuleCfg, Helper);
 
   if (Generated.tryCombineAll(Observer, MI, B))

@@ -15,6 +15,7 @@
 #include "TargetInfo/SM83TargetInfo.h"
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/CodeGen/GlobalISel/CSEInfo.h"
 #include "llvm/CodeGen/GlobalISel/IRTranslator.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelect.h"
 #include "llvm/CodeGen/GlobalISel/Legalizer.h"
@@ -42,7 +43,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83Target() {
 static const char SM83DataLayout[] = "e-p:16:8-i16:8-i32:8-i64:8-a:0:8-n8:16";
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {
-  return RM.hasValue() ? *RM : Reloc::Static;
+  return RM.has_value() ? *RM : Reloc::Static;
 }
 
 SM83TargetMachine::SM83TargetMachine(const Target &T, const Triple &TT,

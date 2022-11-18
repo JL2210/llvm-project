@@ -12,6 +12,7 @@
 
 #include "SM83TargetStreamer.h"
 #include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCSymbol.h"
 #include "llvm/Support/FormattedStream.h"
 
 using namespace llvm;
