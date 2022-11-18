@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "GISel/SM83CombinerPasses.h"
+#include "llvm/CodeGen/GlobalISel/CSEInfo.h"
 #include "llvm/CodeGen/GlobalISel/Combiner.h"
 #include "llvm/CodeGen/GlobalISel/CombinerHelper.h"
 #include "llvm/CodeGen/GlobalISel/CombinerInfo.h"
@@ -70,7 +71,7 @@ public:
 
 bool SM83CombinerInfo::combine(GISelChangeObserver &Observer, MachineInstr &MI,
                                MachineIRBuilder &B) const {
-  CombinerHelper Helper(Observer, B, KB, MDT);
+  CombinerHelper Helper(Observer, B, /*IsPreLegalize=*/true, KB, MDT);
   SM83GenCombinerHelper Generated(GeneratedRuleCfg, Helper);
 
   if (Generated.tryCombineAll(Observer, MI, B))

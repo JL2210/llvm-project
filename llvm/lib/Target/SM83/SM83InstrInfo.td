@@ -425,9 +425,9 @@ def LDHAd8 : SM83Inst16<(outs RA:$a), (ins direct8:$addr), "ldh $a, [$addr]",
 
 // TODO: clean up *this* mess vvv
 let Uses = [C, A], mayStore = 1 in
-def LDHdCA : I8<0xe2, "ldh [c], a", [(store A, (i16 (or 0xff00, C)))]>;
+def LDHdCA : I8<0xe2, "ldh [c], a">;
 let Uses = [C], Defs = [A], mayLoad = 1 in
-def LDHAdC : I8<0xf2, "ldh a, [c]", [(set A, (load (i16 (or 0xff00, C))))]>;
+def LDHAdC : I8<0xf2, "ldh a, [c]">;
 
 let Defs = [SP] in {
   def POPrr : SM83Inst8<(outs GR16:$dst), (ins), "pop $dst", []> {
@@ -499,7 +499,7 @@ let isTerminator = 1, isCall = 1 in {
 
 let Uses = [SP], Defs = [SP, FLAGS] in
 def ADDSPs8 : SM83Inst16<(outs), (ins simm8:$s8), "add sp, $s8",
-                         [(set SP, (add SP, simm8:$s8))]> {
+                         []> {
   bits<8> s8;
 
   let Inst{7-0} = 0xe8;
@@ -511,7 +511,7 @@ def JPHL : I8<0xe9, "jp hl">;
 
 let Uses = [SP], Defs = [HL, FLAGS] in
 def LDHLSPs8 : SM83Inst16<(outs), (ins simm8:$s8), "ld hl, sp+$s8",
-                          [(set HL, (add SP, simm8:$s8))]> {
+                          []> {
   bits<8> s8;
 
   let Inst{7-0} = 0xf8;
@@ -519,7 +519,7 @@ def LDHLSPs8 : SM83Inst16<(outs), (ins simm8:$s8), "ld hl, sp+$s8",
 }
 
 let Defs = [SP], Uses = [HL] in
-def LDSPHL : I8<0xf9, "ld sp, hl", [(set SP, HL)]>;
+def LDSPHL : I8<0xf9, "ld sp, hl", []>;
 
 let isCall = 1 in
 def RST : SM83Inst8<(outs), (ins rstvec:$vec), "rst $vec", []> {

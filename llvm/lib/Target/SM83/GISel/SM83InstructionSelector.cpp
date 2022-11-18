@@ -202,7 +202,7 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
     auto &BaseDefMI = *MRI.getVRegDef(Base);
     auto *GA = BaseDefMI.getOperand(1).getGlobal();
     I.getOperand(1).ChangeToGA(GA, OffImm);
-    I.RemoveOperand(2);
+    I.removeOperand(2);
     return true;
   }
   }
