@@ -1108,6 +1108,7 @@ void MCObjectFileInfo::initMCObjectFileInfo(MCContext &MCCtx, bool PIC,
     break;
   case MCContext::IsDXContainer:
     initDXContainerObjectFileInfo(TheTriple);
+    break;
   case MCContext::IsRGB9:
     initRGB9MCObjectFileInfo(TheTriple);
     break;
