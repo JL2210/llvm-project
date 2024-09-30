@@ -152,7 +152,8 @@ void SM83InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator MI,
                                          Register DstReg, int FrameIndex,
                                          const TargetRegisterClass *RC,
-                                         const TargetRegisterInfo *TRI) const {
+                                         const TargetRegisterInfo *TRI,
+                                         Register VReg) const {
   const MachineFunction &MF = *MBB.getParent();
   LLVM_DEBUG(dbgs() << "stack slot size: "
                     << MF.getFrameInfo().getObjectSize(FrameIndex) << '\n');
@@ -166,7 +167,8 @@ void SM83InstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
                                         Register SrcReg, bool isKill,
                                         int FrameIndex,
                                         const TargetRegisterClass *RC,
-                                        const TargetRegisterInfo *TRI) const {
+                                        const TargetRegisterInfo *TRI,
+                                        Register VReg) const {
   const MachineFunction &MF = *MBB.getParent();
   LLVM_DEBUG(dbgs() << "stack slot size: "
                     << MF.getFrameInfo().getObjectSize(FrameIndex)
