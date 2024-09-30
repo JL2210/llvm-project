@@ -42,15 +42,15 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83Target() {
 
 static const char SM83DataLayout[] = "e-p:16:8-i16:8-i32:8-i64:8-a:0:8-n8:16";
 
-static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {
+static Reloc::Model getEffectiveRelocModel(std::optional<Reloc::Model> RM) {
   return RM.has_value() ? *RM : Reloc::Static;
 }
 
 SM83TargetMachine::SM83TargetMachine(const Target &T, const Triple &TT,
                                      StringRef CPU, StringRef FS,
                                      const TargetOptions &Options,
-                                     Optional<Reloc::Model> RM,
-                                     Optional<CodeModel::Model> CM,
+                                     std::optional<Reloc::Model> RM,
+                                     std::optional<CodeModel::Model> CM,
                                      CodeGenOpt::Level OL, bool JIT)
     : LLVMTargetMachine(T, SM83DataLayout, TT, CPU, FS, Options,
                         getEffectiveRelocModel(RM),

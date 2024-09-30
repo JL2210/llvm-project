@@ -15,6 +15,7 @@
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormattedStream.h"
@@ -32,7 +33,7 @@ void SM83InstPrinter::printInst(const MCInst *MI, uint64_t Address,
   printAnnotation(O, Annot);
 }
 
-void SM83InstPrinter::printRegName(raw_ostream &O, unsigned RegNo) const {
+void SM83InstPrinter::printRegName(raw_ostream &O, MCRegister RegNo) const {
   O << getRegisterName(RegNo);
 }
 
