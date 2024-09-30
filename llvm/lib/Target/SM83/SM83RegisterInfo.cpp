@@ -70,7 +70,7 @@ const uint32_t *SM83RegisterInfo::getNoPreservedMask() const {
   return CSR_NoRegs_RegMask;
 }
 
-void SM83RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
+bool SM83RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                                            int SPAdj, unsigned FIOperandNum,
                                            RegScavenger *RS) const {
   assert(SPAdj == 0 && "Unexpected");
@@ -94,6 +94,7 @@ void SM83RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
   MI.getOperand(FIOperandNum).ChangeToRegister(BasePtr, false);
   MI.getOperand(FIOperandNum + 1).ChangeToImmediate(Offset);
+  return true;
 }
 
 Register SM83RegisterInfo::getFrameRegister(const MachineFunction &MF) const {
