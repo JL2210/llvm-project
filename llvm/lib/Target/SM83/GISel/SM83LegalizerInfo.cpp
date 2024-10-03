@@ -31,6 +31,8 @@ SM83LegalizerInfo::SM83LegalizerInfo(const DataLayout DL) : LegalizerInfo() {
       .legalFor({s8})
       .maxScalar(0, s8);
 
+  getActionDefinitionsBuilder({G_SHL, G_ASHR, G_LSHR}).legalFor({s8});
+
   getActionDefinitionsBuilder(G_SEXT).legalForCartesianProduct({s8}, {s1});
 
   getActionDefinitionsBuilder(G_ANYEXT)

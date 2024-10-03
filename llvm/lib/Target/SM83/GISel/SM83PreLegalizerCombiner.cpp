@@ -1,4 +1,4 @@
-//=== lib/CodeGen/GlobalISel/SM83Combiner.cpp -----------------------------===//
+//=== lib/CodeGen/GlobalISel/SM83PreLegalizerCombiner.cpp -----------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -13,11 +13,14 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "SM83Subtarget.h"
 #include "GISel/SM83CombinerPasses.h"
 #include "llvm/CodeGen/GlobalISel/CSEInfo.h"
 #include "llvm/CodeGen/GlobalISel/Combiner.h"
 #include "llvm/CodeGen/GlobalISel/CombinerHelper.h"
 #include "llvm/CodeGen/GlobalISel/CombinerInfo.h"
+#include "llvm/CodeGen/GlobalISel/GIMatchTableExecutor.h"
+#include "llvm/CodeGen/GlobalISel/GIMatchTableExecutorImpl.h"
 #include "llvm/CodeGen/GlobalISel/GISelKnownBits.h"
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
 #include "llvm/CodeGen/MachineDominators.h"
@@ -27,41 +30,79 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Target/TargetMachine.h"
 
-#define DEBUG_TYPE "sm83-combiner"
+#define GET_GICOMBINER_DEPS
+#include "SM83GenPreLegalizeGICombiner.inc"
+#undef GET_GICOMBINER_DEPS
+
+#define DEBUG_TYPE "sm83-prelegalizer-combiner"
 
 using namespace llvm;
 
-class SM83CombinerHelperState {
+namespace {
+
+#define GET_GICOMBINER_TYPES
+#include "SM83GenPreLegalizeGICombiner.inc"
+#undef GET_GICOMBINER_TYPES
+
+class SM83PreLegalizerCombinerImpl : public GIMatchTableExecutor {
 protected:
   CombinerHelper &Helper;
+  const SM83PreLegalizerCombinerImplRuleConfig &RuleConfig;
+
+  const SM83Subtarget &STI;
+  GISelChangeObserver &Observer;
+  MachineIRBuilder &B;
+  MachineFunction &MF;
+
+  MachineRegisterInfo &MRI;
 
 public:
-  SM83CombinerHelperState(CombinerHelper &Helper) : Helper(Helper) {}
+  SM83PreLegalizerCombinerImpl(
+      const SM83PreLegalizerCombinerImplRuleConfig &RuleConfig,
+      GISelChangeObserver &Observer, MachineIRBuilder &B,
+      CombinerHelper &Helper);
+
+  static const char *getName() { return "SM83PreLegalizerCombiner"; }
+
+  bool tryCombineAll(MachineInstr &I) const;
+
+private:
+#define GET_GICOMBINER_CLASS_MEMBERS
+#include "SM83GenPreLegalizeGICombiner.inc"
+#undef GET_GICOMBINER_CLASS_MEMBERS
 };
 
-#define SM83COMBINERHELPER_GENCOMBINERHELPER_DEPS
-#include "SM83GenGICombiner.inc"
-#undef SM83COMBINERHELPER_GENCOMBINERHELPER_DEPS
+#define GET_GICOMBINER_IMPL
+#include "SM83GenPreLegalizeGICombiner.inc"
+#undef GET_GICOMBINER_IMPL
 
-namespace {
-#define SM83COMBINERHELPER_GENCOMBINERHELPER_H
-#include "SM83GenGICombiner.inc"
-#undef SM83COMBINERHELPER_GENCOMBINERHELPER_H
+SM83PreLegalizerCombinerImpl::SM83PreLegalizerCombinerImpl(
+    const SM83PreLegalizerCombinerImplRuleConfig &RuleConfig,
+    GISelChangeObserver &Observer,
+    MachineIRBuilder &B, CombinerHelper &Helper)
+    : Helper(Helper), RuleConfig(RuleConfig),
+      STI(B.getMF().getSubtarget<SM83Subtarget>()), Observer(Observer), B(B),
+      MF(B.getMF()), MRI(*B.getMRI()),
+#define GET_GICOMBINER_CONSTRUCTOR_INITS
+#include "SM83GenPreLegalizeGICombiner.inc"
+#undef GET_GICOMBINER_CONSTRUCTOR_INITS
+{
+}
 
-class SM83CombinerInfo : public CombinerInfo {
+class SM83PreLegalizerCombinerInfo : public CombinerInfo {
   GISelKnownBits *KB;
   MachineDominatorTree *MDT;
-  SM83GenCombinerHelperRuleConfig GeneratedRuleCfg;
+  SM83PreLegalizerCombinerImplRuleConfig RuleConfig;
 
 public:
-  SM83CombinerInfo(bool EnableOpt, bool OptSize, bool MinSize,
+  SM83PreLegalizerCombinerInfo(bool EnableOpt, bool OptSize, bool MinSize,
                    GISelKnownBits *KB, MachineDominatorTree *MDT)
       : CombinerInfo(/*AllowIllegalOps*/ true, /*ShouldLegalizeIllegal*/ false,
                      /*LegalizerInfo*/ nullptr, EnableOpt, OptSize, MinSize),
         KB(KB), MDT(MDT) {
     assert(EnableOpt == true &&
            "Combiner pass should only be run with optimizations enabled");
-    if (!GeneratedRuleCfg.parseCommandLineOption())
+    if (!RuleConfig.parseCommandLineOption())
       report_fatal_error("Invalid rule identifier");
   }
 
@@ -69,31 +110,30 @@ public:
                        MachineIRBuilder &B) const override;
 };
 
-bool SM83CombinerInfo::combine(GISelChangeObserver &Observer, MachineInstr &MI,
+bool SM83PreLegalizerCombinerInfo::combine(GISelChangeObserver &Observer, MachineInstr &MI,
                                MachineIRBuilder &B) const {
   CombinerHelper Helper(Observer, B, /*IsPreLegalize=*/true, KB, MDT);
-  SM83GenCombinerHelper Generated(GeneratedRuleCfg, Helper);
+  SM83PreLegalizerCombinerImpl Impl(RuleConfig, Observer, B, Helper);
+  Impl.setupMF(*MI.getMF(), KB);
 
-  if (Generated.tryCombineAll(Observer, MI, B))
+  if (Impl.tryCombineAll(MI))
     return true;
 
   return false;
 }
 
-#define SM83COMBINERHELPER_GENCOMBINERHELPER_CPP
-#include "SM83GenGICombiner.inc"
-#undef SM83COMBINERHELPER_GENCOMBINERHELPER_CPP
-
 // Pass boilerplate
 // ================
 
-class SM83Combiner : public MachineFunctionPass {
+class SM83PreLegalizerCombiner : public MachineFunctionPass {
 public:
   static char ID;
 
-  SM83Combiner();
+  SM83PreLegalizerCombiner();
 
-  StringRef getPassName() const override { return "SM83Combiner"; }
+  StringRef getPassName() const override {
+    return "SM83PreLegalizerCombiner";
+  }
 
   bool runOnMachineFunction(MachineFunction &MF) override;
 
@@ -101,7 +141,7 @@ public:
 };
 } // end anonymous namespace
 
-void SM83Combiner::getAnalysisUsage(AnalysisUsage &AU) const {
+void SM83PreLegalizerCombiner::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<TargetPassConfig>();
   AU.setPreservesCFG();
   AU.addRequired<GISelKnownBitsAnalysis>();
@@ -113,11 +153,11 @@ void SM83Combiner::getAnalysisUsage(AnalysisUsage &AU) const {
   MachineFunctionPass::getAnalysisUsage(AU);
 }
 
-SM83Combiner::SM83Combiner() : MachineFunctionPass(ID) {
-  initializeSM83CombinerPass(*PassRegistry::getPassRegistry());
+SM83PreLegalizerCombiner::SM83PreLegalizerCombiner() : MachineFunctionPass(ID) {
+  initializeSM83PreLegalizerCombinerPass(*PassRegistry::getPassRegistry());
 }
 
-bool SM83Combiner::runOnMachineFunction(MachineFunction &MF) {
+bool SM83PreLegalizerCombiner::runOnMachineFunction(MachineFunction &MF) {
   if (MF.getProperties().hasProperty(
           MachineFunctionProperties::Property::FailedISel))
     return false;
@@ -133,20 +173,20 @@ bool SM83Combiner::runOnMachineFunction(MachineFunction &MF) {
       MF.getTarget().getOptLevel() != CodeGenOpt::None && !skipFunction(F);
   GISelKnownBits *KB = &getAnalysis<GISelKnownBitsAnalysis>().get(MF);
   MachineDominatorTree *MDT = &getAnalysis<MachineDominatorTree>();
-  SM83CombinerInfo PCInfo(EnableOpt, F.hasOptSize(), F.hasMinSize(), KB, MDT);
+  SM83PreLegalizerCombinerInfo PCInfo(EnableOpt, F.hasOptSize(), F.hasMinSize(), KB, MDT);
   Combiner C(PCInfo, &TPC);
   return C.combineMachineInstrs(MF, CSEInfo);
 }
 
-char SM83Combiner::ID = 0;
-INITIALIZE_PASS_BEGIN(SM83Combiner, DEBUG_TYPE, "Combine SM83 machine instrs",
+char SM83PreLegalizerCombiner::ID = 0;
+INITIALIZE_PASS_BEGIN(SM83PreLegalizerCombiner, DEBUG_TYPE, "Combine SM83 machine instrs before legalization",
                       false, false)
 INITIALIZE_PASS_DEPENDENCY(TargetPassConfig)
 INITIALIZE_PASS_DEPENDENCY(GISelKnownBitsAnalysis)
 INITIALIZE_PASS_DEPENDENCY(GISelCSEAnalysisWrapperPass)
-INITIALIZE_PASS_END(SM83Combiner, DEBUG_TYPE, "Combine SM83 machine instrs",
+INITIALIZE_PASS_END(SM83PreLegalizerCombiner, DEBUG_TYPE, "Combine SM83 machine instrs before legalization",
                     false, false)
 
 namespace llvm {
-FunctionPass *createSM83Combiner() { return new SM83Combiner(); }
+FunctionPass *createSM83PreLegalizerCombiner() { return new SM83PreLegalizerCombiner(); }
 } // end namespace llvm

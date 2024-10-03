@@ -8,16 +8,10 @@
 
 include "llvm/Target/GlobalISel/Combine.td"
 
-def SM83CombinerHelper: GICombinerHelper<
-  "SM83GenCombinerHelper", [all_combines]> {
-  let DisableRuleOption = "sm83combiner-disable-rule";
-  let StateClass = "SM83CombinerHelperState";
-  let AdditionalArguments = [];
+def SM83PreLegalizerCombiner: GICombinerHelper<
+  "SM83PreLegalizerCombinerImpl", [all_combines]> {
 }
 
-def SM83O0PreLegalizerCombinerHelper: GICombinerHelper<
-  "SM83GenO0PreLegalizerCombinerHelper", [optnone_combines]> {
-  let DisableRuleOption = "sm83O0prelegalizercombiner-disable-rule";
-  let StateClass = "SM83O0PreLegalizerCombinerHelperState";
-  let AdditionalArguments = [];
+def SM83O0PreLegalizerCombiner: GICombinerHelper<
+  "SM83O0PreLegalizerCombinerImpl", [optnone_combines]> {
 }
