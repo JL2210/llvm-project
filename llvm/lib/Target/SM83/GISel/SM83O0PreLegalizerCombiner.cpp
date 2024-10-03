@@ -11,10 +11,13 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "SM83Subtarget.h"
 #include "GISel/SM83CombinerPasses.h"
 #include "llvm/CodeGen/GlobalISel/Combiner.h"
 #include "llvm/CodeGen/GlobalISel/CombinerHelper.h"
 #include "llvm/CodeGen/GlobalISel/CombinerInfo.h"
+#include "llvm/CodeGen/GlobalISel/GIMatchTableExecutor.h"
+#include "llvm/CodeGen/GlobalISel/GIMatchTableExecutorImpl.h"
 #include "llvm/CodeGen/GlobalISel/GISelKnownBits.h"
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
 #include "llvm/CodeGen/MachineDominators.h"
@@ -24,32 +27,69 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Target/TargetMachine.h"
 
+#define GET_GICOMBINER_DEPS
+#include "SM83GenO0PreLegalizeGICombiner.inc"
+#undef GET_GICOMBINER_DEPS
+
 #define DEBUG_TYPE "SM83-O0-prelegalizer-combiner"
 
 using namespace llvm;
 
-class SM83O0PreLegalizerCombinerHelperState {
+namespace {
+#define GET_GICOMBINER_TYPES
+#include "SM83GenO0PreLegalizeGICombiner.inc"
+#undef GET_GICOMBINER_TYPES
+
+class SM83O0PreLegalizerCombinerImpl : public GIMatchTableExecutor {
 protected:
   CombinerHelper &Helper;
+  const SM83O0PreLegalizerCombinerImplRuleConfig &RuleConfig;
+
+  const SM83Subtarget &STI;
+  GISelChangeObserver &Observer;
+  MachineIRBuilder &B;
+  MachineFunction &MF;
+
+  MachineRegisterInfo &MRI;
+
 
 public:
-  SM83O0PreLegalizerCombinerHelperState(CombinerHelper &Helper)
-      : Helper(Helper) {}
+  SM83O0PreLegalizerCombinerImpl(
+      const SM83O0PreLegalizerCombinerImplRuleConfig &RuleConfig,
+      GISelChangeObserver &Observer, MachineIRBuilder &B,
+      CombinerHelper &Helper);
+
+  static const char *getName() { return "SM83O0PreLegalizerCombiner"; }
+
+  bool tryCombineAll(MachineInstr &I) const;
+
+private:
+#define GET_GICOMBINER_CLASS_MEMBERS
+#include "SM83GenO0PreLegalizeGICombiner.inc"
+#undef GET_GICOMBINER_CLASS_MEMBERS
 };
 
-#define SM83O0PRELEGALIZERCOMBINERHELPER_GENCOMBINERHELPER_DEPS
+#define GET_GICOMBINER_IMPL
 #include "SM83GenO0PreLegalizeGICombiner.inc"
-#undef SM83O0PRELEGALIZERCOMBINERHELPER_GENCOMBINERHELPER_DEPS
+#undef GET_GICOMBINER_IMPL
 
-namespace {
-#define SM83O0PRELEGALIZERCOMBINERHELPER_GENCOMBINERHELPER_H
+SM83O0PreLegalizerCombinerImpl::SM83O0PreLegalizerCombinerImpl(
+    const SM83O0PreLegalizerCombinerImplRuleConfig &RuleConfig,
+    GISelChangeObserver &Observer, MachineIRBuilder &B,
+    CombinerHelper &Helper)
+    : Helper(Helper), RuleConfig(RuleConfig),
+      STI(B.getMF().getSubtarget<SM83Subtarget>()), Observer(Observer), B(B),
+      MF(B.getMF()), MRI(*B.getMRI()),
+#define GET_GICOMBINER_CONSTRUCTOR_INITS
 #include "SM83GenO0PreLegalizeGICombiner.inc"
-#undef SM83O0PRELEGALIZERCOMBINERHELPER_GENCOMBINERHELPER_H
+#undef GET_GICOMBINER_CONSTRUCTOR_INITS
+{
+}
 
 class SM83O0PreLegalizerCombinerInfo : public CombinerInfo {
   GISelKnownBits *KB;
   MachineDominatorTree *MDT;
-  SM83GenO0PreLegalizerCombinerHelperRuleConfig GeneratedRuleCfg;
+  SM83O0PreLegalizerCombinerImplRuleConfig RuleConfig;
 
 public:
   SM83O0PreLegalizerCombinerInfo(bool EnableOpt, bool OptSize, bool MinSize,
@@ -59,7 +99,7 @@ public:
         KB(KB), MDT(MDT) {
     assert(!EnableOpt && !OptSize && !MinSize &&
            "-O0 Combiner pass should only be run with optimizations disabled");
-    if (!GeneratedRuleCfg.parseCommandLineOption())
+    if (!RuleConfig.parseCommandLineOption())
       report_fatal_error("Invalid rule identifier");
   }
 
@@ -71,17 +111,14 @@ bool SM83O0PreLegalizerCombinerInfo::combine(GISelChangeObserver &Observer,
                                              MachineInstr &MI,
                                              MachineIRBuilder &B) const {
   CombinerHelper Helper(Observer, B, /*IsPreLegalize=*/true, KB, MDT);
-  SM83GenO0PreLegalizerCombinerHelper Generated(GeneratedRuleCfg, Helper);
+  SM83O0PreLegalizerCombinerImpl Impl(RuleConfig, Observer, B, Helper);
+  Impl.setupMF(*MI.getMF(), KB);
 
-  if (Generated.tryCombineAll(Observer, MI, B))
+  if (Impl.tryCombineAll(MI))
     return true;
 
   return false;
 }
-
-#define SM83O0PRELEGALIZERCOMBINERHELPER_GENCOMBINERHELPER_CPP
-#include "SM83GenO0PreLegalizeGICombiner.inc"
-#undef SM83O0PRELEGALIZERCOMBINERHELPER_GENCOMBINERHELPER_CPP
 
 // Pass boilerplate
 // ================

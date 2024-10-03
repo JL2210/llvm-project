@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83MCAsmInfo.h"
-#include "llvm/ADT/Triple.h"
+#include "llvm/TargetParser/Triple.h"
 using namespace llvm;
 
 void SM83MCAsmInfo::anchor() {}

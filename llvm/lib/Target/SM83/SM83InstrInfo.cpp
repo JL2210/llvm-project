@@ -83,16 +83,7 @@ bool SM83InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   MachineFunction &MF = *MBB.getParent();
   MachineInstrBuilder MIB(MF, MI);
 
-  switch (unsigned Opc = MI.getOpcode()) {
-#if 0
-  case SM83::LDaz: {
-    BuildMI(MBB, MI, DL, get(SM83::XORr), SM83::A)
-      .addReg(SM83::A, RegState::Undef)
-      .addReg(SM83::A, RegState::Undef);
-    MI.eraseFromParent();
-  }
-  break;
-#endif
+  switch (MI.getOpcode()) {
   case SM83::XORri:
   case SM83::ADDri: {
     Register DstReg = MI.getOperand(0).getReg();

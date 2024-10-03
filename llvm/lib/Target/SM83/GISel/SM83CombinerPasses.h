@@ -6,10 +6,10 @@ namespace llvm {
 class FunctionPass;
 class PassRegistry;
 
-FunctionPass *createSM83Combiner();
+FunctionPass *createSM83PreLegalizerCombiner();
 FunctionPass *createSM83O0PreLegalizerCombiner();
 
-void initializeSM83CombinerPass(PassRegistry &);
+void initializeSM83PreLegalizerCombinerPass(PassRegistry &);
 void initializeSM83O0PreLegalizerCombinerPass(PassRegistry &);
 
 } // namespace llvm

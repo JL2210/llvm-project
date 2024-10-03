@@ -15,7 +15,7 @@
 #include "SM83Subtarget.h"
 
 #include "llvm/CodeGen/TargetCallingConv.h"
-#include "llvm/Support/MachineValueType.h"
+#include "llvm/CodeGen/MachineValueType.h"
 #include "llvm/Target/TargetMachine.h"
 
 using namespace llvm;
@@ -32,7 +32,7 @@ SM83TargetLowering::SM83TargetLowering(const TargetMachine &TM,
   // Compute derived properties from the register classes.
   computeRegisterProperties(STI.getRegisterInfo());
 
-  // setSchedulingPreference(Sched::RegPressure);
+  setSchedulingPreference(Sched::RegPressure);
 
   setStackPointerRegisterToSaveRestore(SM83::SP);
 

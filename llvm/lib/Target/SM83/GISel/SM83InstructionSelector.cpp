@@ -13,9 +13,9 @@
 #include "SM83Subtarget.h"
 #include "SM83TargetMachine.h"
 
+#include "llvm/CodeGen/GlobalISel/GIMatchTableExecutorImpl.h"
 #include "llvm/CodeGen/GlobalISel/GISelKnownBits.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelector.h"
-#include "llvm/CodeGen/GlobalISel/InstructionSelectorImpl.h"
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
 #include "llvm/CodeGen/MachineInstr.h"
 
@@ -56,7 +56,7 @@ private:
   bool selectSignedExtend(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectCompare(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectPHI(MachineInstr &I, MachineRegisterInfo &MRI) const;
-  // bool selectGEP(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  bool selectGEP(MachineInstr &I, MachineRegisterInfo &MRI) const;
 
 #define GET_GLOBALISEL_PREDICATES_DECL
 #include "SM83GenGlobalISel.inc"
@@ -192,6 +192,7 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
   case TargetOpcode::G_PTRTOINT:
     return selectCopy(I, MRI);
   case TargetOpcode::G_PTR_ADD: {
+    return selectGEP(I, MRI);
     I.setDesc(TII.get(SM83::LDrrii));
     Register Off = I.getOperand(2).getReg();
     auto &OffDefMI = *MRI.getVRegDef(Off);
@@ -353,7 +354,6 @@ bool SM83InstructionSelector::selectPHI(MachineInstr &I,
   return RBI.constrainGenericRegister(DstReg, *DstRC, MRI);
 }
 
-#if 0 // unused mess
 bool SM83InstructionSelector::selectGEP(MachineInstr &I,
                                         MachineRegisterInfo &MRI) const {
   assert(I.getOpcode() == TargetOpcode::G_PTR_ADD &&
@@ -361,7 +361,14 @@ bool SM83InstructionSelector::selectGEP(MachineInstr &I,
   MachineBasicBlock &MBB = *I.getParent();
   MachineFunction &MF = *MBB.getParent();
   MachineIRBuilder MIB(I);
-  auto Base = I.getOperand(1).getReg();
+  Register Dst = I.getOperand(0).getReg();
+  Register Base = I.getOperand(1).getReg();
+  const TargetRegisterClass *BaseRC = getRegClass(Base, MRI);
+
+  if(!RBI.constrainGenericRegister(Base, *BaseRC, MRI)) {
+    LLVM_DEBUG(dbgs() << "failed to constrain GEP base");
+    return false;
+  }
 
   LLVM_DEBUG(dbgs() << "trying getvregdef\n");
 
@@ -374,8 +381,8 @@ bool SM83InstructionSelector::selectGEP(MachineInstr &I,
       unsigned Opc = Value.isNegative() ? SM83::DECrr : SM83::INCrr;
       for(auto v = Value.abs(); !v.isZero(); --v) {
         MIB.buildInstr(Opc)
-           .addDef(Base)
-           .addReg(Base);
+           .addDef(Dst)
+           .addUse(Base);
       }
 
       I.eraseFromParent();
@@ -387,7 +394,6 @@ bool SM83InstructionSelector::selectGEP(MachineInstr &I,
   LLVM_DEBUG(dbgs() << "trying to select G_PTR_ADD using G_ADD\n");
   return selectImpl(I, *CoverageInfo);
 }
-#endif
 
 InstructionSelector *
 llvm::createSM83InstructionSelector(const SM83TargetMachine &TM,

@@ -12,10 +12,6 @@
 
 include "SM83InstrFormats.td"
 
-def SDT_SM83Cp : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>]>;
-
-def SM83cp : SDNode<"SM83ISD::CP", SDT_SM83Cp, [SDNPOutGlue]>;
-
 class ImmAsmOperand<string name> : AsmOperandClass {
   let Name = name;
   let RenderMethod = "addImmOperands";
@@ -143,12 +139,10 @@ def LDSPnn : SM83Inst24<(outs), (ins imm16:$imm), "ld sp, $imm",
 }
 
 let mayStore = 1 in {
-/*
   def LDdHLIA : I8<0x22, "ld [hli], $a", [(set RHL:$hl, (post_store RA:$a, RHL:$dstp, 1))],
                    (outs RHL:$hl), (ins RHL:$dstp, RA:$a)>;
   def LDdHLDA : I8<0x32, "ld [hld], $a", [(set RHL:$hl, (post_store RA:$a, RHL:$dstp, -1))],
                    (outs RHL:$hl), (ins RHL:$dstp, RA:$a)>;
-*/
 }
 
 let mayLoad = 1, Uses = [HL], Defs = [HL, A] in {
@@ -199,10 +193,6 @@ let Defs = [FLAGS], mayLoad = 1, mayStore = 1 in {
   def DECdHL : I8<0x35, "dec [$hl]", [(store (sub (i8 (load RHL:$hl)), 1), RHL:$hl)],
                   (outs), (ins RHL:$hl)>;
 }
-
-// somehow this makes it worse?
-//let isMoveImm = 1, Defs = [FLAGS] in
-//def LDaz : Pseudo<(outs RA:$a), (ins), [(set RA:$a, 0)], "LDaz $a, 0">;
 
 let isMoveImm = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 in
 def LDri : SM83Inst16<(outs GR8:$dst), (ins imm8:$imm), "ld $dst, $imm",

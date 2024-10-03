@@ -2767,24 +2767,24 @@ MCSection *TargetLoweringObjectFileRGB9::SelectSectionForGlobal(
     UniqueSectionName = TM.getDataSections();
   }
 
-  SmallString<128> Name = getSectionPrefixForGlobal(Kind);
+  SmallString<128> Name = getSectionPrefixForGlobal(Kind, false);
 
-   bool HasPrefix = false;
-   if (const auto *F = dyn_cast<Function>(GO)) {
-     if (std::optional<StringRef> Prefix = F->getSectionPrefix()) {
-       raw_svector_ostream(Name) << '.' << *Prefix;
-       HasPrefix = true;
-     }
-   }
+  bool HasPrefix = false;
+  if (const auto *F = dyn_cast<Function>(GO)) {
+    if (std::optional<StringRef> Prefix = F->getSectionPrefix()) {
+      raw_svector_ostream(Name) << '.' << *Prefix;
+      HasPrefix = true;
+    }
+  }
 
-   if (UniqueSectionName) {
-     Name.push_back('.');
-     TM.getNameWithPrefix(Name, GO, getMangler(), /*MayAlwaysUsePrivate*/true);
-   } else if (HasPrefix) {
-     // For distinguishing between .text.${text-section-prefix}. (with trailing
-     // dot) and .text.${function-name}
-     Name.push_back('.');
-   }
+  if (UniqueSectionName) {
+    Name.push_back('.');
+    TM.getNameWithPrefix(Name, GO, getMangler(), /*MayAlwaysUsePrivate*/true);
+  } else if (HasPrefix) {
+    // For distinguishing between .text.${text-section-prefix}. (with trailing
+    // dot) and .text.${function-name}
+    Name.push_back('.');
+  }
   return getContext().getRGB9Section(Name, Kind);
 
   report_fatal_error("Section kind unsupported!");

@@ -10,16 +10,16 @@ tablegen(LLVM SM83GenMCPseudoLowering.inc -gen-pseudo-lowering)
 tablegen(LLVM SM83GenRegisterBank.inc -gen-register-bank)
 tablegen(LLVM SM83GenRegisterInfo.inc -gen-register-info)
 tablegen(LLVM SM83GenSubtargetInfo.inc -gen-subtarget)
-tablegen(LLVM SM83GenGICombiner.inc -gen-global-isel-combiner
-              -combiners="SM83CombinerHelper")
-tablegen(LLVM SM83GenO0PreLegalizeGICombiner.inc -gen-global-isel-combiner
-              -combiners="SM83O0PreLegalizerCombinerHelper")
+tablegen(LLVM SM83GenPreLegalizeGICombiner.inc -gen-global-isel-combiner-matchtable
+              -combiners="SM83PreLegalizerCombiner")
+tablegen(LLVM SM83GenO0PreLegalizeGICombiner.inc -gen-global-isel-combiner-matchtable
+              -combiners="SM83O0PreLegalizerCombiner")
 
 add_public_tablegen_target(SM83CommonTableGen)
 
 add_llvm_target(SM83CodeGen
   GISel/SM83CallLowering.cpp
-  GISel/SM83Combiner.cpp
+  GISel/SM83PreLegalizerCombiner.cpp
   GISel/SM83O0PreLegalizerCombiner.cpp
   GISel/SM83LegalizerInfo.cpp
   GISel/SM83RegisterBankInfo.cpp
@@ -37,6 +37,7 @@ add_llvm_target(SM83CodeGen
   AsmPrinter
   Core
   CodeGen
+  CodeGenTypes
   GlobalISel
   MC
   SM83Desc

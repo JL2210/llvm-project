@@ -37,7 +37,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83Target() {
   auto PR = PassRegistry::getPassRegistry();
   initializeGlobalISel(*PR);
   initializeSM83O0PreLegalizerCombinerPass(*PR);
-  initializeSM83CombinerPass(*PR);
+  initializeSM83PreLegalizerCombinerPass(*PR);
 }
 
 static const char SM83DataLayout[] = "e-p:16:8-i16:8-i32:8-i64:8-a:0:8-n8:16";
@@ -94,7 +94,7 @@ void SM83PassConfig::addPreLegalizeMachineIR() {
   if (getOptLevel() == CodeGenOpt::None) {
     addPass(createSM83O0PreLegalizerCombiner());
   } else {
-    addPass(createSM83Combiner());
+    addPass(createSM83PreLegalizerCombiner());
     addPass(new LoadStoreOpt());
   }
 }
@@ -106,10 +106,7 @@ bool SM83PassConfig::addLegalizeMachineIR() {
 
 void SM83PassConfig::addPreRegBankSelect() {
   if (getOptLevel() != CodeGenOpt::None) {
-    /*
-        addPass(createSM83Combiner());
-        addPass(new LoadStoreOpt());
-    */
+    addPass(new LoadStoreOpt());
   }
 }
 
@@ -126,11 +123,9 @@ bool SM83PassConfig::addGlobalInstructionSelect() {
 }
 
 void SM83PassConfig::addPreRegAlloc() {
-  /*
-    if (TM->getOptLevel() != CodeGenOpt::None) {
-      addPass(&PeepholeOptimizerID);
-    }
-  */
+  if (TM->getOptLevel() != CodeGenOpt::None) {
+    addPass(&PeepholeOptimizerID);
+  }
 }
 
 void SM83PassConfig::addFastRegAlloc() {
