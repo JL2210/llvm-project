@@ -17,9 +17,14 @@
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/Register.h"
+#include "llvm/CodeGen/TargetFrameLowering.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
+#include "llvm/IR/CallingConv.h"
 #include "llvm/IR/Function.h"
-#include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/MC/MCRegister.h"
+#include "llvm/Support/ErrorHandling.h"
+#include <cassert>
+#include <cstdint>
 
 #define GET_REGINFO_TARGET_DESC
 #include "SM83GenRegisterInfo.inc"

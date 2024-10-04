@@ -17,8 +17,12 @@
 #include "GISel/SM83RegisterBankInfo.h"
 #include "SM83TargetMachine.h"
 
+#include "llvm/CodeGen/GlobalISel/CallLowering.h"
+#include "llvm/CodeGen/GlobalISel/LegalizerInfo.h"
+#include "llvm/CodeGen/RegisterBankInfo.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/Target/TargetMachine.h"
+#include <string>
 
 using namespace llvm;
 

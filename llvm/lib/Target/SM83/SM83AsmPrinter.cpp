@@ -14,13 +14,14 @@
 #include "SM83MCInstLower.h"
 #include "TargetInfo/SM83TargetInfo.h"
 
-#include "llvm/ADT/STLExtras.h"
 #include "llvm/CodeGen/AsmPrinter.h"
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Target/TargetMachine.h"
+#include <memory>
+#include <utility>
 
 using namespace llvm;
 
@@ -60,6 +61,7 @@ void SM83AsmPrinter::emitInstruction(const MachineInstr *MI) {
 }
 
 // Force static initialization.
-extern "C" void LLVMInitializeSM83AsmPrinter() {
+//NOLINTNEXTLINE
+extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83AsmPrinter() {
   RegisterAsmPrinter<SM83AsmPrinter> X(getTheSM83Target());
 }

@@ -10,9 +10,9 @@ tablegen(LLVM SM83GenMCPseudoLowering.inc -gen-pseudo-lowering)
 tablegen(LLVM SM83GenRegisterBank.inc -gen-register-bank)
 tablegen(LLVM SM83GenRegisterInfo.inc -gen-register-info)
 tablegen(LLVM SM83GenSubtargetInfo.inc -gen-subtarget)
-tablegen(LLVM SM83GenPreLegalizeGICombiner.inc -gen-global-isel-combiner-matchtable
+tablegen(LLVM SM83GenPreLegalizeGICombiner.inc -gen-global-isel-combiner
               -combiners="SM83PreLegalizerCombiner")
-tablegen(LLVM SM83GenO0PreLegalizeGICombiner.inc -gen-global-isel-combiner-matchtable
+tablegen(LLVM SM83GenO0PreLegalizeGICombiner.inc -gen-global-isel-combiner
               -combiners="SM83O0PreLegalizerCombiner")
 
 add_public_tablegen_target(SM83CommonTableGen)
