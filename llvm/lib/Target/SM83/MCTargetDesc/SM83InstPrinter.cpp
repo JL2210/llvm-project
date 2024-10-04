@@ -18,7 +18,10 @@
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/Support/ErrorHandling.h"
+//NOLINTNEXTLINE
 #include "llvm/Support/FormattedStream.h"
+#include <cassert>
+#include <cstdint>
 using namespace llvm;
 
 #define DEBUG_TYPE "asm-printer"

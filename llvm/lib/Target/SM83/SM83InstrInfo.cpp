@@ -16,8 +16,15 @@
 #include "SM83RegisterInfo.h"
 #include "SM83Subtarget.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
+#include "llvm/CodeGen/MachineInstrBuilder.h"
+#include "llvm/CodeGen/MachineMemOperand.h"
+#include "llvm/CodeGen/TargetRegisterInfo.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/MC/MCInstrDesc.h"
-#include "llvm/MC/MCInstrInfo.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/ErrorHandling.h"
+#include <cassert>
+#include <cstdint>
 
 #define GET_INSTRINFO_CTOR_DTOR
 #include "SM83GenInstrInfo.inc"
@@ -90,10 +97,10 @@ bool SM83InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     auto &SrcRegOp = MI.getOperand(1);
     Register SrcReg = SrcRegOp.getReg();
     unsigned Opc = pseudoRIToAI(MI.getOpcode());
-    uint8_t imm = MI.getOperand(2).getImm();
+    uint8_t Imm = MI.getOperand(2).getImm();
 
     copyPhysReg(MBB, MI, DL, SM83::A, SrcReg, /*KillSrc=*/SrcRegOp.isKill());
-    BuildMI(MBB, MI, DL, get(Opc), SM83::A).addReg(SM83::A).addImm(imm);
+    BuildMI(MBB, MI, DL, get(Opc), SM83::A).addReg(SM83::A).addImm(Imm);
     copyPhysReg(MBB, MI, DL, DstReg, SM83::A, /*KillSrc=*/true);
     MI.eraseFromParent();
   } break;
@@ -108,16 +115,16 @@ bool SM83InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
 }
 
 static unsigned getLoadStoreRegOpc(const TargetRegisterClass *RC,
-                                   const TargetRegisterInfo *TRI, bool load) {
+                                   const TargetRegisterInfo *TRI, bool Load) {
   switch (TRI->getRegSizeInBits(*RC)) {
   default:
     llvm_unreachable("Unknown spill size");
   case 8:
     assert(SM83::GR8RegClass.hasSubClassEq(RC) && "Unknown 1-byte regclass");
-    return load ? SM83::LDro : SM83::LDor;
+    return Load ? SM83::LDro : SM83::LDor;
   case 16:
     assert(SM83::GR16RegClass.hasSubClassEq(RC) && "Unknown 2-byte regclass");
-    return load ? SM83::LDrro : SM83::LDorr;
+    return Load ? SM83::LDrro : SM83::LDorr;
   }
 }
 
@@ -153,20 +160,17 @@ void SM83InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                     FrameIndex);
 }
 
-void SM83InstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
-                                        MachineBasicBlock::iterator MI,
-                                        Register SrcReg, bool isKill,
-                                        int FrameIndex,
-                                        const TargetRegisterClass *RC,
-                                        const TargetRegisterInfo *TRI,
-                                        Register VReg) const {
+void SM83InstrInfo::storeRegToStackSlot(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MI, Register SrcReg,
+    bool IsKill, int FrameIndex, const TargetRegisterClass *RC,
+    const TargetRegisterInfo *TRI, Register VReg) const {
   const MachineFunction &MF = *MBB.getParent();
   LLVM_DEBUG(dbgs() << "stack slot size: "
                     << MF.getFrameInfo().getObjectSize(FrameIndex)
-                    << " isKill: " << isKill << '\n');
+                    << " isKill: " << IsKill << '\n');
   unsigned Opc = getLoadStoreRegOpc(RC, TRI, /*load=*/false);
   addFrameReference(BuildMI(MBB, MI, DebugLoc(), get(Opc)), FrameIndex)
-      .addReg(SrcReg, getKillRegState(isKill));
+      .addReg(SrcReg, getKillRegState(IsKill));
 }
 
 bool SM83InstrInfo::isReallyTriviallyReMaterializable(const MachineInstr &MI) const {

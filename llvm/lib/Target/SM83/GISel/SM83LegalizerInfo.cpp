@@ -9,6 +9,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83LegalizerInfo.h"
+#include "llvm/CodeGen/GlobalISel/LegalizerInfo.h"
+#include "llvm/CodeGen/LowLevelType.h"
+#include "llvm/CodeGen/TargetOpcodes.h"
+#include "llvm/IR/DataLayout.h"
 
 using namespace llvm;
 
@@ -24,7 +28,7 @@ SM83LegalizerInfo::SM83LegalizerInfo(const DataLayout DL) : LegalizerInfo() {
 
   getActionDefinitionsBuilder(G_GLOBAL_VALUE).legalFor({p0});
 
-  getActionDefinitionsBuilder(G_PHI).legalFor({s8, s16});
+  getActionDefinitionsBuilder(G_PHI).legalFor({s8, s16, p0});
 
   getActionDefinitionsBuilder({G_ADD, G_XOR}).legalFor({s8, s16});
   getActionDefinitionsBuilder({G_SUB, G_AND, G_OR})
@@ -54,12 +58,15 @@ SM83LegalizerInfo::SM83LegalizerInfo(const DataLayout DL) : LegalizerInfo() {
   getActionDefinitionsBuilder(G_PTRTOINT).legalForCartesianProduct({s16}, {p0});
 
   getActionDefinitionsBuilder({G_LOAD, G_STORE})
-      .legalForCartesianProduct({s8}, {p0});
+      .legalForCartesianProduct({s8}, {p0})
+      .maxScalar(0, s8)
+      .lower();
 
   getActionDefinitionsBuilder(G_PTR_ADD).legalForCartesianProduct({p0}, {s16});
 
   getActionDefinitionsBuilder({G_FRAME_INDEX, G_BLOCK_ADDR}).legalFor({p0});
 
+  getActionDefinitionsBuilder(G_BRCOND).legalFor({s1});
   getActionDefinitionsBuilder(G_BRINDIRECT).legalFor({p0});
 
   getLegacyLegalizerInfo().computeTables();

@@ -15,13 +15,11 @@
 #include "SM83MCAsmInfo.h"
 #include "SM83TargetStreamer.h"
 #include "TargetInfo/SM83TargetInfo.h"
-#include "llvm/ADT/STLExtras.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSubtargetInfo.h"
-// why the fuck can they not keep these things in the same place
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/ErrorHandling.h"
 
@@ -74,7 +72,8 @@ createSM83AsmTargetStreamer(MCStreamer &S, formatted_raw_ostream &OS,
   return new SM83TargetAsmStreamer(S, OS);
 }
 
-extern "C" void LLVMInitializeSM83TargetMC() {
+//NOLINTNEXTLINE
+extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83TargetMC() {
   Target &T = getTheSM83Target();
 
   TargetRegistry::RegisterMCAsmInfo(T, createSM83MCAsmInfo);

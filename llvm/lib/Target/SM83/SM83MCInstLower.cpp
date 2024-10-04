@@ -17,8 +17,13 @@
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/MachineOperand.h"
+#include "llvm/IR/Constants.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInst.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/ErrorHandling.h"
+
+#define DEBUG_TYPE "sm83-mcinst-lower"
 
 using namespace llvm;
 
@@ -32,7 +37,7 @@ SM83MCInstLower::GetExternalSymbolSymbol(const MachineOperand &MO) const {
   return Printer.GetExternalSymbolSymbol(MO.getSymbolName());
 }
 
-MCOperand SM83MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
+MCOperand SM83MCInstLower::lowerSymbolOperand(const MachineOperand &MO,
                                               MCSymbol *Sym) const {
   const MCExpr *Expr = MCSymbolRefExpr::create(Sym, Ctx);
 
@@ -48,6 +53,7 @@ bool SM83MCInstLower::lowerOperand(const MachineOperand &MO,
                                    MCOperand &MCOp) const {
   switch (MO.getType()) {
   default:
+    LLVM_DEBUG(dbgs() << (int)MO.getType() << "\n");
     llvm_unreachable("unknown operand type");
   case MachineOperand::MO_Register:
     // Ignore all implicit register operands.
@@ -58,6 +64,9 @@ bool SM83MCInstLower::lowerOperand(const MachineOperand &MO,
   case MachineOperand::MO_RegisterMask:
     // Regmasks are like implicit defs.
     return false;
+  case MachineOperand::MO_CImmediate:
+    MCOp = MCOperand::createImm(MO.getCImm()->getLimitedValue());
+    break;
   case MachineOperand::MO_Immediate:
     MCOp = MCOperand::createImm(MO.getImm());
     break;
@@ -66,22 +75,22 @@ bool SM83MCInstLower::lowerOperand(const MachineOperand &MO,
         MCSymbolRefExpr::create(MO.getMBB()->getSymbol(), Ctx));
     break;
   case MachineOperand::MO_GlobalAddress:
-    MCOp = LowerSymbolOperand(MO, GetGlobalAddressSymbol(MO));
+    MCOp = lowerSymbolOperand(MO, GetGlobalAddressSymbol(MO));
     break;
   case MachineOperand::MO_ExternalSymbol:
-    MCOp = LowerSymbolOperand(MO, GetExternalSymbolSymbol(MO));
+    MCOp = lowerSymbolOperand(MO, GetExternalSymbolSymbol(MO));
     break;
   case MachineOperand::MO_MCSymbol:
-    MCOp = LowerSymbolOperand(MO, MO.getMCSymbol());
+    MCOp = lowerSymbolOperand(MO, MO.getMCSymbol());
     break;
   case MachineOperand::MO_JumpTableIndex:
-    MCOp = LowerSymbolOperand(MO, Printer.GetJTISymbol(MO.getIndex()));
+    MCOp = lowerSymbolOperand(MO, Printer.GetJTISymbol(MO.getIndex()));
     break;
   case MachineOperand::MO_ConstantPoolIndex:
-    MCOp = LowerSymbolOperand(MO, Printer.GetCPISymbol(MO.getIndex()));
+    MCOp = lowerSymbolOperand(MO, Printer.GetCPISymbol(MO.getIndex()));
     break;
   case MachineOperand::MO_BlockAddress:
-    MCOp = LowerSymbolOperand(
+    MCOp = lowerSymbolOperand(
         MO, Printer.GetBlockAddressSymbol(MO.getBlockAddress()));
     break;
   }

@@ -562,10 +562,10 @@ void MCObjectFileInfo::initGOFFMCObjectFileInfo(const Triple &T) {
 }
 
 void MCObjectFileInfo::initRGB9MCObjectFileInfo(const Triple &T) {
-  TextSection = Ctx->getRGB9Section(".text", SectionKind::getText());
-  DataSection = Ctx->getRGB9Section(".data", SectionKind::getData());
-  ReadOnlySection = Ctx->getRGB9Section(".rodata", SectionKind::getReadOnly());
-  BSSSection = Ctx->getRGB9Section(".bss", SectionKind::getBSS());
+  TextSection = Ctx->getRGB9Section(".text0", SectionKind::getText());
+  DataSection = Ctx->getRGB9Section(".data0", SectionKind::getData());
+  ReadOnlySection = Ctx->getRGB9Section(".rodata0", SectionKind::getReadOnly());
+  BSSSection = Ctx->getRGB9Section(".bss0", SectionKind::getBSS());
 }
 
 void MCObjectFileInfo::initCOFFMCObjectFileInfo(const Triple &T) {

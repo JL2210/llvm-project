@@ -22,7 +22,12 @@ include "SM83CallingConv.td"
 include "SM83InstrInfo.td"
 include "SM83Combine.td"
 
-def : ProcessorModel<"sm83", NoSchedModel, []>;
+def SM83SchedModel : SchedMachineModel {
+  let MicroOpBufferSize = 0;
+  let CompleteModel = false;
+}
+
+def : ProcessorModel<"sm83", SM83SchedModel, []>;
 
 //===------------------------------------------------------------------------===//
 // Define the target

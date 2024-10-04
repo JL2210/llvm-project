@@ -41,11 +41,56 @@ bool MCSectionRGB9::isVirtualSection() const {
   }
 }
 
+MCSectionRGB9::MCSectionRGB9(StringRef Name, SectionKind K, MCSymbol *Begin)
+  : MCSection(SV_RGB9, Name, K, Begin) {
+  if(K.isText() || K.isReadOnly()) {
+    size_t bankstr_idx = 0;
+    if(Name.starts_with(".text")) {
+      bankstr_idx = 5;
+    } else if(Name.starts_with(".rodata")) {
+      bankstr_idx = 7;
+    } else {
+      report_fatal_error("read only/text section does not start with .rodata or .text");
+    }
+    if(Name.substr(bankstr_idx).getAsInteger(10, bank) == 0) {
+      if(bank == 0) {
+        Type = ROM0;
+      } else {
+        Type = ROMX;
+      }
+    } else {
+      report_fatal_error("whoops");
+    }
+  } else if(K.isData() || K.isBSS()) {
+    size_t bankstr_idx = 0;
+    if(Name.starts_with(".data")) {
+      bankstr_idx = 5;
+    } else if(Name.starts_with(".bss")) {
+      bankstr_idx = 5;
+    } else {
+      report_fatal_error("read/write section does not start with .data or .bss");
+    }
+    if(Name.substr(bankstr_idx).getAsInteger(10, bank) == 0) {
+      if(bank == 0) {
+        Type = WRAM0;
+      } else {
+        Type = WRAMX;
+      }
+    }
+  } else {
+    report_fatal_error("Unknown SectionKind");
+  }
+}
+
 void MCSectionRGB9::printSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
                                          raw_ostream &OS,
                                          const MCExpr *Subsection) const {
-  OS << "\tSECTION\t\"" << getName() << "\", ";
-  OS << MCSectionRGB9::getTypeStr(getType()) << '\n';
+  OS << "\tSECTION FRAGMENT\t\"" << getName() << "\", ";
+  OS << MCSectionRGB9::getTypeStr(getType());
+  if(bank) {
+    OS << ", BANK[" << bank << ']';
+  }
+  OS << '\n';
   if(Subsection) {
     report_fatal_error("PrintSwitchToSection can't handle subsections");
   }
