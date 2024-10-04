@@ -8,10 +8,10 @@
 
 include "llvm/Target/GlobalISel/Combine.td"
 
-def SM83PreLegalizerCombiner: GICombinerHelper<
+def SM83PreLegalizerCombiner: GICombiner<
   "SM83PreLegalizerCombinerImpl", [all_combines]> {
 }
 
-def SM83O0PreLegalizerCombiner: GICombinerHelper<
+def SM83O0PreLegalizerCombiner: GICombiner<
   "SM83O0PreLegalizerCombinerImpl", [optnone_combines]> {
 }

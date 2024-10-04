@@ -9,7 +9,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83InstructionSelector.h"
+#include "MCTargetDesc/SM83MCTargetDesc.h"
+#include "SM83InstrInfo.h"
 #include "SM83RegisterBankInfo.h"
+#include "SM83RegisterInfo.h"
 #include "SM83Subtarget.h"
 #include "SM83TargetMachine.h"
 
@@ -17,7 +20,16 @@
 #include "llvm/CodeGen/GlobalISel/GISelKnownBits.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelector.h"
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
+#include "llvm/CodeGen/GlobalISel/Utils.h"
 #include "llvm/CodeGen/MachineInstr.h"
+#include "llvm/CodeGen/Register.h"
+#include "llvm/CodeGen/RegisterBank.h"
+#include "llvm/CodeGen/TargetOpcodes.h"
+#include "llvm/Support/CodeGenCoverage.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/ErrorHandling.h"
+#include <cassert>
+#include <cstdint>
 
 #define DEBUG_TYPE "sm83-isel"
 
@@ -57,6 +69,7 @@ private:
   bool selectCompare(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectPHI(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectGEP(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  [[maybe_unused]] bool selectCondBranch(MachineInstr &I, MachineRegisterInfo &MRI) const;
 
 #define GET_GLOBALISEL_PREDICATES_DECL
 #include "SM83GenGlobalISel.inc"
@@ -176,6 +189,7 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
   switch (I.getOpcode()) {
   default:
     return false;
+  case TargetOpcode::G_CONSTANT:
   case TargetOpcode::G_GLOBAL_VALUE:
     return selectConstant(I, MRI);
   case TargetOpcode::G_MERGE_VALUES:
@@ -193,6 +207,7 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
     return selectCopy(I, MRI);
   case TargetOpcode::G_PTR_ADD: {
     return selectGEP(I, MRI);
+#if 0
     I.setDesc(TII.get(SM83::LDrrii));
     Register Off = I.getOperand(2).getReg();
     auto &OffDefMI = *MRI.getVRegDef(Off);
@@ -205,6 +220,7 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
     I.getOperand(1).ChangeToGA(GA, OffImm);
     I.removeOperand(2);
     return true;
+#endif
   }
   }
 }
@@ -379,7 +395,7 @@ bool SM83InstructionSelector::selectGEP(MachineInstr &I,
     auto Value = KnownBits.getConstant();
     if(Value.abs().ule(4)) {
       unsigned Opc = Value.isNegative() ? SM83::DECrr : SM83::INCrr;
-      for(auto v = Value.abs(); !v.isZero(); --v) {
+      for (auto v = Value.abs(); !v.isZero(); --v) {
         MIB.buildInstr(Opc)
            .addDef(Dst)
            .addUse(Base);
@@ -393,6 +409,10 @@ bool SM83InstructionSelector::selectGEP(MachineInstr &I,
   I.setDesc(TII.get(TargetOpcode::G_ADD));
   LLVM_DEBUG(dbgs() << "trying to select G_PTR_ADD using G_ADD\n");
   return selectImpl(I, *CoverageInfo);
+}
+
+bool SM83InstructionSelector::selectCondBranch(MachineInstr &I, MachineRegisterInfo &MRI) const {
+  return false;
 }
 
 InstructionSelector *

@@ -9,10 +9,10 @@
 // This file declares the MCSectionRGB9 class.
 //
 //===----------------------------------------------------------------------===//
-  
+
 #ifndef LLVM_MC_MCSECTIONRGB9_H
 #define LLVM_MC_MCSECTIONRGB9_H
-  
+
 #include "llvm/ADT/StringRef.h"
 #include "llvm/MC/MCSection.h"
 #include "llvm/MC/SectionKind.h"
@@ -35,16 +35,7 @@ public:
     LastSectionType
   };
 
-  MCSectionRGB9(StringRef Name, SectionKind K, MCSymbol *Begin)
-    : MCSection(SV_RGB9, Name, K, Begin) {
-    if(K.isText() || K.isReadOnly()) {
-      Type = ROM0; // TODO: select between ROM0 and ROMX
-    } else if(K.isBSS() || K.isCommon() || K.isData()) {
-      Type = WRAM0; // TODO: select between WRAM0, WRAMX, and SRAM
-    } else {
-      report_fatal_error("Unknown SectionKind");
-    }
-  }
+  MCSectionRGB9(StringRef Name, SectionKind K, MCSymbol *Begin);
 
   void printSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
                             raw_ostream &OS,
@@ -59,7 +50,7 @@ public:
   static bool classof(const MCSection *S) { return S->getVariant() == SV_RGB9; }
 
 private:
-
+  unsigned int bank;
   SectionTypeRGB9 Type;
   static const char *const StrSectionTypeRGB9[];
 }; // MCSectionRGB9

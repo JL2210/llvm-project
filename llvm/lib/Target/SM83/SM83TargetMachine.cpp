@@ -14,7 +14,7 @@
 #include "GISel/SM83CombinerPasses.h"
 #include "TargetInfo/SM83TargetInfo.h"
 
-#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/CodeGen/GlobalISel/CSEInfo.h"
 #include "llvm/CodeGen/GlobalISel/IRTranslator.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelect.h"
@@ -22,19 +22,27 @@
 #include "llvm/CodeGen/GlobalISel/LoadStoreOpt.h"
 #include "llvm/CodeGen/GlobalISel/Localizer.h"
 #include "llvm/CodeGen/GlobalISel/RegBankSelect.h"
+#include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/PassRegistry.h"
 #include "llvm/Support/CodeGen.h"
+#include "llvm/Support/Compiler.h"
+#include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
+#include "llvm/TargetParser/Triple.h"
+#include <memory>
+#include <optional>
+#include <string>
 
 namespace llvm {
 
+//NOLINTNEXTLINE
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83Target() {
   RegisterTargetMachine<SM83TargetMachine> X(getTheSM83Target());
-  auto PR = PassRegistry::getPassRegistry();
+  auto *PR = PassRegistry::getPassRegistry();
   initializeGlobalISel(*PR);
   initializeSM83O0PreLegalizerCombinerPass(*PR);
   initializeSM83PreLegalizerCombinerPass(*PR);
@@ -51,7 +59,7 @@ SM83TargetMachine::SM83TargetMachine(const Target &T, const Triple &TT,
                                      const TargetOptions &Options,
                                      std::optional<Reloc::Model> RM,
                                      std::optional<CodeModel::Model> CM,
-                                     CodeGenOpt::Level OL, bool JIT)
+                                     CodeGenOptLevel OL, bool JIT)
     : LLVMTargetMachine(T, SM83DataLayout, TT, CPU, FS, Options,
                         getEffectiveRelocModel(RM),
                         getEffectiveCodeModel(CM, CodeModel::Small), OL),
@@ -91,7 +99,7 @@ bool SM83PassConfig::addIRTranslator() {
 }
 
 void SM83PassConfig::addPreLegalizeMachineIR() {
-  if (getOptLevel() == CodeGenOpt::None) {
+  if (getOptLevel() == CodeGenOptLevel::None) {
     addPass(createSM83O0PreLegalizerCombiner());
   } else {
     addPass(createSM83PreLegalizerCombiner());
@@ -105,7 +113,7 @@ bool SM83PassConfig::addLegalizeMachineIR() {
 }
 
 void SM83PassConfig::addPreRegBankSelect() {
-  if (getOptLevel() != CodeGenOpt::None) {
+  if (getOptLevel() != CodeGenOptLevel::None) {
     addPass(new LoadStoreOpt());
   }
 }
@@ -123,17 +131,17 @@ bool SM83PassConfig::addGlobalInstructionSelect() {
 }
 
 void SM83PassConfig::addPreRegAlloc() {
-  if (TM->getOptLevel() != CodeGenOpt::None) {
+  if (getOptLevel() != CodeGenOptLevel::None) {
     addPass(&PeepholeOptimizerID);
   }
 }
 
 void SM83PassConfig::addFastRegAlloc() {
-  // FastRegAlloc can't handle the register pressure
-  if (usingDefaultRegAlloc())
-    addOptimizedRegAlloc();
-  else
+  if(isCustomizedRegAlloc()) {
     TargetPassConfig::addFastRegAlloc();
+  } else {
+    addOptimizedRegAlloc();
+  }
 }
 
 TargetPassConfig *SM83TargetMachine::createPassConfig(PassManagerBase &PM) {
@@ -141,7 +149,7 @@ TargetPassConfig *SM83TargetMachine::createPassConfig(PassManagerBase &PM) {
 }
 
 std::unique_ptr<CSEConfigBase> SM83PassConfig::getCSEConfig() const {
-  return getStandardCSEConfigForOpt(TM->getOptLevel());
+  return getStandardCSEConfigForOpt(getOptLevel());
 }
 
 } // end namespace llvm

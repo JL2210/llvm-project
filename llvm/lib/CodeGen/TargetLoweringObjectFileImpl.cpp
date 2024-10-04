@@ -2760,11 +2760,15 @@ MCSection *TargetLoweringObjectFileRGB9::SelectSectionForGlobal(
   bool UniqueSectionName = false;
   if (Kind.isText()) {
     UniqueSectionName = TM.getFunctionSections();
-    if (!TM.getFunctionSections()) {
-      report_fatal_error("-ffunction-sections required for RGB9");
-    }
   } else {
     UniqueSectionName = TM.getDataSections();
+    if(UniqueSectionName && (Kind.isData() || Kind.isBSS())) {
+      report_fatal_error("data sections not supported for initialized RAM");
+    }
+  }
+
+  if(Kind.isCommon()) {
+    report_fatal_error("mergeable sections are unimplemented");
   }
 
   SmallString<128> Name = getSectionPrefixForGlobal(Kind, false);

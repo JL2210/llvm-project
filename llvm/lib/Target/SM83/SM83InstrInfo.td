@@ -256,7 +256,7 @@ def JRr8 : SM83Inst16<(outs), (ins relbrtarget:$off), "jr $off", [(br bb:$off)]>
   let Inst{7-0} = 0x18;
   let Inst{15-8} = off;
 }
-let Uses = [FLAGS], isTerminator = 1, isBranch = 1 in
+let /*Uses = [FLAGS],*/ isTerminator = 1, isBranch = 1 in
 def JRccr8 : SM83Inst16<(outs), (ins condition:$cc, relbrtarget:$off),
                         "jr $cc, $off", []> {
   bits<2> cc;
@@ -443,7 +443,7 @@ let Defs = [SP] in {
   def PUSHAF : I8<0xf5, "push af">;
 }
 
-let isBranch = 1, isTerminator = 1 in
+let /* Uses = [FLAGS], */isBranch = 1, isTerminator = 1 in
 def JPccd16 : SM83Inst24<(outs), (ins condition:$cc, brtarget:$addr),
                          "jp $cc, $addr", []> {
   bits<2> cc;
@@ -466,7 +466,7 @@ let hasSideEffects = 1 in {
   def EI : I8<0xfb, "ei">;
 }
 
-let isTerminator = 1, isCall = 1 in {
+let isCall = 1 in {
   def CALLccd16 : SM83Inst24<(outs), (ins condition:$cc, brtarget:$addr),
                              "call $addr", []> {
     bits<2> cc;

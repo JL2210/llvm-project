@@ -12,10 +12,14 @@
 
 #include "SM83ISelLowering.h"
 #include "MCTargetDesc/SM83MCTargetDesc.h"
+#include "SM83RegisterInfo.h"
 #include "SM83Subtarget.h"
 
-#include "llvm/CodeGen/TargetCallingConv.h"
+#include "llvm/CodeGen/CallingConvLower.h"
 #include "llvm/CodeGen/MachineValueType.h"
+#include "llvm/CodeGen/TargetLowering.h"
+#include "llvm/IR/CallingConv.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Target/TargetMachine.h"
 
 using namespace llvm;

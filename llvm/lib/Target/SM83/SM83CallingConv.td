@@ -10,7 +10,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+def CC_SM83_VarArg : CallingConv <[
+  CCAssignToStack<0, 0>,
+]>;
+
 def CC_SM83 : CallingConv <[
+  CCIfVarArg<CCDelegateTo<CC_SM83_VarArg>>,
   CCIfType<[i1], CCPromoteToType<i8>>,
   CCIfType<[i16], CCAssignToReg<[HL, DE]>>,
   CCIfType<[i8], CCAssignToReg<[A, E, D, L, H]>>,

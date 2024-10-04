@@ -11,6 +11,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "SM83MCAsmInfo.h"
+#include "llvm/MC/MCDirectives.h"
+#include "llvm/MC/MCTargetOptions.h"
 #include "llvm/TargetParser/Triple.h"
 using namespace llvm;
 
@@ -20,13 +22,13 @@ SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT, const MCTargetOptions &Options) {
   CodePointerSize = 2;
   CalleeSaveStackSlotSize = 2;
   AlignmentIsInBytes = false;
-  UseDotAlignForAlignment = true; // see sm83 hack in mcasmstreamer
   IsLittleEndian = true;
   MaxInstLength = 3;
   UseIntegratedAssembler = false;
   PreserveAsmComments = true;
-  CommentString = ";";
   SeparatorString = "\n";
+  CommentString = ";";
+  AllowAdditionalComments = false;
   SupportsQuotedNames = false;
   HasDotTypeDotSizeDirective = false;
   HasSingleParameterDotFile = false;
@@ -34,9 +36,12 @@ SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT, const MCTargetOptions &Options) {
       ProtectedVisibilityAttr = MCSA_Invalid;
   GlobalDirective = "EXPORT ";
   PrivateGlobalPrefix = "";
-  PrivateLabelPrefix = "";
+  PrivateLabelPrefix = ".";
   WeakDirective = "";
   InlineAsmStart = InlineAsmEnd = "";
+  AllowAtInName = true;
+  SupportsQuotedNames = false;
+  UseDotAlignForAlignment = true; // see sm83 hack in mcasmstreamer
   ZeroDirective = "\tds\t";
   AsciiDirective = "\tdb\t";
   AscizDirective = nullptr;

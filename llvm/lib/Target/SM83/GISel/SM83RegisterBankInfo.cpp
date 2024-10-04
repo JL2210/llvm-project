@@ -8,11 +8,13 @@
 
 #include "SM83RegisterBankInfo.h"
 
-#include "llvm/CodeGen/RegisterBank.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/CodeGen/LowLevelType.h"
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
+#include "llvm/CodeGen/RegisterBank.h"
 
 #define GET_TARGET_REGBANK_IMPL
 #include "SM83GenRegisterBank.inc"
@@ -52,7 +54,7 @@ bool SM83RegisterBankInfo::getInstrValueMapping(
     if (!MI.getOperand(Idx).isReg())
       continue;
 
-    auto Mapping = getValueMapping(OpRegBankIdx[Idx], 1);
+    const auto *Mapping = getValueMapping(OpRegBankIdx[Idx], 1);
     if (!Mapping->isValid())
       return false;
 

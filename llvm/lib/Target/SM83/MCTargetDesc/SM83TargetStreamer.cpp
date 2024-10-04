@@ -12,8 +12,11 @@
 
 #include "SM83TargetStreamer.h"
 #include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSymbol.h"
+#include "llvm/Support/Alignment.h"
 #include "llvm/Support/FormattedStream.h"
+#include <cstdint>
 
 using namespace llvm;
 
