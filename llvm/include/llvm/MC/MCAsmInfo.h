@@ -225,9 +225,10 @@ protected:
   /// instead.
   bool UseDataRegionDirectives = false;
 
-  /// True if .align is to be used for alignment. Only power-of-two
+  /// True if AlignDirective is to be used for alignment. Only power-of-two
   /// alignment is supported.
   bool UseDotAlignForAlignment = false;
+  const char *AlignDirective;
 
   /// True if the target supports LEB128 directives.
   bool HasLEB128Directives = true;
@@ -666,6 +667,9 @@ public:
 
   bool useDotAlignForAlignment() const {
     return UseDotAlignForAlignment;
+  }
+  const char *getAlignDirective() const {
+    return AlignDirective;
   }
 
   bool hasLEB128Directives() const { return HasLEB128Directives; }
