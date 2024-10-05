@@ -475,7 +475,7 @@ void MCAsmStreamer::addExplicitComment(const Twine &T) {
     ExplicitCommentToEmit.append(MAI->getCommentString());
     // drop //
     ExplicitCommentToEmit.append(c.slice(2, c.size()).str());
-  } else if (c.starts_with(StringRef("/*"))) {
+  } else if (c.starts_with(StringRef("/\*"))) {
     size_t p = 2, len = c.size() - 2;
     // emit each line in comment as separate newline.
     do {
@@ -1551,11 +1551,7 @@ void MCAsmStreamer::emitAlignmentDirective(unsigned ByteAlignment,
     if (!isPowerOf2_32(ByteAlignment))
       report_fatal_error("Only power-of-two alignments are supported "
                          "with .align.");
-#if 0 // FIXME rgbasm
-    OS << "\t.align\t";
-#else
-    OS << "\tALIGN\t";
-#endif
+    OS << MAI->getAlignDirective();
     OS << Log2_32(ByteAlignment);
     EmitEOL();
     return;
