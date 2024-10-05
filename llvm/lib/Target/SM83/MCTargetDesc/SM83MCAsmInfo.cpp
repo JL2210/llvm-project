@@ -34,7 +34,7 @@ SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT, const MCTargetOptions &Options) {
   HasSingleParameterDotFile = false;
   HiddenVisibilityAttr = HiddenDeclarationVisibilityAttr =
       ProtectedVisibilityAttr = MCSA_Invalid;
-  GlobalDirective = "EXPORT ";
+  GlobalDirective = "\tEXPORT\t";
   PrivateGlobalPrefix = "";
   PrivateLabelPrefix = ".";
   WeakDirective = "";
@@ -42,6 +42,7 @@ SM83MCAsmInfo::SM83MCAsmInfo(const Triple &TT, const MCTargetOptions &Options) {
   AllowAtInName = true;
   SupportsQuotedNames = false;
   UseDotAlignForAlignment = true; // see sm83 hack in mcasmstreamer
+  AlignDirective = "\tALIGN\t";
   ZeroDirective = "\tds\t";
   AsciiDirective = "\tdb\t";
   AscizDirective = nullptr;
