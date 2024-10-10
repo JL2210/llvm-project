@@ -32,6 +32,7 @@
 #include "Targets/PNaCl.h"
 #include "Targets/PPC.h"
 #include "Targets/RISCV.h"
+#include "Targets/SM83.h"
 #include "Targets/SPIR.h"
 #include "Targets/Sparc.h"
 #include "Targets/SystemZ.h"
@@ -743,6 +744,8 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
     default:
         return std::make_unique<LoongArch64TargetInfo>(Triple, Opts);
     }
+  case llvm::Triple::sm83:
+    return std::make_unique<SM83TargetInfo>(Triple, Opts);
   }
 }
 } // namespace targets

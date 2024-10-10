@@ -13,7 +13,6 @@
 #include "SM83MCTargetDesc.h"
 #include "SM83InstPrinter.h"
 #include "SM83MCAsmInfo.h"
-#include "SM83TargetStreamer.h"
 #include "TargetInfo/SM83TargetInfo.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCInstrInfo.h"
@@ -65,13 +64,6 @@ static MCInstPrinter *createSM83MCInstPrinter(const Triple &T,
   return new SM83InstPrinter(MAI, MII, MRI);
 }
 
-static MCTargetStreamer *
-createSM83AsmTargetStreamer(MCStreamer &S, formatted_raw_ostream &OS,
-                            MCInstPrinter * /*InstPrint*/,
-                            bool /*isVerboseAsm*/) {
-  return new SM83TargetAsmStreamer(S, OS);
-}
-
 //NOLINTNEXTLINE
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83TargetMC() {
   Target &T = getTheSM83Target();
@@ -81,5 +73,4 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83TargetMC() {
   TargetRegistry::RegisterMCRegInfo(T, createSM83MCRegisterInfo);
   TargetRegistry::RegisterMCSubtargetInfo(T, createSM83MCSubtargetInfo);
   TargetRegistry::RegisterMCInstPrinter(T, createSM83MCInstPrinter);
-  TargetRegistry::RegisterAsmTargetStreamer(T, createSM83AsmTargetStreamer);
 }

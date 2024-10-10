@@ -208,7 +208,7 @@ bool SM83CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
   const SM83TargetLowering &TLI = *getTLI<SM83TargetLowering>();
 
   if (Info.Callee.isReg()) {
-    // no way
+    // indirect call not supported right now
     return false;
   }
 

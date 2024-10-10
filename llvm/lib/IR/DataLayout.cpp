@@ -597,6 +597,9 @@ Error DataLayout::parseSpecification(StringRef Spec) {
     case 'a':
       ManglingMode = MM_XCOFF;
       break;
+    case 's':
+      ManglingMode = MM_SDCC;
+      break;
     }
     break;
   default:

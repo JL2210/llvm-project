@@ -48,7 +48,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSM83Target() {
   initializeSM83PreLegalizerCombinerPass(*PR);
 }
 
-static const char SM83DataLayout[] = "e-p:16:8-i16:8-i32:8-i64:8-a:0:8-n8:16";
+static const char SM83DataLayout[] = "e-m:s-p:16:8-p1:8:8-i16:8-i32:8-i64:8-a:0:8-n8:16";
 
 static Reloc::Model getEffectiveRelocModel(std::optional<Reloc::Model> RM) {
   return RM.has_value() ? *RM : Reloc::Static;

@@ -281,6 +281,8 @@ static bool asanUseGlobalsGC(const Triple &T, const CodeGenOptions &CGOpts) {
     llvm::report_fatal_error("ASan not implemented for GOFF");
   case Triple::XCOFF:
     llvm::report_fatal_error("ASan not implemented for XCOFF.");
+  case Triple::RGB9:
+    llvm::report_fatal_error("ASan not implemented for RGB9");
   case Triple::Wasm:
   case Triple::DXContainer:
   case Triple::SPIRV:

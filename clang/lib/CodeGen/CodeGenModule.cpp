@@ -6434,6 +6434,7 @@ CodeGenModule::GetAddrOfConstantCFString(const StringLiteral *Literal) {
   case llvm::Triple::GOFF:
   case llvm::Triple::SPIRV:
   case llvm::Triple::XCOFF:
+  case llvm::Triple::RGB9:
     llvm_unreachable("unimplemented");
   case llvm::Triple::COFF:
   case llvm::Triple::ELF:

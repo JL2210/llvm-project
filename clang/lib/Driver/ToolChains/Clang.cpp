@@ -7155,6 +7155,10 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("-fkeep-system-includes");
   }
 
+  if (Args.hasFlag(options::OPT_fasm_blocks, options::OPT_fno_asm_blocks,
+                   Triple.isSM83()))
+    CmdArgs.push_back("-fasm-blocks");
+
   // -fms-extensions=0 is default.
   if (Args.hasFlag(options::OPT_fms_extensions, options::OPT_fno_ms_extensions,
                    IsWindowsMSVC))

@@ -1198,15 +1198,86 @@ static void PrintByteList(StringRef Data, raw_ostream &OS,
   llvm_unreachable("Invalid AsmCharLiteralSyntax value!");
 }
 
-#if 1 // SM83 hack
-static bool isTriviallyPrintable(unsigned char c) {
-  return c == '\n' || c == '\r' || c == '\t' || isPrint(c);
+bool CharacterNeedsEscaping(unsigned char C, MCAsmInfo::AssemblerFamily AF) {
+  switch(AF) {
+  case MCAsmInfo::AF_RGBASM:
+    if(C == '{' || C == '}')
+      return true;
+    [[fallthrough]];
+  case MCAsmInfo::AF_GNU:
+    if(C == '"' || C == '\\')
+      return true;
+    break;
+  default:
+    llvm_unreachable("Invalid AssemblerFamily value!");
+  }
+  return false;
 }
-#endif
+
+bool IsPrintableInline(unsigned char C, MCAsmInfo::AssemblerFamily AF) {
+  switch(AF) {
+  case MCAsmInfo::AF_GNU:
+    return true;
+  case MCAsmInfo::AF_RGBASM:
+    return (C == '\n' || C == '\r' || C == '\t' || C == '\0');
+  default:
+    llvm_unreachable("Invalid AssemblerFamily value!");
+  }
+}
+
+void PrintNonprinting(unsigned char C, int Prev, raw_ostream &OS, MCAsmInfo::AssemblerFamily AF) {
+  if(IsPrintableInline(C, AF)) {
+    switch(C) {
+    case '\b':
+      assert(AF != MCAsmInfo::AF_RGBASM);
+      OS << "\\b";
+      break;
+    case '\f':
+      assert(AF != MCAsmInfo::AF_RGBASM);
+      OS << "\\f";
+      break;
+    case '\n':
+      OS << "\\n";
+      break;
+    case '\r':
+      OS << "\\r";
+      break;
+    case '\t':
+      OS << "\\t";
+      break;
+    case '\0':
+      if(AF == MCAsmInfo::AF_RGBASM) {
+        OS << "\\0";
+        break;
+      }
+      [[fallthrough]];
+    default:
+      assert(AF != MCAsmInfo::AF_RGBASM);
+      OS << '\\';
+      OS << toOctal(C >> 6);
+      OS << toOctal(C >> 3);
+      OS << toOctal(C >> 0);
+      break;
+    }
+    return;
+  }
+  assert(AF == MCAsmInfo::AF_RGBASM);
+  if(Prev != -1) {
+    if(IsPrintableInline(Prev, AF)) {
+      OS << "\", ";
+    } else {
+      OS << ", ";
+    }
+  }
+  // print the character as a number
+  OS << (int)C;
+}
 
 void MCAsmStreamer::PrintQuotedString(StringRef Data, raw_ostream &OS) const {
-#if 0 // SM83 hack
-  OS << '"';
+  auto AF = MAI->getAsmFamily();
+  if(IsPrintableInline((unsigned char)Data.front(), AF)) {
+    OS << '"';
+  }
 
   if (MAI->hasPairedDoubleQuoteStringConstants()) {
     for (unsigned char C : Data) {
@@ -1216,101 +1287,33 @@ void MCAsmStreamer::PrintQuotedString(StringRef Data, raw_ostream &OS) const {
         OS << (char)C;
     }
   } else {
+    int Prev = -1;
     for (unsigned char C : Data) {
-      if (C == '"' || C == '\\') {
-        OS << '\\' << (char)C;
-        continue;
-      }
-
-      if (isPrint((unsigned char)C)) {
-        OS << (char)C;
-        continue;
-      }
-
-      switch (C) {
-      case '\b':
-        OS << "\\b";
-        break;
-      case '\f':
-        OS << "\\f";
-        break;
-      case '\n':
-        OS << "\\n";
-        break;
-      case '\r':
-        OS << "\\r";
-        break;
-      case '\t':
-        OS << "\\t";
-        break;
-      default:
-        OS << '\\';
-        OS << toOctal(C >> 6);
-        OS << toOctal(C >> 3);
-        OS << toOctal(C >> 0);
-        break;
-      }
-    }
-  }
-
-  OS << '"';
-#else
-  if(isTriviallyPrintable((unsigned char)Data.front())) {
-    OS << '"';
-  }
-
-  for (auto i = Data.begin(); i != Data.end(); i++) {
-    unsigned char C = *i;
-    if (C == '"' || C == '\\' || C == '{' || C == '}') {
-      OS << '\\' << (char)C;
-      continue;
-    }
-
-    if (isPrint((unsigned char)C)) {
-      OS << (char)C;
-      continue;
-    }
-
-    switch(C) {
-    case '\n':
-      OS << "\\n";
-      continue;
-    case '\r':
-      OS << "\\r";
-      continue;
-    case '\t':
-      OS << "\\t";
-      continue;
-    default:
-      break;
-    }
-
-    // unprintable
-    // if it's not the first char and the previous character was printable
-    if(i != Data.begin() && isTriviallyPrintable((unsigned char)i[-1])) {
-      // end the string and print it as a number
-      OS << "\", " << (int)C;
-    } else {
-      // the last char was printable or this is the first char, so print it
-      OS << (int)C;
-    }
-
-    // if it's not the last char
-    if(i != Data.end()) {
-      // get ready for the next
-      OS << ", ";
-      // and if the next one is printable
-      if(isTriviallyPrintable((unsigned char)i[1])) {
-        // start another string
+      if(IsPrintableInline(C, AF) &&
+         Prev != -1 &&
+         !IsPrintableInline(Prev, AF)) {
         OS << '"';
       }
+
+      if (CharacterNeedsEscaping(C, AF)) {
+        OS << '\\' << (char)C;
+        goto cont;
+      }
+
+      if (isPrint(C)) {
+        OS << (char)C;
+        goto cont;
+      }
+
+      PrintNonprinting(C, Prev, OS, AF);
+cont:
+      Prev = C;
     }
   }
 
-  if(isTriviallyPrintable((unsigned char)Data.back())) {
+  if(IsPrintableInline((unsigned char)Data.back(), AF)) {
     OS << '"';
   }
-#endif // SM83 hack
 }
 
 void MCAsmStreamer::emitBytes(StringRef Data) {

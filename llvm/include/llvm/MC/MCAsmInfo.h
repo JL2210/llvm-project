@@ -63,6 +63,14 @@ public:
                             /// quote, e.g., `'A`.
   };
 
+  // Assembler classification
+  enum AssemblerFamily {
+    AF_Unknown = -1, // Unknown. Most behavior defaults to GNU
+    AF_GNU, // GNU as or compatible. This is the default, and is applicable to
+            // most targets.
+    AF_RGBASM, // The RGBASM assembler from the RGBDS toolchain.
+  };
+
 protected:
   //===------------------------------------------------------------------===//
   // Properties to be set by the target writer, used to configure asm printer.
@@ -511,6 +519,9 @@ protected:
   // If true, emit function descriptor symbol on AIX.
   bool NeedsFunctionDescriptors = false;
 
+  // Assembler family. Currently only two are supported: GNU and RGBASM
+  AssemblerFamily AsmFamily = AssemblerFamily::AF_GNU;
+
 public:
   explicit MCAsmInfo();
   virtual ~MCAsmInfo();
@@ -799,6 +810,7 @@ public:
   }
 
   void setBinutilsVersion(std::pair<int, int> Value) {
+    assert(AsmFamily == AssemblerFamily::AF_GNU);
     BinutilsVersion = Value;
   }
 
@@ -811,6 +823,7 @@ public:
   }
 
   bool binutilsIsAtLeast(int Major, int Minor) const {
+    assert(AsmFamily == AssemblerFamily::AF_GNU);
     return BinutilsVersion >= std::make_pair(Major, Minor);
   }
 
@@ -838,6 +851,8 @@ public:
   bool hasMipsExpressions() const { return HasMipsExpressions; }
   bool needsFunctionDescriptors() const { return NeedsFunctionDescriptors; }
   bool shouldUseMotorolaIntegers() const { return UseMotorolaIntegers; }
+
+  AssemblerFamily getAsmFamily() const { return AsmFamily; }
 };
 
 } // end namespace llvm
