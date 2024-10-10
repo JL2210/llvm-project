@@ -22,37 +22,27 @@ namespace llvm {
 class MCSymbol;
 
 class MCSectionRGB9 final : public MCSection {
-public:
-  enum SectionTypeRGB9 {
-    ROM0 = 0,
-    ROMX,
-    VRAM,
-    SRAM,
-    WRAM0,
-    WRAMX,
-    OAM,
-    HRAM,
-    LastSectionType
-  };
+  unsigned int bank;
+  StringRef Type;
+  SectionKind Kind;
 
+  void constructROMSection(StringRef Section, StringRef Name, SectionKind K);
+  void constructRAMSection(StringRef Section, StringRef Name, SectionKind K);
+
+public:
   MCSectionRGB9(StringRef Name, SectionKind K, MCSymbol *Begin);
 
   void printSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
                             raw_ostream &OS,
                             const MCExpr *Subsection) const override;
 
-  SectionTypeRGB9 getType() const { return Type; }
-  static const char *getTypeStr(SectionTypeRGB9 T) { return StrSectionTypeRGB9[T]; }
+  StringRef getName() const { return Name; }
 
   bool useCodeAlign() const override { return false; }
+
   bool isVirtualSection() const override;
 
   static bool classof(const MCSection *S) { return S->getVariant() == SV_RGB9; }
-
-private:
-  unsigned int bank;
-  SectionTypeRGB9 Type;
-  static const char *const StrSectionTypeRGB9[];
 }; // MCSectionRGB9
 
 } // namespace llvm

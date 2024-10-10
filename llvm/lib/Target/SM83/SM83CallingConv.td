@@ -11,19 +11,23 @@
 //===----------------------------------------------------------------------===//
 
 def CC_SM83_VarArg : CallingConv <[
-  CCAssignToStack<0, 0>,
+  CCAssignToStack<0, 1>,
 ]>;
 
 def CC_SM83 : CallingConv <[
   CCIfVarArg<CCDelegateTo<CC_SM83_VarArg>>,
   CCIfType<[i1], CCPromoteToType<i8>>,
-  CCIfType<[i16], CCAssignToReg<[HL, DE]>>,
-  CCIfType<[i8], CCAssignToReg<[A, E, D, L, H]>>,
-  CCAssignToStack<0, 0>,
+  CCIfType<[i8], CCAssignToReg<[A, E]>>,
+  // TODO: this doesn't exactly match SDCC's calling convention.
+  //       Probably will need to be written by hand.
+  CCIfType<[i16], CCAssignToReg<[BC, DE]>>,
+  CCAssignToStack<0, 1>,
 ]>;
 
 def RetCC_SM83 : CallingConv <[
-  CCDelegateTo<CC_SM83>,
+  CCIfType<[i1], CCPromoteToType<i8>>,
+  CCIfType<[i8], CCAssignToReg<[A]>>,
+  CCIfType<[i16], CCAssignToReg<[BC, DE]>>,
 ]>;
 
 def CC_SM83_Interrupt : CallingConv <[

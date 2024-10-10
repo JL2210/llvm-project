@@ -72,18 +72,6 @@ void SM83InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   }
 }
 
-static unsigned pseudoRIToAI(unsigned Opc) {
-  using namespace SM83;
-  switch (Opc) {
-  default:
-    llvm_unreachable("cannot convert reg-imm to a-imm");
-  case XORri:
-    return XORi;
-  case ADDri:
-    return ADDi;
-  }
-}
-
 bool SM83InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   DebugLoc DL = MI.getDebugLoc();
   MachineBasicBlock &MBB = *MI.getParent();
@@ -91,23 +79,6 @@ bool SM83InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   MachineInstrBuilder MIB(MF, MI);
 
   switch (MI.getOpcode()) {
-  case SM83::XORri:
-  case SM83::ADDri: {
-    Register DstReg = MI.getOperand(0).getReg();
-    auto &SrcRegOp = MI.getOperand(1);
-    Register SrcReg = SrcRegOp.getReg();
-    unsigned Opc = pseudoRIToAI(MI.getOpcode());
-    uint8_t Imm = MI.getOperand(2).getImm();
-
-    copyPhysReg(MBB, MI, DL, SM83::A, SrcReg, /*KillSrc=*/SrcRegOp.isKill());
-    BuildMI(MBB, MI, DL, get(Opc), SM83::A).addReg(SM83::A).addImm(Imm);
-    copyPhysReg(MBB, MI, DL, DstReg, SM83::A, /*KillSrc=*/true);
-    MI.eraseFromParent();
-  } break;
-  case SM83::FakeLEA: {
-    assert(MI.getOperand(1).isReg() && "expected global!");
-    assert(MI.getOperand(2).isImm() && "expected immediate offset!");
-  } break;
   default:
     return false;
   }

@@ -36,7 +36,8 @@ SM83TargetLowering::SM83TargetLowering(const TargetMachine &TM,
   // Compute derived properties from the register classes.
   computeRegisterProperties(STI.getRegisterInfo());
 
-  setSchedulingPreference(Sched::RegPressure);
+  // does nothing on GlobalISel
+  // setSchedulingPreference(Sched::RegPressure);
 
   setStackPointerRegisterToSaveRestore(SM83::SP);
 
@@ -54,7 +55,6 @@ CCAssignFn *SM83TargetLowering::CCAssignFnForCall(CallingConv::ID CC,
   default:
     report_fatal_error("Unsupported calling convention.");
   case CallingConv::C:
-  case CallingConv::Fast:
     return CC_SM83;
   case CallingConv::PreserveAll:
     return CC_SM83_Interrupt;
