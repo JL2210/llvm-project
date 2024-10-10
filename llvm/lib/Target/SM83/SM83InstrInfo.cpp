@@ -85,20 +85,6 @@ bool SM83InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   return true;
 }
 
-static unsigned getLoadStoreRegOpc(const TargetRegisterClass *RC,
-                                   const TargetRegisterInfo *TRI, bool Load) {
-  switch (TRI->getRegSizeInBits(*RC)) {
-  default:
-    llvm_unreachable("Unknown spill size");
-  case 8:
-    assert(SM83::GR8RegClass.hasSubClassEq(RC) && "Unknown 1-byte regclass");
-    return Load ? SM83::LDro : SM83::LDor;
-  case 16:
-    assert(SM83::GR16RegClass.hasSubClassEq(RC) && "Unknown 2-byte regclass");
-    return Load ? SM83::LDrro : SM83::LDorr;
-  }
-}
-
 // whistles in x86 assembly language
 static inline const MachineInstrBuilder &
 addFrameReference(const MachineInstrBuilder &MIB, int FI) {
@@ -123,25 +109,14 @@ void SM83InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                          const TargetRegisterClass *RC,
                                          const TargetRegisterInfo *TRI,
                                          Register VReg) const {
-  const MachineFunction &MF = *MBB.getParent();
-  LLVM_DEBUG(dbgs() << "stack slot size: "
-                    << MF.getFrameInfo().getObjectSize(FrameIndex) << '\n');
-  unsigned Opc = getLoadStoreRegOpc(RC, TRI, /*load=*/true);
-  addFrameReference(BuildMI(MBB, MI, DebugLoc(), get(Opc)).addDef(DstReg),
-                    FrameIndex);
+  report_fatal_error("load from stack slot unimplemented");
 }
 
 void SM83InstrInfo::storeRegToStackSlot(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MI, Register SrcReg,
     bool IsKill, int FrameIndex, const TargetRegisterClass *RC,
     const TargetRegisterInfo *TRI, Register VReg) const {
-  const MachineFunction &MF = *MBB.getParent();
-  LLVM_DEBUG(dbgs() << "stack slot size: "
-                    << MF.getFrameInfo().getObjectSize(FrameIndex)
-                    << " isKill: " << IsKill << '\n');
-  unsigned Opc = getLoadStoreRegOpc(RC, TRI, /*load=*/false);
-  addFrameReference(BuildMI(MBB, MI, DebugLoc(), get(Opc)), FrameIndex)
-      .addReg(SrcReg, getKillRegState(IsKill));
+  report_fatal_error("store to stack slot unimplemented");
 }
 
 bool SM83InstrInfo::isReallyTriviallyReMaterializable(const MachineInstr &MI) const {

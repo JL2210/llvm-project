@@ -9,7 +9,7 @@
 include "llvm/Target/GlobalISel/Combine.td"
 
 def SM83PreLegalizerCombiner: GICombiner<
-  "SM83PreLegalizerCombinerImpl", [all_combines]> {
+  "SM83PreLegalizerCombinerImpl", [all_combines, combine_indexed_load_store]> {
 }
 
 def SM83O0PreLegalizerCombiner: GICombiner<
