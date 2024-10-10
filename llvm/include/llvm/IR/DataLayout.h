@@ -135,7 +135,8 @@ private:
     MM_WinCOFFX86,
     MM_GOFF,
     MM_Mips,
-    MM_XCOFF
+    MM_XCOFF,
+    MM_SDCC,
   };
   ManglingModeT ManglingMode;
 
@@ -323,6 +324,7 @@ public:
     case MM_XCOFF:
       return '\0';
     case MM_MachO:
+    case MM_SDCC:
     case MM_WinCOFFX86:
       return '_';
     }
@@ -332,6 +334,7 @@ public:
   StringRef getPrivateGlobalPrefix() const {
     switch (ManglingMode) {
     case MM_None:
+    case MM_SDCC:
       return "";
     case MM_ELF:
     case MM_WinCOFF:

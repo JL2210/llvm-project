@@ -958,7 +958,7 @@ def ARMInterrupt : InheritableAttr, TargetSpecificAttr<TargetARM> {
   // NOTE: If you add any additional spellings, M68kInterrupt's,
   // MSP430Interrupt's, MipsInterrupt's, SM83Interrupt's,
   // and AnyX86Interrupt's spellings must match.
-  let Spellings = [GCC<"interrupt">];
+  let Spellings = [GCC<"interrupt">, CustomKeyword<"__interrupt">];
   let Args = [EnumArgument<"Interrupt", "InterruptType", /*is_string=*/true,
                            ["IRQ", "FIQ", "SWI", "ABORT", "UNDEF", ""],
                            ["IRQ", "FIQ", "SWI", "ABORT", "UNDEF", "Generic"],
@@ -969,7 +969,7 @@ def ARMInterrupt : InheritableAttr, TargetSpecificAttr<TargetARM> {
 }
 
 def AVRInterrupt : InheritableAttr, TargetSpecificAttr<TargetAVR> {
-  let Spellings = [GCC<"interrupt">];
+  let Spellings = [GCC<"interrupt">, CustomKeyword<"__interrupt">];
   let Subjects = SubjectList<[Function]>;
   let ParseKind = "Interrupt";
   let Documentation = [AVRInterruptDocs];
@@ -1869,7 +1869,7 @@ def MSABI : DeclOrTypeAttr {
 def MSP430Interrupt : InheritableAttr, TargetSpecificAttr<TargetMSP430> {
   // NOTE: If you add any additional spellings, ARMInterrupt's, M68kInterrupt's,
   // MipsInterrupt's, SM83Interrupt's, and AnyX86Interrupt's spellings must match.
-  let Spellings = [GCC<"interrupt">];
+  let Spellings = [GCC<"interrupt">, CustomKeyword<"__interrupt">];
   let Args = [UnsignedArgument<"Number">];
   let ParseKind = "Interrupt";
   let HasCustomParsing = 1;
@@ -1887,7 +1887,7 @@ def MipsInterrupt : InheritableAttr, TargetSpecificAttr<TargetMips32> {
   // NOTE: If you add any additional spellings, ARMInterrupt's,
   // M68kInterrupt's, MSP430Interrupt's and AnyX86Interrupt's spellings
   // must match.
-  let Spellings = [GCC<"interrupt">];
+  let Spellings = [GCC<"interrupt">, CustomKeyword<"__interrupt">];
   let Subjects = SubjectList<[Function]>;
   let Args = [EnumArgument<"Interrupt", "InterruptType", /*is_string=*/true,
                            ["vector=sw0", "vector=sw1", "vector=hw0",
@@ -1927,7 +1927,7 @@ def : MutualExclusions<[MipsLongCall, MipsShortCall]>;
 def M68kInterrupt : InheritableAttr, TargetSpecificAttr<TargetM68k> {
   // NOTE: If you add any additional spellings, ARMInterrupt's, MipsInterrupt's
   // MSP430Interrupt's and AnyX86Interrupt's spellings must match.
-  let Spellings = [GNU<"interrupt">];
+  let Spellings = [GCC<"interrupt">, CustomKeyword<"__interrupt">];
   let Args = [UnsignedArgument<"Number">];
   let ParseKind = "Interrupt";
   let HasCustomParsing = 1;
@@ -1945,7 +1945,7 @@ def Mode : Attr {
 }
 
 def Naked : InheritableAttr {
-  let Spellings = [GCC<"naked">, Declspec<"naked">];
+  let Spellings = [GCC<"naked">, Declspec<"naked">, CustomKeyword<"__naked">];
   let Subjects = SubjectList<[Function]>;
   let Documentation = [Undocumented];
 }
@@ -2078,7 +2078,7 @@ def NoMicroMips : InheritableAttr, TargetSpecificAttr<TargetMips32> {
 }
 
 def RISCVInterrupt : InheritableAttr, TargetSpecificAttr<TargetRISCV> {
-  let Spellings = [GCC<"interrupt">];
+  let Spellings = [GCC<"interrupt">, CustomKeyword<"__interrupt">];
   let Subjects = SubjectList<[Function]>;
   let Args = [EnumArgument<"Interrupt", "InterruptType", /*is_string=*/true,
                            ["supervisor", "machine"],
@@ -2098,8 +2098,8 @@ def RISCVRVVVectorBits : TypeAttr {
   let ASTNode = 0;
 }
 
-def SM83Interrupt : InheritableAttr, TargetSpecificAttr<SM83> {
-  let Spellings = [GCC<"interrupt">];
+def SM83Interrupt : InheritableAttr, TargetSpecificAttr<TargetSM83> {
+  let Spellings = [GCC<"interrupt">, CustomKeyword<"__interrupt">];
   let Subjects = SubjectList<[Function]>;
   let ParseKind = "Interrupt";
   let HasCustomParsing = 1;
@@ -3489,7 +3489,7 @@ def LTOVisibilityPublic : InheritableAttr {
 def AnyX86Interrupt : InheritableAttr, TargetSpecificAttr<TargetAnyX86> {
   // NOTE: If you add any additional spellings, ARMInterrupt's,
   // M68kInterrupt's, MSP430Interrupt's and MipsInterrupt's spellings must match.
-  let Spellings = [GCC<"interrupt">];
+  let Spellings = [GCC<"interrupt">, CustomKeyword<"__interrupt">];
   let Subjects = SubjectList<[HasFunctionProto]>;
   let ParseKind = "Interrupt";
   let HasCustomParsing = 1;

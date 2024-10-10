@@ -71,18 +71,6 @@ def off : Operand<iPTR>;
 def relbrtarget : Operand<OtherVT>;
 def brtarget : Operand<OtherVT>;
 
-let isMoveImm = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 in
-def FakeLEA : Pseudo<(outs GR16:$dstaddr), (ins direct16:$addr, imm16:$off), [], "ld $dstaddr, $addr+$off">;
-
-let mayStore = 1 in {
-def LDor : Pseudo<(outs), (ins frameidx:$addr, GR8:$src), [], "LDor $addr, $src">;
-def LDorr : Pseudo<(outs), (ins frameidx:$addr, GR16:$src), [], "LDorr $addr, $src">;
-}
-let mayLoad = 1 in {
-def LDro : Pseudo<(outs GR8:$dst), (ins frameidx:$addr), [], "LDro $dst, $addr">;
-def LDrro : Pseudo<(outs GR16:$dst), (ins frameidx:$addr), [], "LDrro $dst, $addr">;
-}
-
 // LLVM likes to select instructions in the order it sees them;
 // but apparently it just doesn't like to load or
 // store via immediate addresses so these are useless
@@ -420,30 +408,34 @@ let Uses = [C], Defs = [A], mayLoad = 1 in
 def LDHAdC : I8<0xf2, "ldh a, [c]">;
 
 let Defs = [SP] in {
-  def POPrr : SM83Inst8<(outs GR16:$dst), (ins), "pop $dst", []> {
-    bits<2> dst;
+  let mayLoad = 1, mayStore = 1 in {
+    def POPrr : SM83Inst8<(outs GR16:$dst), (ins), "pop $dst", []> {
+      bits<2> dst;
 
-    let Inst{7-6} = 0b11;
-    let Inst{5-4} = dst;
-    let Inst{3-0} = 0b0001;
+      let Inst{7-6} = 0b11;
+      let Inst{5-4} = dst;
+      let Inst{3-0} = 0b0001;
+    }
+
+    let Defs = [AF] in
+    def POPAF : I8<0xf1, "pop af">;
   }
 
-  let Defs = [AF] in
-  def POPAF : I8<0xf1, "pop af">;
+  let mayStore = 1 in {
+    def PUSHrr : SM83Inst8<(outs), (ins GR16:$src), "push $src", []> {
+      bits<2> src;
 
-  def PUSHrr : SM83Inst8<(outs), (ins GR16:$src), "push $src", []> {
-    bits<2> src;
+      let Inst{7-6} = 0b11;
+      let Inst{5-4} = src;
+      let Inst{3-0} = 0b0101;
+    }
 
-    let Inst{7-6} = 0b11;
-    let Inst{5-4} = src;
-    let Inst{3-0} = 0b0101;
+    let Uses = [AF] in
+    def PUSHAF : I8<0xf5, "push af">;
   }
-
-  let Uses = [AF] in
-  def PUSHAF : I8<0xf5, "push af">;
 }
 
-let /* Uses = [FLAGS], */isBranch = 1, isTerminator = 1 in
+let Uses = [FLAGS], isBranch = 1, isTerminator = 1 in
 def JPccd16 : SM83Inst24<(outs), (ins condition:$cc, brtarget:$addr),
                          "jp $cc, $addr", []> {
   bits<2> cc;
@@ -453,6 +445,7 @@ def JPccd16 : SM83Inst24<(outs), (ins condition:$cc, brtarget:$addr),
   let Inst{4-3} = cc;
   let Inst{2-0} = 0b010;
 }
+
 let isBranch = 1, isTerminator = 1, isBarrier = 1 in
 def JPd16 : SM83Inst24<(outs), (ins brtarget:$addr), "jp $addr", [(br bb:$addr)]> {
   bits<16> addr;
