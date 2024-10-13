@@ -38,12 +38,12 @@ SM83Subtarget::SM83Subtarget(const Triple &TT, const std::string &CPU,
       InstrInfo(*this), RegInfo(TT), TLInfo(TM, *this) {
   CallLoweringInfo.reset(new SM83CallLowering(*getTargetLowering()));
 
-  Legalizer.reset(new SM83LegalizerInfo(TM.createDataLayout()));
+  Legalizer.reset(new SM83LegalizerInfo(*this));
 
   auto *RBI = new SM83RegisterBankInfo(*getRegisterInfo());
 
   InstSelector.reset(createSM83InstructionSelector(
-      *static_cast<const SM83TargetMachine *>(&TM), *this, *RBI));
+      static_cast<const SM83TargetMachine &>(TM), *this, *RBI));
 
   RegBankInfo.reset(RBI);
 }

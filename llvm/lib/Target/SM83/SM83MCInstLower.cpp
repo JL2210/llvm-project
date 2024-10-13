@@ -64,9 +64,6 @@ bool SM83MCInstLower::lowerOperand(const MachineOperand &MO,
   case MachineOperand::MO_RegisterMask:
     // Regmasks are like implicit defs.
     return false;
-  case MachineOperand::MO_CImmediate:
-    MCOp = MCOperand::createImm(MO.getCImm()->getLimitedValue());
-    break;
   case MachineOperand::MO_Immediate:
     MCOp = MCOperand::createImm(MO.getImm());
     break;

@@ -193,11 +193,11 @@ let Defs = [ZF, CF], AddedComplexity = 1, Constraints = "$dst = $a" in {
   def RRCA : I8<0x0f, "rrca", [(set RA:$dst, (rotr RA:$a, (i8 1)))],
                 (outs RA:$dst), (ins RA:$a)>;
 }
-let Uses = [A], Defs = [A, ZF, CF] in {
+let Defs = [ZF, CF], Constraints = "$dst = $a" in {
   // these should really have patterns, but I can't find anything suitable
   // NOTE: use these for 16-bit shift/rotate
-  def RLA : I8<0x17, "rla">;
-  def RRA : I8<0x1f, "rra">;
+  def RLA : I8<0x17, "rla", [], (outs RA:$dst), (ins RA:$a)>;
+  def RRA : I8<0x1f, "rra", [], (outs RA:$dst), (ins RA:$a)>;
 }
 
 // the one instruction that uses n and h
@@ -340,6 +340,8 @@ multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
   }
 }
 
+
+
 let Defs = [ZF, CF] in {
   defm ADD : mALU<"add", 0b000, add>;
   defm SUB : mALU<"sub", 0b010, sub>;
@@ -348,8 +350,9 @@ let Defs = [ZF, CF] in {
   defm OR : mALU<"or", 0b110, or>;
 
   let Uses = [CF] in {
-    defm ADC : mALU<"adc", 0b001, adde>;
-    defm SBC : mALU<"sbc", 0b011, sube>;
+    // Why can't these be selected? Sigh.
+    defm ADC : mALU<"adc", 0b001>;
+    defm SBC : mALU<"sbc", 0b011>;
   }
 }
 
@@ -384,10 +387,10 @@ def LDHAd8 : SM83Inst16<(outs RA:$a), (ins direct8:$addr), "ldh $a, [$addr]",
 }
 
 // TODO: make the code generator actually use these
-let Uses = [C, A], mayStore = 1 in
-def LDHdCA : I8<0xe2, "ldh [c], a">;
-let Uses = [C], Defs = [A], mayLoad = 1 in
-def LDHAdC : I8<0xf2, "ldh a, [c]">;
+let mayStore = 1 in
+def LDHdCA : I8<0xe2, "ldh [$c], $a", [], (outs), (ins RA:$a, RC:$c)>;
+let mayLoad = 1 in
+def LDHAdC : I8<0xf2, "ldh $a, [$c]", [], (outs RA:$a), (ins RC:$c)>;
 
 let Defs = [SP] in {
   let mayLoad = 1, mayStore = 1 in
@@ -409,7 +412,7 @@ let Defs = [SP] in {
   }
 }
 
-let Uses = [CF, ZF], isBranch = 1, isTerminator = 1 in
+let isBranch = 1, isTerminator = 1 in
 class JPcc<bit n, string _n>
  : SM83Inst24<(outs), (ins FLAGS:$c, brtarget:$addr),
               "jp " # _n # "$c, $addr", [(brcond (xor FLAGS:$c, (not (i1 n))), bb:$addr)]> {
@@ -471,16 +474,16 @@ def ADDSPs8 : SM83Inst16<(outs), (ins simm8:$s8), "add sp, $s8",
 let isIndirectBranch = 1, isBranch = 1, isTerminator = 1, isBarrier = 1 in
 def JPHL : I8<0xe9, "jp hl", [(brind RHL:$hl)], (outs), (ins RHL:$hl)>;
 
-let Uses = [SP], Defs = [HL, ZF, CF] in
-def LDHLSPs8 : SM83Inst16<(outs), (ins simm8:$s8), "ld hl, sp+$s8", []> {
+let Uses = [SP], Defs = [ZF, CF] in
+def LDHLSPs8 : SM83Inst16<(outs RHL:$hl), (ins simm8:$s8), "ld hl, sp+$s8", []> {
   bits<8> s8;
 
   let Inst{7-0} = 0xf8;
   let Inst{15-8} = s8;
 }
 
-let Defs = [SP], Uses = [HL] in
-def LDSPHL : I8<0xf9, "ld sp, hl">;
+let Defs = [SP] in
+def LDSPHL : I8<0xf9, "ld sp, hl", [], (outs), (ins RHL:$hl)>;
 
 let isCall = 1 in
 def RST : SM83Inst8<(outs), (ins rstvec:$vec), "rst $vec", []> {
@@ -513,8 +516,10 @@ multiclass mBIT<string opstr, bits<3> opc, SDPatternOperator op = null_frag, int
 
 defm RLC : mBIT<"rlc", 0b000, rotl>;
 defm RRC : mBIT<"rrc", 0b001, rotr>;
-defm RL : mBIT<"rl", 0b010>;
-defm RR : mBIT<"rr", 0b011>;
+let Uses = [CF] in {
+  defm RL : mBIT<"rl", 0b010>;
+  defm RR : mBIT<"rr", 0b011>;
+}
 defm SLA : mBIT<"sla", 0b100, shl>;
 defm SRA : mBIT<"sra", 0b101, sra>;
 defm SWAP : mBIT<"swap", 0b110, rotr, 4>;

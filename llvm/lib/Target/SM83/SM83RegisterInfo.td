@@ -72,12 +72,13 @@ let CopyCost = -1 in {
   def FLAGS : RegisterClass<"SM83", [i1], 8, (add CARRY, ZERO)>;
 }
 
+// FIXME: singleton register classes
 def RA : RegisterClass<"SM83", [i8], 8, (add A)>;
+def RC : RegisterClass<"SM83", [i8], 8, (add C)>;
+def RHL : RegisterClass<"SM83", [i16], 8, (add HL)>;
 
 // General-purpose 8-bit registers
 def GR8 : RegisterClass<"SM83", [i8], 8, (add RA, L, H, E, D, C, B)>;
-
-def RHL : RegisterClass<"SM83", [i16], 8, (add HL)>;
 
 // 16-bit registers (excluding HL) that can be accessed as memory with A
 def M16 : RegisterClass<"SM83", [i16], 8, (add DE, BC)>;

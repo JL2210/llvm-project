@@ -15,15 +15,6 @@
 
 namespace llvm {
 
-namespace SM83ISD {
-
-enum NodeType : unsigned {
-  FIRST_NUMBER = ISD::BUILTIN_OP_END,
-  CP,
-};
-
-}
-
 class TargetMachine;
 class SM83Subtarget;
 
