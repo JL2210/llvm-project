@@ -11,6 +11,7 @@
 #ifndef LLVM_LIB_TARGET_SM83_GISEL_SM83LEGALIZERINFO_H
 #define LLVM_LIB_TARGET_SM83_GISEL_SM83LEGALIZERINFO_H
 
+#include "llvm/CodeGen/GlobalISel/LegalizerHelper.h"
 #include "llvm/CodeGen/GlobalISel/LegalizerInfo.h"
 #include "llvm/IR/DataLayout.h"
 
@@ -18,7 +19,10 @@ namespace llvm {
 
 class SM83LegalizerInfo : public LegalizerInfo {
 public:
-  SM83LegalizerInfo(const DataLayout DL);
+  SM83LegalizerInfo(const SM83Subtarget &ST);
+
+  bool legalizeCustom(LegalizerHelper &Helper, MachineInstr &MI,
+                      LostDebugLocObserver &LocObserver) const override;
 };
 
 } // namespace llvm

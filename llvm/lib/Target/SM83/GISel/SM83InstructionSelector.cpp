@@ -56,20 +56,16 @@ private:
   const SM83InstrInfo &TII;
   const SM83RegisterInfo &TRI;
   const SM83RegisterBankInfo &RBI;
-#if 0
-  bool convertPtrAddToAdd(MachineInstr &I, MachineRegisterInfo &MRI);
-  bool preISelLower(MachineInstr &I);
-#endif
   bool selectCopy(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectImpl(MachineInstr &I, CodeGenCoverage &CoverageInfo) const;
   bool selectConstant(MachineInstr &I, MachineRegisterInfo &MRI) const;
-  bool selectMergeValues(MachineInstr &I, MachineRegisterInfo &MRI) const;
-  bool selectUnmergeValues(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  bool selectMergeUnmergeValues(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectSignedExtend(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectCompare(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectPHI(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectGEP(MachineInstr &I, MachineRegisterInfo &MRI) const;
   [[maybe_unused]] bool selectCondBranch(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  bool selectCarryAdd(MachineInstr &I, MachineRegisterInfo &MRI) const;
 
 #define GET_GLOBALISEL_PREDICATES_DECL
 #include "SM83GenGlobalISel.inc"
@@ -142,9 +138,8 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
   case TargetOpcode::G_GLOBAL_VALUE:
     return selectConstant(I, MRI);
   case TargetOpcode::G_MERGE_VALUES:
-    return selectMergeValues(I, MRI);
   case TargetOpcode::G_UNMERGE_VALUES:
-    return selectUnmergeValues(I, MRI);
+    return selectMergeUnmergeValues(I, MRI);
   case TargetOpcode::G_SEXT:
     return selectSignedExtend(I, MRI);
   case TargetOpcode::G_ICMP:
@@ -156,41 +151,20 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
     return selectCopy(I, MRI);
   case TargetOpcode::G_PTR_ADD:
     return selectGEP(I, MRI);
+  case TargetOpcode::G_BRCOND:
+    return selectCondBranch(I, MRI);
+  case TargetOpcode::G_UADDO:
+  case TargetOpcode::G_UADDE:
+  case TargetOpcode::G_USUBO:
+  case TargetOpcode::G_USUBE:
+    return selectCarryAdd(I, MRI);
   }
 }
 
 bool SM83InstructionSelector::selectCopy(MachineInstr &I,
                                          MachineRegisterInfo &MRI) const {
-  Register DstReg = I.getOperand(0).getReg();
-  const TargetRegisterClass *DstRC = getRegClass(DstReg, MRI);
-
-  if (!DstRC) {
-    LLVM_DEBUG(dbgs() << "Could not determine destination register class\n");
-    return false;
-  }
-
-  Register SrcReg = I.getOperand(1).getReg();
-  const TargetRegisterClass *SrcRC = getRegClass(SrcReg, MRI);
-  if (!SrcRC) {
-    LLVM_DEBUG(dbgs() << "Could not determine source register class\n");
-    return false;
-  }
-  unsigned SrcSize = TRI.getRegSizeInBits(*SrcRC);
-  unsigned DstSize = TRI.getRegSizeInBits(*DstRC);
-  if (SrcSize != DstSize) {
-    LLVM_DEBUG(dbgs() << "Mismatched copy sizes\n");
-    return false;
-  }
-
-  if (!Register::isPhysicalRegister(DstReg) &&
-      !RBI.constrainGenericRegister(DstReg, *DstRC, MRI)) {
-    LLVM_DEBUG(dbgs() << "Failed to constrain " << TII.getName(I.getOpcode())
-                      << " operand\n");
-    return false;
-  }
-
   I.setDesc(TII.get(SM83::COPY));
-  return true;
+  return constrainSelectedInstRegOperands(I, TII, TRI, RBI);
 }
 
 bool SM83InstructionSelector::selectConstant(MachineInstr &I,
@@ -215,55 +189,48 @@ bool SM83InstructionSelector::selectConstant(MachineInstr &I,
   return constrainSelectedInstRegOperands(I, TII, TRI, RBI);
 }
 
-bool SM83InstructionSelector::selectMergeValues(
+bool SM83InstructionSelector::selectMergeUnmergeValues(
     MachineInstr &I, MachineRegisterInfo &MRI) const {
-  assert(I.getOpcode() == TargetOpcode::G_MERGE_VALUES &&
-         "unexpected instruction");
-  MachineIRBuilder MIB(I);
-  Register DstReg = I.getOperand(0).getReg();
-  Register LowReg = I.getOperand(1).getReg();
-  Register HiReg = I.getOperand(2).getReg();
+  bool isMerge = I.getOpcode() == TargetOpcode::G_MERGE_VALUES;
+  bool isUnmerge = I.getOpcode() == TargetOpcode::G_UNMERGE_VALUES;
+  assert((isMerge || isUnmerge) && "unexpected instruction");
 
-  if(!(MRI.getType(LowReg) == LLT::scalar(8) &&
-       MRI.getType(HiReg) == LLT::scalar(8))) {
-    LLVM_DEBUG(dbgs() << "must merge two 8-bit registers into a 16-bit one");
+  MachineIRBuilder MIB(I);
+  Register WideReg = I.getOperand(isMerge ? 0 : 2).getReg();
+  Register LowReg = I.getOperand(isMerge).getReg();
+  Register HighReg = I.getOperand(isMerge + 1).getReg();
+
+  if(MRI.getType(LowReg) != LLT::scalar(8) ||
+     MRI.getType(HighReg) != LLT::scalar(8) ||
+     MRI.getType(WideReg) != LLT::scalar(16)) {
+    LLVM_DEBUG(dbgs() << "must merge/unmerge two 8-bit values to one 16-bit one");
     return false;
   }
 
   assert(I.getNumOperands() == 3 && "Illegal instruction");
-  auto Merge = MIB.buildInstr(TargetOpcode::REG_SEQUENCE, {DstReg},
-                              {I.getOperand(1), int64_t(SM83::sub_low),
-                               I.getOperand(2), int64_t(SM83::sub_high)});
-  if (!constrainSelectedInstRegOperands(*Merge, TII, TRI, RBI))
-    return false;
-  I.eraseFromParent();
-  return RBI.constrainGenericRegister(DstReg, SM83::GR16RegClass, MRI);
-}
 
-bool SM83InstructionSelector::selectUnmergeValues(
-    MachineInstr &I, MachineRegisterInfo &MRI) const {
-  assert(I.getOpcode() == TargetOpcode::G_UNMERGE_VALUES &&
-         "unexpected instruction");
-  MachineIRBuilder MIB(I);
-  Register LoReg = I.getOperand(0).getReg();
-  Register HiReg = I.getOperand(1).getReg();
-  Register SrcReg = I.getOperand(2).getReg();
-
-  assert(I.getNumOperands() == 3 && "Illegal instruction");
-  if(!(MRI.getType(LoReg) == LLT::scalar(8) &&
-       MRI.getType(HiReg) == LLT::scalar(8) &&
-       MRI.getType(SrcReg) == LLT::scalar(16))) {
-    LLVM_DEBUG(dbgs() << "Must unmerge a 16-bit register to two 8-bit ones");
+  if(isMerge) {
+    auto Merge = MIB.buildInstr(TargetOpcode::REG_SEQUENCE, {WideReg},
+                                {LowReg, int64_t(SM83::sub_low),
+                                 HighReg, int64_t(SM83::sub_high)});
+    if (!constrainSelectedInstRegOperands(*Merge, TII, TRI, RBI)) {
+      LLVM_DEBUG(dbgs() << "failed to constrain reg sequencing instruction");
+      return false;
+    }
+  } else if(isUnmerge) {
+    auto ExtractLow = MIB.buildInstr(TargetOpcode::EXTRACT_SUBREG, {LowReg},
+                                 {WideReg, int64_t(SM83::sub_low)});
+    auto ExtractHigh = MIB.buildInstr(TargetOpcode::EXTRACT_SUBREG, {HighReg},
+                                 {WideReg, int64_t(SM83::sub_high)});
+    if (!constrainSelectedInstRegOperands(*ExtractLow, TII, TRI, RBI) ||
+        !constrainSelectedInstRegOperands(*ExtractHigh, TII, TRI, RBI)) {
+      LLVM_DEBUG(dbgs() << "failed to constrain unmerge");
+      return false;
+    }
   }
-  MIB.buildInstr(TargetOpcode::COPY, {LoReg}, {})
-      .addReg(SrcReg, 0, SM83::sub_low);
-  MIB.buildInstr(TargetOpcode::COPY, {HiReg}, {})
-      .addReg(SrcReg, 0, SM83::sub_high);
 
   I.eraseFromParent();
-  return RBI.constrainGenericRegister(LoReg, SM83::GR8RegClass, MRI) &&
-         RBI.constrainGenericRegister(HiReg, SM83::GR8RegClass, MRI) &&
-         RBI.constrainGenericRegister(SrcReg, SM83::GR16RegClass, MRI);
+  return true;
 }
 
 bool SM83InstructionSelector::selectSignedExtend(
@@ -273,22 +240,24 @@ bool SM83InstructionSelector::selectSignedExtend(
   Register DstReg = I.getOperand(0).getReg();
   Register SrcReg = I.getOperand(1).getReg();
 
-  if(!(MRI.getType(DstReg) == LLT::scalar(8) &&
-       MRI.getType(SrcReg) == LLT::scalar(1))) {
+  if(MRI.getType(DstReg) != LLT::scalar(8) ||
+     MRI.getType(SrcReg) != LLT::scalar(1)) {
     return false;
   }
 
-  auto CopyToA = MIB.buildCopy(SM83::A, SrcReg);
-  if (!constrainSelectedInstRegOperands(*CopyToA, TII, TRI, RBI))
+  auto Rotate = MIB.buildInstr(SM83::RRCA)
+                   .addDef(SM83::A)
+                   .addDef(SM83::CF, RegState::Implicit)
+                   .addUse(SrcReg);
+  if (!constrainSelectedInstRegOperands(*Rotate, TII, TRI, RBI))
     return false;
 
-  MIB.buildInstr(SM83::RRCA).addDef(SM83::A).addUse(SM83::A);
-
-  MIB.buildInstr(SM83::SBCr).addDef(SM83::A).addUse(SM83::A).addUse(SM83::A);
-
-  auto CopyFromA = MIB.buildCopy(DstReg, Register(SM83::A));
-  if (!RBI.constrainGenericRegister(CopyFromA.getReg(0), SM83::GR8RegClass,
-                                    MRI))
+  auto SubCarry = MIB.buildInstr(SM83::SBCr)
+                     .addDef(DstReg)
+                     .addUse(SM83::A, RegState::Undef)
+                     .addUse(SM83::A, RegState::Undef)
+                     .addUse(SM83::CF, RegState::Implicit);
+  if (!constrainSelectedInstRegOperands(*SubCarry, TII, TRI, RBI))
     return false;
 
   I.eraseFromParent();
@@ -321,16 +290,11 @@ bool SM83InstructionSelector::selectGEP(MachineInstr &I,
   MachineBasicBlock &MBB = *I.getParent();
   MachineFunction &MF = *MBB.getParent();
   MachineIRBuilder MIB(I);
+
   Register Dst = I.getOperand(0).getReg();
   Register Base = I.getOperand(1).getReg();
-  const TargetRegisterClass *BaseRC = getRegClass(Base, MRI);
 
-  if(!RBI.constrainGenericRegister(Base, *BaseRC, MRI)) {
-    LLVM_DEBUG(dbgs() << "failed to constrain GEP base");
-    return false;
-  }
-
-  LLVM_DEBUG(dbgs() << "trying getvregdef\n");
+  LLVM_DEBUG(dbgs() << "trying known bits analysis for inc/dec\n");
 
   GISelKnownBits GKB(MF);
 
@@ -339,13 +303,14 @@ bool SM83InstructionSelector::selectGEP(MachineInstr &I,
     auto Value = KnownBits.getConstant();
     if(Value.abs().ule(4)) {
       unsigned Opc = Value.isNegative() ? SM83::DECrr : SM83::INCrr;
-      for (auto v = Value.abs(); !v.isZero(); --v) {
-        MIB.buildInstr(Opc)
-           .addDef(Dst)
-           .addUse(Base);
+      auto IncDec = MIB.buildInstr(Opc).addDef(Dst).addUse(Base);
+      if(!constrainSelectedInstRegOperands(*IncDec, TII, TRI, RBI)) {
+        return false;
+      }
+      for (auto v = Value.abs(); !(--v).isZero(); ) {
+        MIB.buildInstr(Opc).addDef(Dst).addUse(Dst);
       }
 
-      I.eraseFromParent();
       return true;
     }
   }
@@ -355,8 +320,56 @@ bool SM83InstructionSelector::selectGEP(MachineInstr &I,
   return selectImpl(I, *CoverageInfo);
 }
 
-bool SM83InstructionSelector::selectCondBranch(MachineInstr &I, MachineRegisterInfo &MRI) const {
+bool SM83InstructionSelector::selectCondBranch(MachineInstr &I,
+                                               MachineRegisterInfo &MRI) const {
   return false;
+}
+
+bool SM83InstructionSelector::selectCarryAdd(MachineInstr &I,
+                                             MachineRegisterInfo &MRI) const {
+  unsigned GOpc = I.getOpcode();
+  assert(GOpc == TargetOpcode::G_UADDE ||
+         GOpc == TargetOpcode::G_USUBE ||
+         GOpc == TargetOpcode::G_UADDO ||
+         GOpc == TargetOpcode::G_USUBO);
+  bool isSub = (GOpc == TargetOpcode::G_USUBE ||
+                GOpc == TargetOpcode::G_USUBO);
+  bool consumesCarry = (GOpc == TargetOpcode::G_UADDE ||
+                        GOpc == TargetOpcode::G_USUBE);
+  MachineIRBuilder MIB(I);
+  Register Dst = I.getOperand(0).getReg();
+  Register OutCarry = I.getOperand(1).getReg();
+  Register Src1 = I.getOperand(2).getReg();
+  Register Src2 = I.getOperand(3).getReg();
+  Register InCarry = 0;
+  if(consumesCarry) {
+    InCarry = I.getOperand(4).getReg();
+    assert(MRI.getType(InCarry) == LLT::scalar(1));
+  }
+
+  assert(MRI.getType(OutCarry) == LLT::scalar(1));
+
+  if(MRI.getType(Dst) != LLT::scalar(8) ||
+     MRI.getType(Src1) != LLT::scalar(8) ||
+     MRI.getType(Src2) != LLT::scalar(8)) {
+    LLVM_DEBUG(dbgs() << "dst, src1, and src2 must all be bytes");
+    return false;
+  }
+
+  unsigned Opc = isSub ? (consumesCarry ? SM83::SBCr : SM83::SUBr)
+                       : (consumesCarry ? SM83::ADCr : SM83::ADDr);
+
+  auto Add = MIB.buildInstr(Opc)
+                .addDef(Dst)
+                .addDef(OutCarry, RegState::Implicit)
+                .addUse(Src1)
+                .addUse(Src2);
+
+  if(consumesCarry)
+    Add.addUse(InCarry, RegState::Kill);
+
+  I.eraseFromParent();
+  return constrainSelectedInstRegOperands(*Add, TII, TRI, RBI);
 }
 
 InstructionSelector *

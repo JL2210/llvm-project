@@ -492,7 +492,7 @@ void MCAsmStreamer::addExplicitComment(const Twine &T) {
     ExplicitCommentToEmit.append(MAI->getCommentString());
     // drop //
     ExplicitCommentToEmit.append(c.slice(2, c.size()).str());
-  } else if (c.starts_with(StringRef("/\*"))) {
+  } else if (c.starts_with(StringRef("/*"))) { // */
     size_t p = 2, len = c.size() - 2;
     // emit each line in comment as separate newline.
     do {

@@ -55,7 +55,7 @@ CCAssignFn *SM83TargetLowering::CCAssignFnForCall(CallingConv::ID CC,
   default:
     report_fatal_error("Unsupported calling convention.");
   case CallingConv::C:
-    return CC_SM83;
+    return IsVarArg ? CC_SM83_VarArg : CC_SM83;
   case CallingConv::PreserveAll:
     return CC_SM83_Interrupt;
   }
