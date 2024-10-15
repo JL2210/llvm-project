@@ -85,23 +85,7 @@ bool SM83InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   return true;
 }
 
-// whistles in x86 assembly language
-static inline const MachineInstrBuilder &
-addFrameReference(const MachineInstrBuilder &MIB, int FI) {
-  MachineInstr *MI = MIB;
-  MachineFunction &MF = *MI->getParent()->getParent();
-  MachineFrameInfo &MFI = MF.getFrameInfo();
-  const MCInstrDesc &MCID = MI->getDesc();
-  auto Flags = MachineMemOperand::MONone;
-  if (MCID.mayLoad())
-    Flags |= MachineMemOperand::MOLoad;
-  if (MCID.mayStore())
-    Flags |= MachineMemOperand::MOStore;
-  MachineMemOperand *MMO =
-      MF.getMachineMemOperand(MachinePointerInfo::getFixedStack(MF, FI), Flags,
-                              MFI.getObjectSize(FI), MFI.getObjectAlign(FI));
-  return MIB.addFrameIndex(FI).addImm(0).addMemOperand(MMO);
-}
+static int CurFrameIdx = 0;
 
 void SM83InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator MI,
@@ -109,13 +93,20 @@ void SM83InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                          const TargetRegisterClass *RC,
                                          const TargetRegisterInfo *TRI,
                                          Register VReg) const {
+  LLVM_DEBUG(dbgs() << "Frame Index: " << FrameIndex);
+  
   report_fatal_error("load from stack slot unimplemented");
 }
 
-void SM83InstrInfo::storeRegToStackSlot(
-    MachineBasicBlock &MBB, MachineBasicBlock::iterator MI, Register SrcReg,
-    bool IsKill, int FrameIndex, const TargetRegisterClass *RC,
-    const TargetRegisterInfo *TRI, Register VReg) const {
+void SM83InstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
+                                        MachineBasicBlock::iterator MI,
+                                        Register SrcReg, bool IsKill,
+                                        int FrameIndex,
+                                        const TargetRegisterClass *RC,
+                                        const TargetRegisterInfo *TRI,
+                                        Register VReg) const {
+  LLVM_DEBUG(dbgs() << "Frame Index: " << FrameIndex);
+  
   report_fatal_error("store to stack slot unimplemented");
 }
 

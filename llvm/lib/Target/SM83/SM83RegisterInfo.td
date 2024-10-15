@@ -19,6 +19,28 @@ class SM83Reg<string name, bits<16> enc = -1, list<Register> subregs = []>
   let SubRegs = subregs;
 }
 
+def SM83RegInfo1  : RegInfoByHwMode<[DefaultMode], [RegInfo<1, 16, 8>]>;
+def SM83RegInfo8  : RegInfoByHwMode<[DefaultMode], [RegInfo<8, 16, 8>]>;
+def SM83RegInfo16 : RegInfoByHwMode<[DefaultMode], [RegInfo<16, 16, 8>]>;
+
+// TODO: useful fields: AltOrders, AllocationPriority, GlobalPriority
+
+class SM83RegClass1<dag regList> : RegisterClass<"SM83", [i1], 8, regList> {
+//  let /*Spill*/Size = 16;
+//  let isAllocatable = 0;
+//  let RegInfos = SM83RegInfo1;
+}
+
+class SM83RegClass8<dag regList> : RegisterClass<"SM83", [i8], 8, regList> {
+//  let /*Spill*/Size = 16;
+//  let RegInfos = SM83RegInfo8;
+}
+
+class SM83RegClass16<dag regList> : RegisterClass<"SM83", [i16], 8, regList> {
+//  let /*Spill*/Size = 16;
+//  let RegInfos = SM83RegInfo16;
+}
+
 // Subregister indices.
 let Namespace = "SM83" in {
   def sub_low : SubRegIndex<8>;
@@ -39,6 +61,9 @@ def E : SM83Reg<"e", 3>;
 def H : SM83Reg<"h", 4>;
 def L : SM83Reg<"l", 5>;
 // dHL is encoded as 6
+let CostPerUse = [1] in
+// this register is required for a bunch of stuff, using it
+// without a good reason can cause lots of stack spills
 def A : SM83Reg<"a", 7>;
 
 // N and H omitted due to having no real-world use
@@ -67,27 +92,29 @@ def PC : SM83Reg<"pc">;
 // NB: Order matters
 
 let CopyCost = -1 in {
-  def CARRY : RegisterClass<"SM83", [i1], 8, (add CF)>;
-  def ZERO : RegisterClass<"SM83", [i1], 8, (add ZF)>;
-  def FLAGS : RegisterClass<"SM83", [i1], 8, (add CARRY, ZERO)>;
+  def CARRY : SM83RegClass1<(add CF)>;
+  def ZERO : SM83RegClass1<(add ZF)>;
+  def FLAGS : SM83RegClass1<(add CARRY, ZERO)>;
 }
 
 // FIXME: singleton register classes
-def RA : RegisterClass<"SM83", [i8], 8, (add A)>;
-def RC : RegisterClass<"SM83", [i8], 8, (add C)>;
-def RHL : RegisterClass<"SM83", [i16], 8, (add HL)>;
+let isPressureFineGrained = 1 in {
+  def RC : SM83RegClass8<(add C)>;
+  def RHL : SM83RegClass16<(add HL)>;
+}
 
 // General-purpose 8-bit registers
-def GR8 : RegisterClass<"SM83", [i8], 8, (add RA, L, H, E, D, C, B)>;
+let GlobalPriority = 1, AllocationPriority = 1 in
+def GR8 : SM83RegClass8<(add L, H, E, D, RC, B, A)>;
 
 // 16-bit registers (excluding HL) that can be accessed as memory with A
-def M16 : RegisterClass<"SM83", [i16], 8, (add DE, BC)>;
+def M16 : SM83RegClass16<(add DE, BC)>;
 
 // General-purpose 16-bit registers
-def GR16 : RegisterClass<"SM83", [i16], 8, (add RHL, M16)>;
+def GR16 : SM83RegClass16<(add RHL, M16)>;
 
 // 16-bit registers that can be pushed and popped
-def P16 : RegisterClass<"SM83", [i16], 8, (add GR16, AF)>;
+def P16 : SM83RegClass16<(add GR16, AF)>;
 
 // 16 bit registers including sp
-def S16 : RegisterClass<"SM83", [i16], 8, (add GR16, SP)>;
+def S16 : SM83RegClass16<(add GR16, SP)>;

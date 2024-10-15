@@ -1601,6 +1601,7 @@ void TwoAddressInstructionImpl::processTiedPairs(MachineInstr *MI,
                                       TII->get(TargetOpcode::COPY), RegA);
     // If this operand is folding a truncation, the truncation now moves to the
     // copy so that the register classes remain valid for the operands.
+    MRI->recomputeRegClass(RegB);
     MIB.addReg(RegB, 0, SubRegB);
     const TargetRegisterClass *RC = MRI->getRegClass(RegB);
     if (SubRegB) {
@@ -1658,7 +1659,7 @@ void TwoAddressInstructionImpl::processTiedPairs(MachineInstr *MI,
 
     // Make sure regA is a legal regclass for the SrcIdx operand.
     if (RegA.isVirtual() && RegB.isVirtual())
-      MRI->constrainRegClass(RegA, RC);
+      MRI->constrainRegAttrs(RegA, RegB);
     MO.setReg(RegA);
     // The getMatchingSuper asserts guarantee that the register class projected
     // by SubRegB is compatible with RegA with no subregister. So regardless of

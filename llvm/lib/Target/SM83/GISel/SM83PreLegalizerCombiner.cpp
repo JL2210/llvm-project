@@ -45,6 +45,8 @@ namespace {
 #include "SM83GenPreLegalizeGICombiner.inc"
 #undef GET_GICOMBINER_TYPES
 
+//bool matchASHRWidthToSextExtract
+
 class SM83PreLegalizerCombinerImpl : public Combiner {
 protected:
   mutable CombinerHelper Helper;

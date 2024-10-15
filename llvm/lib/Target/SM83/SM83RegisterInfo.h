@@ -38,6 +38,12 @@ struct SM83RegisterInfo : public SM83GenRegisterInfo {
 
   Register getFrameRegister(const MachineFunction &MF) const override;
 
+  const TargetRegisterClass *getLargestLegalSuperClass(
+      const TargetRegisterClass *RC, const MachineFunction &MF) const override;
+
+  const TargetRegisterClass *getCrossCopyRegClass(
+      const TargetRegisterClass *RC) const override;
+
   Register getStackRegister() const;
 };
 
