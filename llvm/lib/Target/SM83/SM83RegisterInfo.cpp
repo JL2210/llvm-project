@@ -106,4 +106,23 @@ Register SM83RegisterInfo::getFrameRegister(const MachineFunction &MF) const {
   return SM83::NoRegister;
 }
 
+const TargetRegisterClass *SM83RegisterInfo::getLargestLegalSuperClass(
+    const TargetRegisterClass *RC, const MachineFunction &MF) const {
+  if(RC->getID() == SM83::RCRegClassID) {
+    return &SM83::GR8RegClass;
+  } else if(RC->getID() == SM83::RHLRegClassID) {
+    return &SM83::GR16RegClass;
+  }
+  return RC;
+}
+
+const TargetRegisterClass *SM83RegisterInfo::getCrossCopyRegClass(
+    const TargetRegisterClass *RC) const {
+  if(RC->getID() == SM83::RCRegClassID ||
+     RC->getID() == SM83::RHLRegClassID) {
+    return NULL; // singletons :(
+  }
+  return RC;
+}
+
 Register SM83RegisterInfo::getStackRegister() const { return SM83::SP; }

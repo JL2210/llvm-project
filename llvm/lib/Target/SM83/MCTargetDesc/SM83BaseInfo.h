@@ -14,14 +14,24 @@
 #ifndef LLVM_LIB_TARGET_SM83_MCTARGETDESC_SM83BASEINFO_H
 #define LLVM_LIB_TARGET_SM83_MCTARGETDESC_SM83BASEINFO_H
 
+#include "llvm/MC/MCInstrDesc.h"
+
 namespace llvm {
-namespace SM83Condition {
+namespace SM83 {
+
+enum OperandType : unsigned {
+  OPERAND_CONDITION = MCOI::OPERAND_FIRST_TARGET,
+}
+
 enum Condition {
-  NZ = 0,
-  Z = 1,
-  NC = 2,
-  C = 3,
+  COND_NZ = 0,
+  COND_Z = 1,
+  COND_NC = 2,
+  COND_C = 3,
+  LAST_VALID_COND = COND_C,
+  COND_INVALID
 };
+
 }
 } // namespace llvm
 

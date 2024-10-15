@@ -56,7 +56,7 @@ private:
   const SM83InstrInfo &TII;
   const SM83RegisterInfo &TRI;
   const SM83RegisterBankInfo &RBI;
-  bool selectCopy(MachineInstr &I, MachineRegisterInfo &MRI) const;
+//  bool selectCopy(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectImpl(MachineInstr &I, CodeGenCoverage &CoverageInfo) const;
   bool selectConstant(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectMergeUnmergeValues(MachineInstr &I, MachineRegisterInfo &MRI) const;
@@ -66,6 +66,7 @@ private:
   bool selectGEP(MachineInstr &I, MachineRegisterInfo &MRI) const;
   [[maybe_unused]] bool selectCondBranch(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectCarryAdd(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  bool selectSignedShift(MachineInstr &I, MachineRegisterInfo &MRI) const;
 
 #define GET_GLOBALISEL_PREDICATES_DECL
 #include "SM83GenGlobalISel.inc"
@@ -85,12 +86,15 @@ SM83InstructionSelector::getRegClass(Register R,
   assert(RegBank.getID() == SM83::GPRRegBankID);
 
   unsigned Size = RBI.getSizeInBits(R, MRI, TRI);
+  assert(Size > 0);
 
-  if (Size <= 8)
+  if (Size == 1) {
+    return &SM83::CARRYRegClass;
+  } else if (Size <= 8) {
     return &SM83::GR8RegClass;
-
-  if (Size == 16)
+  } else if (Size <= 16) {
     return &SM83::GR16RegClass;
+  }
 
   return nullptr;
 }
@@ -121,9 +125,9 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
   MachineRegisterInfo &MRI = MF.getRegInfo();
 
   if (!isPreISelGenericOpcode(Opcode)) {
-    if (I.isCopy()) {
-      return selectCopy(I, MRI);
-    }
+    //if (I.isCopy()) {
+    //  return selectCopy(I, MRI);
+    //}
 
     return true;
   }
@@ -141,6 +145,7 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
   case TargetOpcode::G_UNMERGE_VALUES:
     return selectMergeUnmergeValues(I, MRI);
   case TargetOpcode::G_SEXT:
+
     return selectSignedExtend(I, MRI);
   case TargetOpcode::G_ICMP:
     return selectCompare(I, MRI);
@@ -158,14 +163,16 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
   case TargetOpcode::G_USUBO:
   case TargetOpcode::G_USUBE:
     return selectCarryAdd(I, MRI);
+  case TargetOpcode::G_ASHR:
+    return selectSignedShift(I, MRI);
   }
 }
 
-bool SM83InstructionSelector::selectCopy(MachineInstr &I,
-                                         MachineRegisterInfo &MRI) const {
-  I.setDesc(TII.get(SM83::COPY));
-  return constrainSelectedInstRegOperands(I, TII, TRI, RBI);
-}
+//bool SM83InstructionSelector::selectCopy(MachineInstr &I,
+//                                         MachineRegisterInfo &MRI) const {
+//  I.setDesc(TII.get(SM83::COPY));
+//  return constrainSelectedInstRegOperands(I, TII, TRI, RBI);
+//}
 
 bool SM83InstructionSelector::selectConstant(MachineInstr &I,
                                              MachineRegisterInfo &MRI) const {
@@ -219,9 +226,9 @@ bool SM83InstructionSelector::selectMergeUnmergeValues(
     }
   } else if(isUnmerge) {
     auto ExtractLow = MIB.buildInstr(TargetOpcode::EXTRACT_SUBREG, {LowReg},
-                                 {WideReg, int64_t(SM83::sub_low)});
+                                     {WideReg, int64_t(SM83::sub_low)});
     auto ExtractHigh = MIB.buildInstr(TargetOpcode::EXTRACT_SUBREG, {HighReg},
-                                 {WideReg, int64_t(SM83::sub_high)});
+                                      {WideReg, int64_t(SM83::sub_high)});
     if (!constrainSelectedInstRegOperands(*ExtractLow, TII, TRI, RBI) ||
         !constrainSelectedInstRegOperands(*ExtractHigh, TII, TRI, RBI)) {
       LLVM_DEBUG(dbgs() << "failed to constrain unmerge");
@@ -239,29 +246,43 @@ bool SM83InstructionSelector::selectSignedExtend(
   MachineIRBuilder MIB(I);
   Register DstReg = I.getOperand(0).getReg();
   Register SrcReg = I.getOperand(1).getReg();
+  LLT SrcType = MRI.getType(SrcReg);
 
-  if(MRI.getType(DstReg) != LLT::scalar(8) ||
-     MRI.getType(SrcReg) != LLT::scalar(1)) {
+  if(!((MRI.getType(DstReg) == LLT::scalar(8)  && SrcType == LLT::scalar(1)) ||
+       (MRI.getType(DstReg) == LLT::scalar(16) && SrcType == LLT::scalar(8)))) {
+    LLVM_DEBUG(dbgs() << "must sign extend 1->8 or 8->16");
     return false;
   }
 
-  auto Rotate = MIB.buildInstr(SM83::RRCA)
+  unsigned RotOp = SrcType == LLT::scalar(1) ? SM83::RRCA : SM83::RLCA;
+
+  auto Rotate = MIB.buildInstr(RotOp)
                    .addDef(SM83::A)
                    .addDef(SM83::CF, RegState::Implicit)
                    .addUse(SrcReg);
   if (!constrainSelectedInstRegOperands(*Rotate, TII, TRI, RBI))
     return false;
 
-  auto SubCarry = MIB.buildInstr(SM83::SBCr)
-                     .addDef(DstReg)
-                     .addUse(SM83::A, RegState::Undef)
-                     .addUse(SM83::A, RegState::Undef)
-                     .addUse(SM83::CF, RegState::Implicit);
-  if (!constrainSelectedInstRegOperands(*SubCarry, TII, TRI, RBI))
-    return false;
+  MIB.buildInstr(SM83::SBCr)
+     .addDef(SM83::A)
+     .addUse(SM83::A, RegState::Undef)
+     .addUse(SM83::A, RegState::Undef)
+     .addUse(SM83::CF, RegState::Implicit | RegState::Kill);
+
+  MachineInstrBuilder B;
+
+  if(MRI.getType(DstReg) == LLT::scalar(8)) {
+    B = MIB.buildCopy(DstReg, Register(SM83::A));
+  } else {
+    B = MIB.buildInstr(TargetOpcode::REG_SEQUENCE, {DstReg},
+                       {Register(SM83::A),
+                        int64_t(SM83::sub_high),
+                        SrcType == LLT::scalar(1) ? Register(SM83::A) : SrcReg,
+                        int64_t(SM83::sub_low)});
+  }
 
   I.eraseFromParent();
-  return true;
+  return constrainSelectedInstRegOperands(*B, TII, TRI, RBI);
 }
 
 bool SM83InstructionSelector::selectCompare(MachineInstr &I,
@@ -301,13 +322,14 @@ bool SM83InstructionSelector::selectGEP(MachineInstr &I,
   auto KnownBits = GKB.getKnownBits(I.getOperand(2).getReg());
   if(KnownBits.isConstant()) {
     auto Value = KnownBits.getConstant();
+    assert(!Value.isZero());
     if(Value.abs().ule(4)) {
       unsigned Opc = Value.isNegative() ? SM83::DECrr : SM83::INCrr;
       auto IncDec = MIB.buildInstr(Opc).addDef(Dst).addUse(Base);
       if(!constrainSelectedInstRegOperands(*IncDec, TII, TRI, RBI)) {
         return false;
       }
-      for (auto v = Value.abs(); !(--v).isZero(); ) {
+      for (auto v = Value.abs(); --v != 0; ) {
         MIB.buildInstr(Opc).addDef(Dst).addUse(Dst);
       }
 
@@ -366,10 +388,73 @@ bool SM83InstructionSelector::selectCarryAdd(MachineInstr &I,
                 .addUse(Src2);
 
   if(consumesCarry)
-    Add.addUse(InCarry, RegState::Kill);
+    Add.addUse(InCarry, RegState::Implicit | RegState::Kill);
 
   I.eraseFromParent();
   return constrainSelectedInstRegOperands(*Add, TII, TRI, RBI);
+}
+
+bool SM83InstructionSelector::selectSignedShift(MachineInstr &I,
+                                                MachineRegisterInfo &MRI) const {
+  assert(I.getOpcode() == TargetOpcode::G_ASHR);
+  MachineBasicBlock &MBB = *I.getParent();
+  MachineFunction &MF = *MBB.getParent();
+  Register Dst = I.getOperand(0).getReg();
+  Register Src = I.getOperand(1).getReg();
+  Register Idx = I.getOperand(2).getReg();
+
+  if(MRI.getType(Dst) != LLT::scalar(8) ||
+     MRI.getType(Src) != LLT::scalar(8)) {
+    LLVM_DEBUG(dbgs() << "signed shift only supported on 8-bit values");
+    return false;
+  }
+
+  GISelKnownBits KB(MF);
+  auto KnownBits = KB.getKnownBits(Idx);
+  if(!KnownBits.isConstant()) {
+    LLVM_DEBUG(dbgs() << "signed shift index must be constant");
+    return false;
+  }
+
+  auto IdxValue = KnownBits.getConstant();
+  assert(IdxValue.isStrictlyPositive());
+
+  MachineIRBuilder MIB(I);
+  Register TmpVReg;
+
+  MachineInstrBuilder ShiftFromSrc;
+  if(IdxValue == 1) {
+    ShiftFromSrc = MIB.buildInstr(SM83::SRAr, {Dst}, {Src});
+  } else {
+    TmpVReg = MRI.createGenericVirtualRegister(MRI.getType(Src));
+    ShiftFromSrc = MIB.buildInstr(SM83::SRAr, {TmpVReg}, {Src});
+  }
+  MRI.recomputeRegClass(Src);
+  if(!constrainSelectedInstRegOperands(*ShiftFromSrc, TII, TRI, RBI)) {
+    LLVM_DEBUG(dbgs() << "failed to constrain shift");
+    return false;
+  }
+
+  while((--IdxValue).sgt(1)) {
+    auto NewTmpVReg = MRI.cloneVirtualRegister(TmpVReg);
+    auto Shift = MIB.buildInstr(SM83::SRAr, {NewTmpVReg}, {TmpVReg});
+    if(!constrainSelectedInstRegOperands(*Shift, TII, TRI, RBI)) {
+      LLVM_DEBUG(dbgs() << "failed to constrain shift");
+      return false;
+    }
+    TmpVReg = NewTmpVReg;
+  }
+
+  if(IdxValue == 1) {
+    auto ShiftToDst = MIB.buildInstr(SM83::SRAr, {Dst}, {TmpVReg});
+    if(!constrainSelectedInstRegOperands(*ShiftToDst, TII, TRI, RBI)) {
+      LLVM_DEBUG(dbgs() << "failed to constrain shift");
+      return false;
+    }
+  }
+
+  I.removeFromParent();
+  return true;
 }
 
 InstructionSelector *

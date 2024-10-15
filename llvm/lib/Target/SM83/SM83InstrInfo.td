@@ -12,25 +12,18 @@
 
 include "SM83InstrFormats.td"
 
-class ImmAsmOperand<string name> : AsmOperandClass {
-  let Name = name;
-  let RenderMethod = "addImmOperands";
-  let DiagnosticType = "Invalid" # Name;
-}
-
-def Condition : AsmOperandClass {
-  let Name = "Condition";
-  let RenderMethod = "addConditionOperands";
-  let DiagnosticType = "Invalid" # Name;
-}
-
-def condition : Operand<i8>, ImmLeaf<i8, [{
-  return isUInt<2>(Imm);
-}]> {
+def condition : Operand<i8> {
   let PrintMethod = "printCondition";
+  let OperandNamespace = "SM83";
+  let OperandType = "OPERAND_CONDITION";
 }
 
-def rstvec : Operand<i8>, ImmLeaf<i8, [{
+def SM83_COND_NZ : PatLeaf<(i8 0)>;
+def SM83_COND_Z : PatLeaf<(i8 1)>;
+def SM83_COND_NC : PatLeaf<(i8 2)>;
+def SM83_COND_C : PatLeaf<(i8 3)>;
+
+def rstvec : Operand<i16>, ImmLeaf<i16, [{
   return isShiftedUInt<3, 3>(Imm);
 }]> {
 }
@@ -74,18 +67,19 @@ def brtarget : Operand<OtherVT>;
 // LLVM likes to select instructions in the order it sees them;
 // but apparently it just doesn't like to load or
 // store via immediate addresses so these are useless
-let mayStore = 1 in
-def LDd16A : SM83Inst24<(outs), (ins direct16:$addr, RA:$a), "ld [$addr], $a",
-                        [(store RA:$a, direct16:$addr)]> {
+let Uses = [A], mayStore = 1 in
+def LDd16A : SM83Inst24<(outs), (ins direct16:$addr), "ld [$addr], a",
+                        [(store A, direct16:$addr)]> {
   bits<16> addr;
 
   let Inst{7-0} = 0xea;
   let Inst{23-8} = addr;
 }
 
-let mayLoad = 1 in
-def LDAd16 : SM83Inst24<(outs RA:$a), (ins direct16:$addr), "ld $a, [$addr]",
-                        [(set RA:$a, (load direct16:$addr))]> {
+// Why do I need Uses = []???
+let Uses = [], Defs = [A], mayLoad = 1 in
+def LDAd16 : SM83Inst24<(outs), (ins direct16:$addr), "ld a, [$addr]",
+                        [(set A, (i8 (load direct16:$addr)))]> {
   bits<16> addr;
 
   let Inst{7-0} = 0xfa;
@@ -110,14 +104,14 @@ def LDrrii : SM83Inst24<(outs S16:$dst), (ins imm16:$imm),
   let Inst{23-8} = imm;
 }
 
-let mayStore = 1 in {
-  def LDdHLIA : I8<0x22, "ld [$hl+], $a", [(set RHL:$hl, (post_store RA:$a, RHL:$dstp, 1))],
-                   (outs RHL:$hl), (ins RHL:$dstp, RA:$a)>;
-  def LDdHLDA : I8<0x32, "ld [$hl-], $a", [(set RHL:$hl, (post_store RA:$a, RHL:$dstp, -1))],
-                   (outs RHL:$hl), (ins RHL:$dstp, RA:$a)>;
+let Uses = [A], mayStore = 1 in {
+  def LDdHLIA : I8<0x22, "ld [$hl+], a", [(set RHL:$hl, (post_store A, RHL:$dstp, 1))],
+                   (outs RHL:$hl), (ins RHL:$dstp)>;
+  def LDdHLDA : I8<0x32, "ld [$hl-], a", [(set RHL:$hl, (post_store A, RHL:$dstp, -1))],
+                   (outs RHL:$hl), (ins RHL:$dstp)>;
 }
 
-let mayLoad = 1, Uses = [HL], Defs = [HL, A] in {
+let Uses = [HL], Defs = [HL, A], mayLoad = 1 in {
   // patterns can't have two outputs, so these will have to be selected manually
   // therefore, no reason to bother putting them into a form that suits automatic selection
   def LDAdHLI : I8<0x2a, "ld a, [hli]", []>;
@@ -187,31 +181,49 @@ def LDdHLi : SM83Inst16<(outs), (ins RHL:$hl, imm8:$imm), "ld [$hl], $imm",
 }
 
 // AddedComplexity > 0 makes the instruction more likely to be selected
-let Defs = [ZF, CF], AddedComplexity = 1, Constraints = "$dst = $a" in {
-  def RLCA : I8<0x07, "rlca", [(set RA:$dst, (rotl RA:$a, (i8 1)))],
-                (outs RA:$dst), (ins RA:$a)>;
-  def RRCA : I8<0x0f, "rrca", [(set RA:$dst, (rotr RA:$a, (i8 1)))],
-                (outs RA:$dst), (ins RA:$a)>;
+let Uses = [A], Defs = [A, ZF, CF], AddedComplexity = 1 in {
+  def RLCA : I8<0x07, "rlca", [(set A, (rotl A, (i8 1)))],
+                (outs), (ins)>;
+  def RRCA : I8<0x0f, "rrca", [(set A, (rotr A, (i8 1)))],
+                (outs), (ins)>;
 }
-let Defs = [ZF, CF], Constraints = "$dst = $a" in {
-  // these should really have patterns, but I can't find anything suitable
+let Uses = [A, CF], Defs = [A, ZF, CF] in {
   // NOTE: use these for 16-bit shift/rotate
-  def RLA : I8<0x17, "rla", [], (outs RA:$dst), (ins RA:$a)>;
-  def RRA : I8<0x1f, "rra", [], (outs RA:$dst), (ins RA:$a)>;
+
+  def RLA : I8<0x17, "rla",
+  [(set A,
+     (or
+       (shl A, (i8 1)),
+       (i8 (zext CF))
+     )
+   )], (outs), (ins)>;
+
+  def RRA : I8<0x1f, "rra",
+  [(set A,
+     (or
+       (srl A, (i8 1)),
+       (shl
+         (i8 (zext CF)),
+         (i8 7)
+       )
+     )
+   )], (outs), (ins)>;
 }
 
 // the one instruction that uses n and h
 let Uses = [AF], Defs = [AF] in
 def DAA : I8<0x27, "daa">;
 
-let Constraints = "$dst = $a" in
-def CPL : I8<0x2f, "cpl", [(set RA:$dst, (not RA:$a))],
-             (outs RA:$dst), (ins RA:$a)>;
+// doesn't set any "useful" flags
+let Uses = [A], Defs = [A] in
+def CPL : I8<0x2f, "cpl", [(set A, (not A))],
+             (outs), (ins)>;
 
-def SCF : I8<0x37, "scf", [(set CARRY:$cf, (i1 1))], (outs CARRY:$cf)>;
-let Constraints = "$dcf = $cf" in
-def CCF : I8<0x3f, "ccf", [(set CARRY:$dcf, (not CARRY:$cf))],
-             (outs CARRY:$dcf), (ins CARRY:$cf)>;
+let Defs = [CF] in {
+  def SCF : I8<0x37, "scf", [(set CF, (i1 1))]>;
+  let Uses = [CF] in
+  def CCF : I8<0x3f, "ccf", [(set CF, (not CF))]>;
+}
 
 let mayStore = 1, Uses = [SP] in
 def LDd16SP : SM83Inst24<(outs), (ins direct16:$addr), "ld [$addr], sp",
@@ -229,22 +241,17 @@ def JRr8 : SM83Inst16<(outs), (ins relbrtarget:$off), "jr $off", [(br bb:$off)]>
   let Inst{7-0} = 0x18;
   let Inst{15-8} = off;
 }
-let isTerminator = 1, isBranch = 1 in
-class JRc<bit n, string _n>
-  : SM83Inst16<(outs), (ins FLAGS:$c, relbrtarget:$off),
-               "jr " # _n # "$c, $off", [(brcond (xor FLAGS:$c, (not (i1 n))), bb:$off)]> {
-  bit c;
+let isTerminator = 1, isBranch = 1, Uses = [ZF, CF] in
+def JRccr8 : SM83Inst16<(outs), (ins condition:$cc, relbrtarget:$off),
+                        "jr $cc, $off", []> {
+  bits<2> cc;
   bits<8> off;
 
   let Inst{7-5} = 0b001;
-  let Inst{4} = c;
-  let Inst{3} = n;
+  let Inst{4-3} = cc;
   let Inst{2-0} = 0b000;
   let Inst{15-8} = off;
 }
-
-def JRcr8 : JRc<1, "">;
-def JRncr8 : JRc<0, "n">;
 
 let Defs = [CF], Constraints = "$dst = $hl" in
 def ADDHLrr : SM83Inst8<(outs RHL:$dst), (ins RHL:$hl, S16:$src), "add $hl, $src",
@@ -256,6 +263,7 @@ def ADDHLrr : SM83Inst8<(outs RHL:$dst), (ins RHL:$hl, S16:$src), "add $hl, $src
   let Inst{3-0} = 0b1001;
 }
 
+let isMoveReg = 1 in
 def LDrr : SM83Inst8<(outs GR8:$dst), (ins GR8:$src), "ld $dst, $src",
                      [(set GR8:$dst, GR8:$src)]> {
   bits<3> dst;
@@ -286,9 +294,9 @@ def LDrdHL : SM83Inst8<(outs GR8:$dst), (ins RHL:$hl), "ld $dst, [$hl]",
   let Inst{2-0} = 0b110;
 }
 
-let mayStore = 1 in
-def LDdrrA : SM83Inst8<(outs), (ins RA:$a, M16:$dstp), "ld [$dstp], $a",
-                       [(store RA:$a, M16:$dstp)]> {
+let Uses = [A], mayStore = 1 in
+def LDdrrA : SM83Inst8<(outs), (ins M16:$dstp), "ld [$dstp], a",
+                       [(store A, M16:$dstp)]> {
   bits<2> dstp;
 
   let Inst{7-6} = 0b00;
@@ -296,9 +304,9 @@ def LDdrrA : SM83Inst8<(outs), (ins RA:$a, M16:$dstp), "ld [$dstp], $a",
   let Inst{3-0} = 0b0010;
 }
 
-let mayLoad = 1 in
-def LDAdrr : SM83Inst8<(outs RA:$a), (ins M16:$srcp), "ld $a, [$srcp]",
-                       [(set RA:$a, (load M16:$srcp))]> {
+let Defs = [A], mayLoad = 1 in
+def LDAdrr : SM83Inst8<(outs), (ins M16:$srcp), "ld a, [$srcp]",
+                       [(set A, (load M16:$srcp))]> {
   bits<2> dstp;
 
   let Inst{7-6} = 0b00;
@@ -310,19 +318,18 @@ def LDAdrr : SM83Inst8<(outs RA:$a), (ins M16:$srcp), "ld $a, [$srcp]",
 let hasSideEffects = 1 in
 def HALT : I8<0x76, "halt">;
 
+let Uses = [A], Defs = [A, ZF, CF] in
 multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
-  let Constraints = "$dst = $a" in
-  def r : SM83Inst8<(outs RA:$dst), (ins RA:$a, GR8:$src), opstr # " $a, $src",
-                    [(set RA:$dst, (op RA:$a, GR8:$src))]> {
+  def r : SM83Inst8<(outs), (ins GR8:$src), opstr # " a, $src",
+                    [(set A, (op A, GR8:$src))]> {
     bits<3> src;
 
     let Inst{7-6} = 0b10;
     let Inst{5-3} = opc;
     let Inst{2-0} = src;
   }
-  let Constraints = "$dst = $a" in
-  def i : SM83Inst16<(outs RA:$dst), (ins RA:$a, imm8:$imm), opstr # " $a, $imm",
-                     [(set RA:$dst, (op RA:$a, imm8:$imm))]> {
+  def i : SM83Inst16<(outs), (ins imm8:$imm), opstr # " a, $imm",
+                     [(set A, (op A, imm8:$imm))]> {
     bits<8> imm;
 
     let Inst{7-6}  = 0b11;
@@ -331,9 +338,9 @@ multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
     let Inst{15-8} = imm;
   }
 
-  let mayLoad = 1, Constraints = "$dst = $a" in
-  def dHL : SM83Inst8<(outs RA:$dst), (ins RA:$a, RHL:$hl), opstr # " $a, [$hl]",
-                      [(set RA:$dst, (op RA:$a, (load RHL:$hl)))]> {
+  let mayLoad = 1 in
+  def dHL : SM83Inst8<(outs), (ins RHL:$hl), opstr # " a, [$hl]",
+                      [(set A, (op A, (load RHL:$hl)))]> {
     let Inst{7-6} = 0b10;
     let Inst{5-3} = opc;
     let Inst{2-0} = 0b110;
@@ -341,22 +348,19 @@ multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
 }
 
 
+defm ADD : mALU<"add", 0b000, add>;
+defm SUB : mALU<"sub", 0b010, sub>;
+defm AND : mALU<"and", 0b100, and>;
+defm XOR : mALU<"xor", 0b101, xor>;
+defm OR : mALU<"or", 0b110, or>;
 
-let Defs = [ZF, CF] in {
-  defm ADD : mALU<"add", 0b000, add>;
-  defm SUB : mALU<"sub", 0b010, sub>;
-  defm AND : mALU<"and", 0b100, and>;
-  defm XOR : mALU<"xor", 0b101, xor>;
-  defm OR : mALU<"or", 0b110, or>;
-
-  let Uses = [CF] in {
-    // Why can't these be selected? Sigh.
-    defm ADC : mALU<"adc", 0b001>;
-    defm SBC : mALU<"sbc", 0b011>;
-  }
+let Uses = [A, CF] in {
+  // Why can't these be selected? Sigh.
+  defm ADC : mALU<"adc", 0b001>;
+  defm SBC : mALU<"sbc", 0b011>;
 }
 
-let isReturn = 1, isTerminator = 1, Uses = [CF, ZF] in
+let isReturn = 1, isTerminator = 1, Uses = [ZF, CF] in
 def RETcc : SM83Inst8<(outs), (ins condition:$cc), "ret $cc", []> {
   bits<2> cc;
 
@@ -371,28 +375,27 @@ let isReturn = 1, isTerminator = 1, isBarrier = 1 in {
   def RETI : I8<0xd9, "reti">;
 }
 
-let mayStore = 1, AddedComplexity = 1 in
-def LDHd8A : SM83Inst16<(outs), (ins RA:$a, direct8:$addr), "ldh [$addr], $a",
-                        [(store RA:$a, direct8:$addr)]> {
+let Uses = [A], mayStore = 1, AddedComplexity = 1 in
+def LDHd8A : SM83Inst16<(outs), (ins direct8:$addr), "ldh [$addr], a",
+                        [(store A, direct8:$addr)]> {
   bits<16> addr;
   let Inst{7-0} = 0b11100000;
   let Inst{15-8} = addr{7-0};
 }
-let mayLoad = 1, AddedComplexity = 1 in
-def LDHAd8 : SM83Inst16<(outs RA:$a), (ins direct8:$addr), "ldh $a, [$addr]",
-                        [(set RA:$a, (load direct8:$addr))]> {
+let Defs = [A], mayLoad = 1, AddedComplexity = 1 in
+def LDHAd8 : SM83Inst16<(outs), (ins direct8:$addr), "ldh a, [$addr]",
+                        [(set A, (load direct8:$addr))]> {
   bits<16> addr;
   let Inst{7-0} = 0b11110000;
   let Inst{15-8} = addr{7-0};
 }
 
-// TODO: make the code generator actually use these
-let mayStore = 1 in
-def LDHdCA : I8<0xe2, "ldh [$c], $a", [], (outs), (ins RA:$a, RC:$c)>;
-let mayLoad = 1 in
-def LDHAdC : I8<0xf2, "ldh $a, [$c]", [], (outs RA:$a), (ins RC:$c)>;
+let Uses = [A], mayStore = 1 in
+def LDHdCA : I8<0xe2, "ldh [$c], a", [(store A, (addrspacecast RC:$c))], (outs), (ins RC:$c)>;
+let Defs = [A], mayLoad = 1 in
+def LDHAdC : I8<0xf2, "ldh a, [$c]", [(set A, (load (addrspacecast RC:$c)))], (outs), (ins RC:$c)>;
 
-let Defs = [SP] in {
+let Uses = [SP], Defs = [SP] in {
   let mayLoad = 1, mayStore = 1 in
   def POPrr : SM83Inst8<(outs P16:$dst), (ins), "pop $dst", []> {
     bits<2> dst;
@@ -412,21 +415,15 @@ let Defs = [SP] in {
   }
 }
 
-let isBranch = 1, isTerminator = 1 in
-class JPcc<bit n, string _n>
- : SM83Inst24<(outs), (ins FLAGS:$c, brtarget:$addr),
-              "jp " # _n # "$c, $addr", [(brcond (xor FLAGS:$c, (not (i1 n))), bb:$addr)]> {
-  bit cc;
+let Uses = [ZF, CF], isBranch = 1, isTerminator = 1 in
+def JPcc : SM83Inst24<(outs), (ins condition:$cc, brtarget:$addr), "jp $cc, $addr", []> {
+  bits<2> cc;
   bits<16> addr;
 
   let Inst{7-5} = 0b110;
-  let Inst{4} = cc;
-  let Inst{3} = n;
+  let Inst{4-3} = cc;
   let Inst{2-0} = 0b010;
 }
-
-def JPnccd16 : JPcc<0, "n">;
-def JPccd16 : JPcc<1, "">;
 
 let isBranch = 1, isTerminator = 1, isBarrier = 1 in
 def JPd16 : SM83Inst24<(outs), (ins brtarget:$addr), "jp $addr", [(br bb:$addr)]> {
@@ -443,7 +440,7 @@ let hasSideEffects = 1 in {
 
 let isCall = 1 in {
   def CALLccd16 : SM83Inst24<(outs), (ins condition:$cc, brtarget:$addr),
-                             "call $addr", []> {
+                             "call $cc, $addr", []> {
     bits<2> cc;
     bits<16> addr;
 
@@ -463,8 +460,7 @@ let isCall = 1 in {
 }
 
 let Uses = [SP], Defs = [SP, ZF, CF] in
-def ADDSPs8 : SM83Inst16<(outs), (ins simm8:$s8), "add sp, $s8",
-                         []> {
+def ADDSPs8 : SM83Inst16<(outs), (ins simm8:$s8), "add sp, $s8", []> {
   bits<8> s8;
 
   let Inst{7-0} = 0xe8;
@@ -494,8 +490,13 @@ def RST : SM83Inst8<(outs), (ins rstvec:$vec), "rst $vec", []> {
   let Inst{2-0} = 0b111;
 }
 
+// XXX: this assumes that rst 38 is always an error handler
+let isCall = 1, isTrap = 1 in
+def RST38cc : SM83Inst8<(outs), (ins condition:$cc), "jr $cc, @-1", []>;
+
+let Defs = [ZF, CF] in
 multiclass mBIT<string opstr, bits<3> opc, SDPatternOperator op = null_frag, int n = 1> {
-  let Constraints = "$src = $dst", Defs = [ZF, CF] in
+  let Constraints = "$src = $dst" in
   def r : CB<(outs GR8:$dst), (ins GR8:$src), opstr # " $dst",
              [(set GR8:$dst, (op GR8:$src, (i8 n)))]> {
     bits<3> dst;
@@ -505,7 +506,7 @@ multiclass mBIT<string opstr, bits<3> opc, SDPatternOperator op = null_frag, int
     let Inst{2-0} = dst;
   }
 
-  let Defs = [ZF, CF], mayLoad = 1, mayStore = 1 in
+  let mayLoad = 1, mayStore = 1 in
   def dHL : CB<(outs), (ins RHL:$hl), opstr # " [$hl]",
              [(store (op (i8 (load RHL:$hl)), (i8 n)), RHL:$hl)]> {
     let Inst{7-6} = 0b00;
