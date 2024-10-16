@@ -380,6 +380,7 @@ StringRef Triple::getObjectFormatTypeName(ObjectFormatType Kind) {
   case XCOFF: return "xcoff";
   case DXContainer: return "dxcontainer";
   case SPIRV: return "spirv";
+  case RGB9: return "rgb9";
   }
   llvm_unreachable("unknown object format type");
 }
@@ -613,7 +614,7 @@ static Triple::ArchType parseArch(StringRef ArchName) {
                  "dxilv1.4", "dxilv1.5", "dxilv1.6", "dxilv1.7", "dxilv1.8",
                  Triple::dxil)
           .Case("xtensa", Triple::xtensa)
-          .Case("sm83", Triple::sm83);
+          .Case("sm83", Triple::sm83)
           .Default(Triple::UnknownArch);
 
   // Some architectures require special parsing logic just to compute the
@@ -987,8 +988,6 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
 
   case Triple::dxil:
     return Triple::DXContainer;
-
-    return Triple::UnknownObjectFormat;
   }
   llvm_unreachable("unknown architecture");
 }
