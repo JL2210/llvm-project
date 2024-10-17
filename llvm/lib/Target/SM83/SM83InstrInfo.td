@@ -76,8 +76,7 @@ def LDd16A : SM83Inst24<(outs), (ins direct16:$addr), "ld [$addr], a",
   let Inst{23-8} = addr;
 }
 
-// Why do I need Uses = []???
-let Uses = [], Defs = [A], mayLoad = 1 in
+let Defs = [A], mayLoad = 1 in
 def LDAd16 : SM83Inst24<(outs), (ins direct16:$addr), "ld a, [$addr]",
                         [(set A, (i8 (load direct16:$addr)))]> {
   bits<16> addr;
@@ -182,10 +181,8 @@ def LDdHLi : SM83Inst16<(outs), (ins RHL:$hl, imm8:$imm), "ld [$hl], $imm",
 
 // AddedComplexity > 0 makes the instruction more likely to be selected
 let Uses = [A], Defs = [A, ZF, CF], AddedComplexity = 1 in {
-  def RLCA : I8<0x07, "rlca", [(set A, (rotl A, (i8 1)))],
-                (outs), (ins)>;
-  def RRCA : I8<0x0f, "rrca", [(set A, (rotr A, (i8 1)))],
-                (outs), (ins)>;
+  def RLCA : I8<0x07, "rlca", [(set A, (rotl A, (i8 1)))]>;
+  def RRCA : I8<0x0f, "rrca", [(set A, (rotr A, (i8 1)))]>;
 }
 let Uses = [A, CF], Defs = [A, ZF, CF] in {
   // NOTE: use these for 16-bit shift/rotate
@@ -318,35 +315,35 @@ def LDAdrr : SM83Inst8<(outs), (ins M16:$srcp), "ld a, [$srcp]",
 let hasSideEffects = 1 in
 def HALT : I8<0x76, "halt">;
 
-let Uses = [A], Defs = [A, ZF, CF] in
-multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
-  def r : SM83Inst8<(outs), (ins GR8:$src), opstr # " a, $src",
-                    [(set A, (op A, GR8:$src))]> {
-    bits<3> src;
+let Uses = [A], Defs = [A, ZF, CF] in {
+  multiclass mALU<string opstr, bits<3> opc, SDPatternOperator op = null_frag> {
+    def r : SM83Inst8<(outs), (ins GR8:$src), opstr # " a, $src",
+                      [(set A, (op A, GR8:$src))]> {
+      bits<3> src;
 
-    let Inst{7-6} = 0b10;
-    let Inst{5-3} = opc;
-    let Inst{2-0} = src;
-  }
-  def i : SM83Inst16<(outs), (ins imm8:$imm), opstr # " a, $imm",
-                     [(set A, (op A, imm8:$imm))]> {
-    bits<8> imm;
+      let Inst{7-6} = 0b10;
+      let Inst{5-3} = opc;
+      let Inst{2-0} = src;
+    }
+    def i : SM83Inst16<(outs), (ins imm8:$imm), opstr # " a, $imm",
+                       [(set A, (op A, imm8:$imm))]> {
+      bits<8> imm;
 
-    let Inst{7-6}  = 0b11;
-    let Inst{5-3}  = opc;
-    let Inst{2-0}  = 0b110;
-    let Inst{15-8} = imm;
-  }
+      let Inst{7-6}  = 0b11;
+      let Inst{5-3}  = opc;
+      let Inst{2-0}  = 0b110;
+      let Inst{15-8} = imm;
+    }
 
-  let mayLoad = 1 in
-  def dHL : SM83Inst8<(outs), (ins RHL:$hl), opstr # " a, [$hl]",
-                      [(set A, (op A, (load RHL:$hl)))]> {
-    let Inst{7-6} = 0b10;
-    let Inst{5-3} = opc;
-    let Inst{2-0} = 0b110;
+    let mayLoad = 1 in
+    def dHL : SM83Inst8<(outs), (ins RHL:$hl), opstr # " a, [$hl]",
+                        [(set A, (op A, (load RHL:$hl)))]> {
+      let Inst{7-6} = 0b10;
+      let Inst{5-3} = opc;
+      let Inst{2-0} = 0b110;
+    }
   }
 }
-
 
 defm ADD : mALU<"add", 0b000, add>;
 defm SUB : mALU<"sub", 0b010, sub>;

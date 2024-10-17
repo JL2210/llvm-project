@@ -26,19 +26,19 @@ def SM83RegInfo16 : RegInfoByHwMode<[DefaultMode], [RegInfo<16, 16, 8>]>;
 // TODO: useful fields: AltOrders, AllocationPriority, GlobalPriority
 
 class SM83RegClass1<dag regList> : RegisterClass<"SM83", [i1], 8, regList> {
-//  let /*Spill*/Size = 16;
-//  let isAllocatable = 0;
-//  let RegInfos = SM83RegInfo1;
+  let /*Spill*/Size = 16;
+  let isAllocatable = 0;
+  let RegInfos = SM83RegInfo1;
 }
 
 class SM83RegClass8<dag regList> : RegisterClass<"SM83", [i8], 8, regList> {
-//  let /*Spill*/Size = 16;
-//  let RegInfos = SM83RegInfo8;
+  let /*Spill*/Size = 16;
+  let RegInfos = SM83RegInfo8;
 }
 
 class SM83RegClass16<dag regList> : RegisterClass<"SM83", [i16], 8, regList> {
-//  let /*Spill*/Size = 16;
-//  let RegInfos = SM83RegInfo16;
+  let /*Spill*/Size = 16;
+  let RegInfos = SM83RegInfo16;
 }
 
 // Subregister indices.

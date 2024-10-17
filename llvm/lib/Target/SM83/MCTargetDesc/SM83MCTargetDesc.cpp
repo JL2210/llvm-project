@@ -13,6 +13,7 @@
 #include "SM83MCTargetDesc.h"
 #include "SM83InstPrinter.h"
 #include "SM83MCAsmInfo.h"
+#include "MCTargetDesc/SM83BaseInfo.h"
 #include "TargetInfo/SM83TargetInfo.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCInstrInfo.h"

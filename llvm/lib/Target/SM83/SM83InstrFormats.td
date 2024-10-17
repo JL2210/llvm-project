@@ -7,7 +7,6 @@
 //===----------------------------------------------------------------------===//
 
 // generic SM83 instruction
-let mayLoad = 0, mayStore = 0, hasSideEffects = 0 in
 class SM83Instruction<dag outs, dag ins, string asmstr, list<dag> pattern>
   : Instruction {
   let Namespace = "SM83";
@@ -16,11 +15,16 @@ class SM83Instruction<dag outs, dag ins, string asmstr, list<dag> pattern>
   dag InOperandList = ins;
   let AsmString = asmstr;
   let Pattern = pattern;
+
+  let hasSideEffects = 0;
+  let mayLoad = 0;
+  let mayStore = 0;
 }
 
-let isPseudo = 1, isCodeGenOnly = 1 in
 class Pseudo<dag outs, dag ins, list<dag> pattern, string asmstr = "">
   : SM83Instruction<outs, ins, asmstr, pattern> {
+  let isPseudo = 1;
+  let isCodeGenOnly = 1;
 }
 
 class SM83Inst8<dag outs, dag ins, string asmstr, list<dag> pattern>

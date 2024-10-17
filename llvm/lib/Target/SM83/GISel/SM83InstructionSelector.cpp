@@ -56,7 +56,7 @@ private:
   const SM83InstrInfo &TII;
   const SM83RegisterInfo &TRI;
   const SM83RegisterBankInfo &RBI;
-//  bool selectCopy(MachineInstr &I, MachineRegisterInfo &MRI) const;
+  bool selectCopy(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectImpl(MachineInstr &I, CodeGenCoverage &CoverageInfo) const;
   bool selectConstant(MachineInstr &I, MachineRegisterInfo &MRI) const;
   bool selectMergeUnmergeValues(MachineInstr &I, MachineRegisterInfo &MRI) const;
@@ -145,7 +145,6 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
   case TargetOpcode::G_UNMERGE_VALUES:
     return selectMergeUnmergeValues(I, MRI);
   case TargetOpcode::G_SEXT:
-
     return selectSignedExtend(I, MRI);
   case TargetOpcode::G_ICMP:
     return selectCompare(I, MRI);
@@ -168,11 +167,18 @@ bool SM83InstructionSelector::select(MachineInstr &I) {
   }
 }
 
-//bool SM83InstructionSelector::selectCopy(MachineInstr &I,
-//                                         MachineRegisterInfo &MRI) const {
-//  I.setDesc(TII.get(SM83::COPY));
-//  return constrainSelectedInstRegOperands(I, TII, TRI, RBI);
-//}
+bool SM83InstructionSelector::selectCopy(MachineInstr &I,
+                                         MachineRegisterInfo &MRI) const {
+  Register Dst = I.getOperand(0).getReg();
+  Register Src = I.getOperand(1).getReg();
+  unsigned DstSize = RBI.getSizeInBits(Dst, MRI, TRI);
+  unsigned SrcSize = RBI.getSizeInBits(Src, MRI, TRI);
+  if(DstSize != SrcSize) {
+    return false;
+  }
+  I.setDesc(TII.get(SM83::COPY));
+  return constrainSelectedInstRegOperands(I, TII, TRI, RBI);
+}
 
 bool SM83InstructionSelector::selectConstant(MachineInstr &I,
                                              MachineRegisterInfo &MRI) const {
