@@ -34,13 +34,11 @@ public:
 
   void printSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
                             raw_ostream &OS,
-                            const MCExpr *Subsection) const override;
+                            uint32_t Subsection) const override;
 
   StringRef getName() const { return Name; }
 
   bool useCodeAlign() const override { return false; }
-
-  bool isVirtualSection() const override;
 
   static bool classof(const MCSection *S) { return S->getVariant() == SV_RGB9; }
 }; // MCSectionRGB9

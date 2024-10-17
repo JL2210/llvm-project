@@ -19,9 +19,9 @@ add_public_tablegen_target(SM83CommonTableGen)
 
 add_llvm_target(SM83CodeGen
   GISel/SM83CallLowering.cpp
-  GISel/SM83PreLegalizerCombiner.cpp
-  GISel/SM83O0PreLegalizerCombiner.cpp
   GISel/SM83LegalizerInfo.cpp
+  GISel/SM83O0PreLegalizerCombiner.cpp
+  GISel/SM83PreLegalizerCombiner.cpp
   GISel/SM83RegisterBankInfo.cpp
   GISel/SM83InstructionSelector.cpp
   SM83AsmPrinter.cpp
@@ -34,10 +34,11 @@ add_llvm_target(SM83CodeGen
   SM83TargetMachine.cpp
 
   LINK_COMPONENTS
+  Analysis
   AsmPrinter
-  Core
   CodeGen
   CodeGenTypes
+  Core
   GlobalISel
   MC
   SM83Desc
@@ -48,7 +49,7 @@ add_llvm_target(SM83CodeGen
 
   ADD_TO_COMPONENT
   SM83
-  )
+)
 
 add_subdirectory(TargetInfo)
 add_subdirectory(MCTargetDesc)

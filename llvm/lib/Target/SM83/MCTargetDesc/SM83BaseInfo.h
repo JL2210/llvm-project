@@ -21,7 +21,7 @@ namespace SM83 {
 
 enum OperandType : unsigned {
   OPERAND_CONDITION = MCOI::OPERAND_FIRST_TARGET,
-}
+};
 
 enum Condition {
   COND_NZ = 0,

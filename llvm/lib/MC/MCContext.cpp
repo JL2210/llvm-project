@@ -271,8 +271,6 @@ MCSymbol *MCContext::createSymbolImpl(const MCSymbolTableEntry *Name,
                 "MCSymbol classes must be trivially destructible");
   static_assert(std::is_trivially_destructible<MCSymbolXCOFF>(),
                 "MCSymbol classes must be trivially destructible");
-  static_assert(std::is_trivially_destructible<MCSymbolRGB9>(),
-                "MCSymbol classes must be trivially destructible");
 
   switch (getObjectFileType()) {
   case MCContext::IsCOFF:
@@ -703,13 +701,12 @@ MCSectionGOFF *MCContext::getGOFFSection(StringRef Section, SectionKind Kind,
 MCSectionRGB9 *MCContext::getRGB9Section(StringRef Section, SectionKind Kind,
                                          const char *BeginSymName) {
   // Do the lookup. If we have a hit, return it.
-  RGB9SectionKey T{Section};
-  auto IterBool = RGB9UniquingMap.insert(std::make_pair(T, nullptr));
+  auto IterBool = RGB9UniquingMap.insert(std::make_pair(Section, nullptr));
   auto Iter = IterBool.first;
   if (!IterBool.second)
     return Iter->second;
 
-  StringRef CachedName = Iter->first.SectionName;
+  StringRef CachedName = Iter->first();
 
   MCSymbol *Begin = nullptr;
   if (BeginSymName)

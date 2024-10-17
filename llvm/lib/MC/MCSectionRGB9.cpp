@@ -50,9 +50,7 @@ void MCSectionRGB9::constructRAMSection(StringRef Section, StringRef Name, Secti
 }
 
 MCSectionRGB9::MCSectionRGB9(StringRef Name, SectionKind K, MCSymbol *Begin)
-  : MCSection(SV_RGB9, Name,
-// next rebase: K.isText(), /*isVirtual=*/K.isBSS(),
-    K, Begin), Kind(K) {
+  : MCSection(SV_RGB9, Name, K.isText(), /*isVirtual=*/K.isBSS(), Begin), Kind(K) {
   if(K.isText()) constructROMSection(".text", Name, K);
   else if(K.isReadOnly()) constructROMSection(".rodata", Name, K);
   else if(K.isBSS()) constructRAMSection(".bss", Name, K);
@@ -63,7 +61,7 @@ MCSectionRGB9::MCSectionRGB9(StringRef Name, SectionKind K, MCSymbol *Begin)
 
 void MCSectionRGB9::printSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
                                          raw_ostream &OS,
-                                         const MCExpr *Subsection) const {
+                                         uint32_t Subsection) const {
   OS << "\tSECTION FRAGMENT\t\"" << getName() << (Kind.isData() ? ".ro" : "") << "\", ";
   OS << Type;
   if(0 && bank) {
@@ -82,8 +80,4 @@ void MCSectionRGB9::printSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
   if(Subsection) {
     report_fatal_error("PrintSwitchToSection can't handle subsections");
   }
-}
-
-bool MCSectionRGB9::isVirtualSection() const {
-  return Kind.isBSS(); // TODO: should check Type
 }
