@@ -41,7 +41,8 @@ SM83InstrInfo::SM83InstrInfo(const SM83Subtarget &STI)
 void SM83InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator MI,
                                 const DebugLoc &DL, MCRegister DstReg,
-                                MCRegister SrcReg, bool KillSrc) const {
+                                MCRegister SrcReg, bool KillSrc,
+                                bool RenamableDest, bool RenamableSrc) const {
   auto &r8 = SM83::GR8RegClass, &r16 = SM83::GR16RegClass;
 
   if (DstReg == SrcReg)
@@ -50,16 +51,16 @@ void SM83InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   if (r8.contains(DstReg, SrcReg)) {
     // easy copy
     MachineInstrBuilder MIB = BuildMI(MBB, MI, DL, get(SM83::LDrr));
-    MIB.addReg(DstReg, RegState::Define)
-        .addReg(SrcReg, getKillRegState(KillSrc));
+    MIB.addReg(DstReg, RegState::Define | getRenamableRegState(RenamableDest))
+        .addReg(SrcReg, getKillRegState(KillSrc) | getRenamableRegState(RenamableSrc));
   } else if (r16.contains(DstReg, SrcReg)) {
     // split up
     MCRegister DstLoReg = RI.getSubReg(DstReg, SM83::sub_low);
     MCRegister SrcLoReg = RI.getSubReg(SrcReg, SM83::sub_low);
     MCRegister DstHiReg = RI.getSubReg(DstReg, SM83::sub_high);
     MCRegister SrcHiReg = RI.getSubReg(SrcReg, SM83::sub_high);
-    copyPhysReg(MBB, MI, DL, DstLoReg, SrcLoReg, KillSrc);
-    copyPhysReg(MBB, MI, DL, DstHiReg, SrcHiReg, KillSrc);
+    copyPhysReg(MBB, MI, DL, DstLoReg, SrcLoReg, KillSrc, RenamableDest, RenamableSrc);
+    copyPhysReg(MBB, MI, DL, DstHiReg, SrcHiReg, KillSrc, RenamableDest, RenamableSrc);
     --MI;                                // set attributes on last copy
     MI->addRegisterDefined(DstReg, &RI); // the destination is always defined
     if (KillSrc) {
@@ -85,6 +86,7 @@ bool SM83InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   return true;
 }
 
+[[maybe_unused]]
 static int CurFrameIdx = 0;
 
 void SM83InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,

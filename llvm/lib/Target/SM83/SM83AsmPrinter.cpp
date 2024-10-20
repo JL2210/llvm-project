@@ -41,8 +41,7 @@ public:
 
   void emitInstruction(const MachineInstr *MI) override;
 
-  bool emitPseudoExpansionLowering(MCStreamer &OutStreamer,
-                                   const MachineInstr *MI);
+  bool lowerPseudoInstExpansion(const MachineInstr *MI, MCInst &Inst);
 };
 } // namespace
 
@@ -52,8 +51,10 @@ public:
 
 void SM83AsmPrinter::emitInstruction(const MachineInstr *MI) {
   // Do any auto-generated pseudo lowerings.
-  if (emitPseudoExpansionLowering(*OutStreamer, MI))
+  if (MCInst OutInst; lowerPseudoInstExpansion(MI, OutInst)) {
+    EmitToStreamer(*OutStreamer, OutInst);
     return;
+  }
 
   MCInst TmpInst;
   MCInstLowering.Lower(MI, TmpInst);
